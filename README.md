@@ -1,1 +1,1 @@
-## Azure-Scanned-File-Transfer
+## Azure Scanned SFTP
