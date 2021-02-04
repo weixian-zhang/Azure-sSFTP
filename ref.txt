@@ -1,0 +1,16 @@
+https://github.com/atmoz/sftp
+
+deploy aci in vnet via yaml
+https://docs.microsoft.com/en-us/azure/container-instances/container-instances-vnet#next-steps
+
+deploy container group yaml
+https://docs.microsoft.com/en-us/azure/container-instances/container-instances-multi-container-yaml#configure-a-yaml-file
+
+stackoverflow - atmos/sftp
+https://stackoverflow.com/questions/60765392/how-to-mount-docker-container-home-directory-to-azure-storage
+
+mount volumes
+https://docs.microsoft.com/en-us/azure/container-instances/container-instances-volume-azure-files#deploy-container-and-mount-volume---yaml
+
+#Go ClamAV library
+https://github.com/baruwa-enterprise/clamd
