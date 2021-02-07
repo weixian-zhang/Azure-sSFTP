@@ -1,8 +1,8 @@
 package main
 
 import (
-	//"os"
-
+	"fmt"
+	"encoding/json"
 	// "github.com/sirupsen/logrus"
 	// log "github.com/sirupsen/logrus"
 	
@@ -37,12 +37,25 @@ func (lc LogClient) Info(msg string) {
 	logInfoToSinks(msg)
 }
 
-func (lc LogClient) ErrIf(err error) {
+//Infof logs string message in fmt.Sprintf format
+func (lc LogClient) Infof(msg string, val ...string) {
+	logInfoToSinks(fmt.Sprintf(msg, val))
+}
+
+func (lc LogClient) ErrIf(err error) (bool) {
 	if err != nil {
 		logErrToSinks(err)
+		return true
+	} else {
+		return false
 	}
 }
 
+//InfoStruct marshals struct to json strings before logging to all sinks
+func (lc LogClient) InfoStruct(p interface{}) {
+	j, _ := json.Marshal(p)
+	logInfoToSinks(string(j))
+}
 
 func logInfoToSinks(msg string) {
 	for _, v := range logsinks {

@@ -2,15 +2,16 @@ package main
 
 import (
 	"os"
+	"fmt"
 )
 
 type StdClient struct {}
 
 func (stdl StdClient) Info(msg string) {
-	os.Stdout.Write([]byte(msg))
+	fmt.Fprintf(os.Stdout, msg)
 }
 
 func (stdl StdClient) Err(err error) {
-	os.Stderr.Write([]byte(err.Error()))
+	fmt.Fprintf(os.Stderr, err.Error() )
 }
 

@@ -10,7 +10,11 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/ssftp",
-            "env": {},
+            "env": {
+                "stagingPath": "C:/Users/weixzha/Desktop/staging",
+                "cleanPath": "C:/Users/weixzha/Desktop/clean",
+                "quarantinePath": "C:/Users/weixzha/Desktop/quaratine"
+            },
             "args": []
         },
     ]

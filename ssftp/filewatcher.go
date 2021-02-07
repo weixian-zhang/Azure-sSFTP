@@ -2,51 +2,64 @@ package main
 
 import (
 	"path/filepath"
-
+	//"log"
 	"github.com/fsnotify/fsnotify"
 )
 
-func StartWatch(clamav ClamAv, dirPathToWatch string) {
-
-	watcher, err := fsnotify.NewWatcher()
-	logclient.ErrIf(err)
-	defer watcher.Close()
-
-	exit := make(chan bool) //never set it to exit
-
-	go onWatcherEventFired(watcher, clamav)
-
-	watcher.Add(dirPathToWatch)
-	
-	<- exit
+type File struct {
+	Path string
+	Operation string
 }
 
-func onWatcherEventFired(watcher *fsnotify.Watcher, clamav ClamAv) {
+type FileWatcher struct {
+	watcher *fsnotify.Watcher
+	fileCreateEvent chan File
+}
+
+func NewFileWatcher() (FileWatcher, error) {
+	watcher, err := fsnotify.NewWatcher()
+	logclient.ErrIf(err)
+
+	fileChan := make(chan File)
+	return FileWatcher{
+		watcher: watcher,
+		fileCreateEvent: fileChan,
+	}, err
+}
+
+//startWatch goes into a control loop to continuously watch for newly created files
+func (fw FileWatcher) startWatch(dirPathToWatch string) {
+
+	//defer fw.watcher.Close()
+
+	go fw.onWatcherEventFired()
+
+	path := filepath.FromSlash(dirPathToWatch)
+
+	err := fw.watcher.Add(path)
+	logclient.ErrIf(err)
+
+}
+
+func (fw FileWatcher) onWatcherEventFired() {
 
 	for {
 
 		select {
 
-			case watcherEvent := <- watcher.Events:
+			//case watchErr := <- fw.watcher.Errors:
+				
+			case watcherEvent := <- fw.watcher.Events:
 
 				//only watch for create event
-				if watcherEvent.Op == fsnotify.Create {
+				if !isDir(watcherEvent.Name) && watcherEvent.Op == fsnotify.Create {
 					
-					scanR := make(chan ClamAvScanResult)
-
-					filePath := filepath.FromSlash(watcherEvent.Name)
-
-					go clamav.ScanFile(filePath, scanR)
-
-					processScanResult(<- scanR)
+					fw.fileCreateEvent <- File{
+						Path: watcherEvent.Name, 
+						Operation: watcherEvent.Op.String(),
+					}
 				}
 		}
 	}
-}
-
-func processScanResult(result ClamAvScanResult) {
-
-	//TODO: 
-
 }
 
