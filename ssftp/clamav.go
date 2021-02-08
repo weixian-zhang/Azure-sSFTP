@@ -4,7 +4,6 @@ import (
 	"os"
 	"github.com/dutchcoders/go-clamd"
 	"fmt"
-	"encoding/json"
 	"bufio"
 )
 

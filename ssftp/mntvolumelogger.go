@@ -5,7 +5,9 @@ import (
 	"fmt"
 )
 
-type MountVolLogClient struct {}
+type MountVolLogClient struct {
+	logDir string
+}
 
 func (mvc MountVolLogClient) Info(msg string) {
 	fmt.Fprintf(os.Stdout, msg)

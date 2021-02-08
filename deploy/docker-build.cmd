@@ -1,0 +1,1 @@
+docker build  --no-cache -f ../ssftp/Dockerfile -t wxzd/ssftp:0.1 ../

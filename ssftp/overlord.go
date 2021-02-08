@@ -19,7 +19,6 @@ func NewOverlord() (Overlord, error) {
 		return Overlord{}, err
 	}
 
-
 	clamav, cerr := NewClamAvClient()
 	if isErr(cerr) {
 		return Overlord{}, cerr
@@ -29,8 +28,6 @@ func NewOverlord() (Overlord, error) {
 	if isErr(ferr) {
 		return Overlord{}, ferr
 	}
-
-	createErrorDirIfNotExist(conf.errorPath)
 
 	return Overlord{
 		config: conf,
@@ -83,7 +80,7 @@ func (overlord Overlord) moveFileByStatus(scanR ClamAvScanResult) {
 			return
 		}
 
-		logclient.Infof("moving file %s to %s", scanR.fileName, cleanPath)
+		logclient.Infof("moving clean file %s to %s", scanR.fileName, cleanPath)
 
 	} else if scanR.Status == Virus {
 
@@ -92,6 +89,9 @@ func (overlord Overlord) moveFileByStatus(scanR ClamAvScanResult) {
 			return
 		}
 
+		logclient.Infof("Virus found on %s, moving file to %s", scanR.fileName, quarantinePath)
+
+		//TODO: trigger webhook
 	}
 }
 

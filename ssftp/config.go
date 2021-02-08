@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"os"
-	"path/filepath"
 )
 
 type Config struct {
@@ -11,6 +10,8 @@ type Config struct {
 	cleanPath string
 	quarantinePath string
 	errorPath string
+	logPath string
+	virusFoundWebhookUrl string
 }
 
 func NewConfig() (Config, error) {
@@ -18,12 +19,13 @@ func NewConfig() (Config, error) {
 		stagingPath: os.Getenv("stagingPath"),
 		cleanPath: os.Getenv("cleanPath"),
 		quarantinePath: os.Getenv("quarantinePath"),
-		errorPath: "",
+		errorPath: os.Getenv("errorPath"),
+		logPath: os.Getenv("logPath"),
+		virusFoundWebhookUrl: os.Getenv("virusFoundWebhookUrl"),
 	}
-	conf.errorPath = filepath.Join(conf.stagingPath, "error")
 
-	if conf.stagingPath == "" || conf.cleanPath == "" || conf.quarantinePath == "" {
-		err := errors.New("Environment variables missing for stagingPath, cleanPath or quarantinePath")
+	if conf.stagingPath == "" || conf.cleanPath == "" || conf.quarantinePath == "" || conf.errorPath == "" {
+		err := errors.New("Environment variables missing for stagingPath, cleanPath, quarantinePath or errorPath")
 		logclient.ErrIf(err)
 		return conf, err
 	}

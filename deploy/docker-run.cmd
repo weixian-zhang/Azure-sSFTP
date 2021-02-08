@@ -1,0 +1,1 @@
+docker run --env stagingPath=C:\ssftp\staging --env cleanPath=C:\ssftp\clean --env quarantinePath=C:\ssftp\quarantine --env errorPath=C:\ssftp\error --env logPath=C:\ssftp\log wxzd/ssft:0.1

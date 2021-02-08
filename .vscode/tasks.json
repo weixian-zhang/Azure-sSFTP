@@ -14,5 +14,38 @@
             },
             "problemMatcher": []
         },
+        {
+            "label": "Docker Build sSFTP",
+            "command": "docker-build.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker Run sSFTP",
+            "command": "docker-run.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker Remove sSFTP",
+            "command": "docker-remove.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
     ]
 }
