@@ -9,13 +9,18 @@ type Overlord struct {
 	config      Config
 	clamav      ClamAv
 	fileWatcher FileWatcher
-	azfile      Azfile
 }
 
 func NewOverlord() (Overlord, error) {
 	
 	conf, err := NewConfig()
 	if isErr(err) {
+		return Overlord{}, err
+	}
+
+	afs :=  NewAzFileClient(conf)
+	fserr := afs.createFileShares()
+	if isErr(fserr) {
 		return Overlord{}, err
 	}
 

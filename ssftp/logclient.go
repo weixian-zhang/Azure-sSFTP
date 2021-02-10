@@ -17,7 +17,7 @@ type LogSink interface {
 
 type LogClient struct {}
 
-type logrusHook struct{}
+// type logrusHook struct{}
 
 type IOWriteToString struct {}
 

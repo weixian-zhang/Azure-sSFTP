@@ -11,9 +11,13 @@
             "mode": "auto",
             "program": "${workspaceFolder}/ssftp",
             "env": {
-                "stagingPath": "C:/Users/weixzha/Desktop/staging",
-                "cleanPath": "C:/Users/weixzha/Desktop/clean",
-                "quarantinePath": "C:/Users/weixzha/Desktop/quaratine"
+                "stagingPath": "C:/ssftp/staging",
+                "cleanPath": "C:/ssftp/clean",
+                "quarantinePath": "C:/ssftp/quaratine",
+                "errorPath": "C:/ssftp/error",
+                "logPath": "C:/ssftp/log",
+                "azStorageName": "strgacisftpfileshare",
+                "azStorageKey": "Ia5DUVs4097ina7J9jDZ6lmyGT/mmT5Xgq3cXE6rE8nBwJMjQqXb9NAkplfLYCA2C/vjeK2a7hdG3+clsqB+Dw=="
             },
             "args": []
         },
