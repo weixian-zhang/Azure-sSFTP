@@ -9,4 +9,5 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/mirtchovski/clamav v0.0.0-20170205210926-00808a6cb659
 	github.com/sirupsen/logrus v1.7.0
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

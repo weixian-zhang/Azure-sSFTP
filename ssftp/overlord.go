@@ -11,18 +11,13 @@ type Overlord struct {
 	fileWatcher FileWatcher
 }
 
-func NewOverlord() (Overlord, error) {
-	
-	conf, err := NewConfig()
-	if isErr(err) {
-		return Overlord{}, err
-	}
+func NewOverlord(conf Config) (Overlord, error) {
 
-	afs :=  NewAzFileClient(conf)
-	fserr := afs.createFileShares()
-	if isErr(fserr) {
-		return Overlord{}, err
-	}
+	// afs :=  NewAzFileClient(conf)
+	// fserr := afs.createFileShares()
+	// if isErr(fserr) {
+	// 	return Overlord{}, err
+	// }
 
 	clamav, cerr := NewClamAvClient()
 	if isErr(cerr) {

@@ -2,17 +2,23 @@ package main
 
 import (
 	//log "github.com/sirupsen/logrus"
+	"fmt"
 )
 
 var logclient LogClient
 
 func main() {
+
+	conf, err := NewConfig()
+	if isErr(err) {
+		fmt.Println()
+	}
 	
-	logclient = NewLogClient()
+	logclient = NewLogClient(conf)
 
 	logclient.Info("sSFTP started")
 	
-	ol, err := NewOverlord()
+	ol, err := NewOverlord(conf)
 	logclient.ErrIf(err)
 
 	exit := make(chan bool)

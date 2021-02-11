@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	"encoding/json"
-	// "github.com/sirupsen/logrus"
-	// log "github.com/sirupsen/logrus"
-	
+	"time"
+	//"runtime"
 )
 
 var logsinks []LogSink
@@ -17,18 +16,25 @@ type LogSink interface {
 
 type LogClient struct {}
 
-// type logrusHook struct{}
+type LogMessage struct {
+	TimeGenerated time.Time
+	//Caller string
+	Category string
+	Message string
+}
 
-type IOWriteToString struct {}
 
 //NewLogClient inits a list of supported log sinks and returns a "generic" LogClient.
 //LogClient.Info() and Err() will log to all supported sinks.
-func NewLogClient() (LogClient) {
+func NewLogClient(conf Config) (LogClient) {
 
 	//initLogrusForStdClient()
+	
+	rfc := NewRollingFileLogClient(conf)
 
 	logsinks = make([]LogSink, 0)
 	logsinks = append(logsinks, StdClient{})
+	logsinks = append(logsinks, rfc)
 
 	return LogClient{}
 }
@@ -69,41 +75,34 @@ func logErrToSinks(err error) {
 	}
 }
 
-// func (h *logrusHook) Levels() []logrus.Level {
-//     return []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel, logrus.WarnLevel}
-// }
+func createLogMessage(val interface{}) (string) {
 
-// func (h *logrusHook) Fire(entry *logrus.Entry) error {
+	lm := LogMessage {
+		TimeGenerated: time.Now(),
+		//Caller : getCaller(),
+		Category: "Info",
+		Message: "",
+	}
 
-// 	msg, _ := entry.String()
+	if w, ok := val.(string); ok {
+		lm.Category = "Info"
+		lm.Message = w
+	} else if e, ok := val.(error); ok {
+		lm.Category = "Error"
+		lm.Message = e.Error()
+	}
 
-// 	if entry.Level != logrus.ErrorLevel {
-// 		logInfoToSinks(msg)
-// 	} else {
-// 		logErrToSinks(errors.New(msg))
+	b, _ := json.Marshal(lm)
+
+	return string(b)
+}
+
+// func getCaller() (string) {
+// 	var caller string = "?.go:0"
+// 	_, file, line, ok := runtime.Caller(0)
+
+// 	if ok {
+// 		caller = file + ":" + string(line)
 // 	}
-
-//     // logrus.Entry.log() is a non-pointer receiver function so it's goroutine safe to re-define *entry.Logger. The
-//     // only race condition is between hooks since there is no locking. However .log() calls all hooks in series, not
-//     // parallel. Therefore it should be ok to "duplicate" Logger and only change the Out field.
-//     // loggerCopy := reflect.ValueOf(*entry.Logger).Interface().(logrus.Logger)
-//     // entry.Logger = &loggerCopy
-// 	// entry.Logger.Out = os.Stderr
-	
-	
-//      return nil
-// }
-
-// func initLogrusForStdClient() {
-// 	// Log as JSON instead of the default ASCII formatter.
-// 	log.SetFormatter(&log.JSONFormatter{})
-
-// 	// Output to stdout instead of the default stderr
-// 	// Can be any io.Writer, see below for File example
-// 	log.SetOutput(os.Stdout)
-
-// 	log.AddHook(&logrusHook{})
-  
-// 	// Only log the warning severity or above.
-// 	log.SetLevel(log.WarnLevel)
+// 	return caller
 // }

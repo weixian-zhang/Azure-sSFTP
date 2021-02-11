@@ -3,7 +3,7 @@ location: southeastasia
 name: aci-containergroup-ssftp
 properties:
   containers:
-  - name: aci-tutorial-app
+  - name: sftp-server
     properties:
       image: atmoz/sftp:latest
       resources:
@@ -12,13 +12,22 @@ properties:
           memoryInGb: 4
       ports:
       - port: 22
-  - name: aci-tutorial-sidecar
+  - name: ssftp
     properties:
-      image: mcr.microsoft.com/azuredocs/aci-tutorial-sidecar
+      image: wxzd/ssftp:1.0
       resources:
         requests:
-          cpu: 1
-          memoryInGb: 1.5
+          cpu: 2
+          memoryInGb: 4
+  - name: clamd
+    properties:
+      image: mkodockx/docker-clamav
+      resources:
+        requests:
+          cpu: 2
+          memoryInGb: 4
+      ports:
+      - port: 3310
   osType: Linux
   ipAddress:
     type: Public
