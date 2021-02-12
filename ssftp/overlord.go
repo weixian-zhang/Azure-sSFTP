@@ -1,7 +1,7 @@
 package main
 
 import (
-	"os"
+	"time"
 	"path/filepath"
 )
 
@@ -19,10 +19,18 @@ func NewOverlord(conf Config) (Overlord, error) {
 	// 	return Overlord{}, err
 	// }
 
-	clamav, cerr := NewClamAvClient()
-	if isErr(cerr) {
-		return Overlord{}, cerr
-	}
+	clamav := NewClamAvClient()
+
+	proceed := make(chan bool)
+
+	go proceedOnClamdConnect(clamav, proceed)
+
+	<- proceed //block until ssftp able to connect to Clamd on tcp://localhost:3310
+
+
+	// if isErr(cerr) {
+	// 	return Overlord{}, cerr
+	// }
 
 	fw, ferr := NewFileWatcher()
 	if isErr(ferr) {
@@ -63,7 +71,6 @@ func (overlord Overlord) startWork(exit chan bool) {
 		}
 		
 	}()
-	
 
 	//TODO: azfile move clean file to cleanpath and virus file to quarantine path
 }
@@ -95,9 +102,17 @@ func (overlord Overlord) moveFileByStatus(scanR ClamAvScanResult) {
 	}
 }
 
-func createErrorDirIfNotExist(errorPath string) {
-	if _, err := os.Stat(errorPath); os.IsNotExist(err) {
-		os.Mkdir(errorPath, os.ModePerm)
+func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {
+	for {
+		_, err := clamav.PingClamd()
+
+			if logclient.ErrIf(err) {
+				time.Sleep(3 * time.Second)
+			} else {
+				logclient.Info("sSFTP connected to Clamd on tcp://localhost:3310")
+				proceed <- true
+				break
+		}
 	}
 }
 

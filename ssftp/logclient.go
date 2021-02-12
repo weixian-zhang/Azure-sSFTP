@@ -17,7 +17,7 @@ type LogSink interface {
 type LogClient struct {}
 
 type LogMessage struct {
-	TimeGenerated time.Time
+	TimeGenerated string
 	//Caller string
 	Category string
 	Message string
@@ -78,7 +78,7 @@ func logErrToSinks(err error) {
 func createLogMessage(val interface{}) (string) {
 
 	lm := LogMessage {
-		TimeGenerated: time.Now(),
+		TimeGenerated: time.ANSIC,
 		//Caller : getCaller(),
 		Category: "Info",
 		Message: "",

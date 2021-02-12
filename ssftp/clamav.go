@@ -9,7 +9,6 @@ import (
 
 const clamdAddr string = "tcp://localhost:%s"
 const clamdPort string = "3310"
-var clamClient *clamd.Clamd
 
 type ScanStatus int32
 const (
@@ -19,6 +18,7 @@ const (
 )
 
 type ClamAv struct{
+	clamClient *clamd.Clamd
 	scanEvent chan ClamAvScanResult
 }
 
@@ -30,17 +30,29 @@ type ClamAvScanResult struct {
 	Status ScanStatus
 }
 
-func NewClamAvClient() (ClamAv, error)  {
+func NewClamAvClient() (ClamAv)  {
 	clamdSocketAddr :=  fmt.Sprintf(clamdAddr, clamdPort)
-	clamClient = clamd.NewClamd(clamdSocketAddr)
+	clamClient := clamd.NewClamd(clamdSocketAddr)
 
-	err := clamClient.Ping()
-	logclient.ErrIf(err)
+	// err := clamClient.Ping()
+	// logclient.ErrIf(err)
 
 	scanEvent := make(chan ClamAvScanResult)
 	return ClamAv{
+		clamClient: clamClient,
 		scanEvent: scanEvent,
-	}, err
+	}
+}
+
+func (cav ClamAv) PingClamd() (bool, error) {
+
+	err := cav.clamClient.Ping()
+
+	if err != nil {
+		return false, err
+	} else {
+		return true, nil
+	}
 }
 
 func (cav ClamAv) ScanFile(filePath string) ()  {
@@ -64,7 +76,7 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 	fileinfo, ferr := file.Stat()
 	logclient.ErrIf(ferr)
 
-	resp, err :=  clamClient.ScanStream(bufio.NewReader(file), nil)
+	resp, err :=  cav.clamClient.ScanStream(bufio.NewReader(file), nil)
 	if logclient.ErrIf(err) {
 		cav.scanEvent <- ClamAvScanResult{
 			filePath: filePath,

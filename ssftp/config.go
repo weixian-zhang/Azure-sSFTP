@@ -19,8 +19,8 @@ type Config struct {
 	logFileShareName string
 	
 	virusFoundWebhookUrl string
-	azStorageName string
-	azStorageKey string
+	// azStorageName string
+	// azStorageKey string
 }
 
 const stagingFileShareDefaultName = "ssftp-staging"
@@ -43,8 +43,9 @@ func NewConfig() (Config, error) {
 		errorFileShareName: os.Getenv("errorFileShareName"),
 		logFileShareName: os.Getenv("logFileShareName"),
 
-		azStorageName: os.Getenv("azStorageName"),
-		azStorageKey: os.Getenv("azStorageKey"),
+		//azStorageName: os.Getenv("azStorageName"),
+		//azStorageKey: os.Getenv("azStorageKey"),
+		
 		virusFoundWebhookUrl: os.Getenv("virusFoundWebhookUrl"),
 	}
 

@@ -50,6 +50,6 @@ func (rfc RollingFileLogClient) Info(msg string) {
 }
 
 func (rfc RollingFileLogClient) Err(err error) {
-	rfc.errorWriter.Panic(createLogMessage(err.Error()))
+	rfc.errorWriter.Println((createLogMessage(err.Error())))
 }
 
