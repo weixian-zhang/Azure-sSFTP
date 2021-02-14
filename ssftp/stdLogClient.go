@@ -2,16 +2,29 @@ package main
 
 import (
 	"os"
-	"fmt"
+	"log"
 )
 
-type StdClient struct {}
-
-func (stdl StdClient) Info(msg string) {
-	fmt.Fprintf(os.Stdout, createLogMessage(msg))
+type StdLogClient struct {
+	stdoutWriter *log.Logger
+	stderrWriter *log.Logger
 }
 
-func (stdl StdClient) Err(err error) {
-	fmt.Fprintf(os.Stderr, createLogMessage(err) )
+func NewStdLogClient() (StdLogClient) {
+	stdoutWriter := log.New(os.Stdout, "", 0)
+	stderrWriter := log.New(os.Stdout, "", 0)
+
+	return StdLogClient {
+		stdoutWriter: stdoutWriter,
+		stderrWriter: stderrWriter,
+	}
+}
+
+func (stdl StdLogClient) Info(msg string) {
+	stdl.stdoutWriter.Println(createLogMessage(msg))
+}
+
+func (stdl StdLogClient) Err(err error) {
+	stdl.stderrWriter.Println(createLogMessage(err.Error()))
 }
 

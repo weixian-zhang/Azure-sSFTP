@@ -1,0 +1,64 @@
+apiVersion: 2019-12-01
+location: southeastasia
+name: aci-containergroup-ssftp
+properties:
+  containers:
+  - name: sftp-server
+    properties:
+      image: atmoz/sftp:latest
+      resources:
+        requests:
+          cpu: 2
+          memoryInGb: 4
+      ports:
+      - port: 22
+      environmentVariables:
+        - name: 'SFTP_USERS'
+          value: '<sftp login username>:<sftp login password>:::staging'
+  - name: ssftp
+    properties:
+      image: wxzd/ssftp:1.0
+      resources:
+        requests:
+          cpu: 2
+          memoryInGb: 4
+      environmentVariables:
+        - name: 'stagingPath'
+          value: '/home/ssftp/staging'
+        - name: 'cleanPath'
+          value: '/home/ssftp/clean'
+        - name: 'quarantinePath'
+          value: '/home/ssftp/quarantine'
+        - name: 'errorPath'
+          value: '/home/ssftp/error'
+        - name: 'logPath'
+          value: '/home/ssftp/log'
+        - name: 'virusFoundWebhookUrl'
+          value: ''
+  volumes:
+  - name: fileshareStaging
+    azureFile:
+      sharename: ssftp-staging
+      storageAccountName: <Storage account name>
+      storageAccountKey: <Storage account key>
+  - name: clamd
+    properties:
+      image: mkodockx/docker-clamav
+      resources:
+        requests:
+          cpu: 2
+          memoryInGb: 4
+      ports:
+      - port: 3310
+  
+  ipAddress:
+    type: Private
+    ports:
+    - protocol: tcp
+      port: 80
+  networkProfile:
+    id: /subscriptions/<Subscription ID>/resourceGroups/<Resource Group>/providers/Microsoft.Network/networkProfiles/<Subnet Name>
+  restartPolicy: Always
+  osType: Linux
+tags: null
+type: Microsoft.ContainerInstance/containerGroups

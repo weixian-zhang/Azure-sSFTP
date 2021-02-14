@@ -9,6 +9,11 @@ type Overlord struct {
 	config      Config
 	clamav      ClamAv
 	fileWatcher FileWatcher
+	fileMoved   chan FileMovedByStatus
+}
+
+type FileMovedByStatus struct {
+	Path string
 }
 
 func NewOverlord(conf Config) (Overlord, error) {
@@ -27,28 +32,22 @@ func NewOverlord(conf Config) (Overlord, error) {
 
 	<- proceed //block until ssftp able to connect to Clamd on tcp://localhost:3310
 
+	onFileMoved := make(chan FileMovedByStatus)
 
-	// if isErr(cerr) {
-	// 	return Overlord{}, cerr
-	// }
-
-	fw, ferr := NewFileWatcher()
-	if isErr(ferr) {
-		return Overlord{}, ferr
-	}
+	fw := NewFileWatcher()
+	fw.fileMoved = onFileMoved
 
 	return Overlord{
 		config: conf,
 		clamav: clamav,
 		fileWatcher: fw,
+		fileMoved: onFileMoved,
 	}, nil
 }
 
 func (overlord Overlord) startWork(exit chan bool) {
 
 	go func() {
-
-		overlord.fileWatcher.startWatch(overlord.config.stagingPath)
 
 		for {
 
@@ -71,6 +70,8 @@ func (overlord Overlord) startWork(exit chan bool) {
 		}
 		
 	}()
+
+	overlord.fileWatcher.startWatch(overlord.config.stagingPath)
 
 	//TODO: azfile move clean file to cleanpath and virus file to quarantine path
 }
@@ -100,6 +101,8 @@ func (overlord Overlord) moveFileByStatus(scanR ClamAvScanResult) {
 
 		//TODO: trigger webhook
 	}
+
+	overlord.fileMoved <- FileMovedByStatus{Path: scanR.filePath}
 }
 
 func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {

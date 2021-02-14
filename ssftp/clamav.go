@@ -58,7 +58,7 @@ func (cav ClamAv) PingClamd() (bool, error) {
 func (cav ClamAv) ScanFile(filePath string) ()  {
 
 	//TODO: scan file
-	logclient.Infof("scanning file: %s", filePath)
+	logclient.Infof("Virus scanning file: %s", filePath)
 
 	file, err := os.Open(filePath)
 	if logclient.ErrIf(err) {
@@ -71,7 +71,6 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 		}
 		return
 	}
-	defer file.Close()
 
 	fileinfo, ferr := file.Stat()
 	logclient.ErrIf(ferr)
@@ -100,7 +99,15 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 	
 	logclient.InfoStruct(scanResult)
 	
-	cav.scanEvent <- scanResult
+	fcerr := file.Close()
+
+	if fcerr != nil {
+		logclient.ErrIf(fcerr)
+	} else {
+		logclient.Infof("Virus scan completed for %s, file stream closed", scanResult.filePath)
+
+		cav.scanEvent <- scanResult
+	}
 }
 
 func convertClamdStatusToLocalEnum(status string) (ScanStatus) {

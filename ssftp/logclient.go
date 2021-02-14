@@ -30,11 +30,12 @@ func NewLogClient(conf Config) (LogClient) {
 
 	//initLogrusForStdClient()
 	
-	rfc := NewRollingFileLogClient(conf)
+	rfLogClient := NewRollingFileLogClient(conf)
+	stdLogClient := NewStdLogClient()
 
 	logsinks = make([]LogSink, 0)
-	logsinks = append(logsinks, StdClient{})
-	logsinks = append(logsinks, rfc)
+	logsinks = append(logsinks, stdLogClient)
+	logsinks = append(logsinks, rfLogClient)
 
 	return LogClient{}
 }
@@ -44,8 +45,8 @@ func (lc LogClient) Info(msg string) {
 }
 
 //Infof logs string message in fmt.Sprintf format
-func (lc LogClient) Infof(msg string, val ...string) {
-	logInfoToSinks(fmt.Sprintf(msg, val))
+func (lc LogClient) Infof(msgTemplate string, args ...string) {
+	logInfoToSinks(fmt.Sprintf(msgTemplate, args))
 }
 
 func (lc LogClient) ErrIf(err error) (bool) {
@@ -77,8 +78,11 @@ func logErrToSinks(err error) {
 
 func createLogMessage(val interface{}) (string) {
 
+	t := time.Now()
+	timegen := t.Format(time.ANSIC)
+
 	lm := LogMessage {
-		TimeGenerated: time.ANSIC,
+		TimeGenerated: timegen,
 		//Caller : getCaller(),
 		Category: "Info",
 		Message: "",
