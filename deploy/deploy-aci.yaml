@@ -70,27 +70,27 @@ properties:
     azureFile:
       sharename: ssftp-staging
       storageAccountName: strgacisftpfileshare
-      storageAccountKey: Ia5DUVs4097ina7J9jDZ6lmyGT/mmT5Xgq3cXE6rE8nBwJMjQqXb9NAkplfLYCA2C/vjeK2a7hdG3+clsqB+Dw==
+      storageAccountKey: /QxRjgUHfNg304STRsR9WeMqP+ufvvERfAE5urZaHBqCo+XPPuhSXAdoXHQ9fuVSSKOVn6fDbTY/a4Gfc7tdBQ==
   - name: fs-clean
     azureFile:
       sharename: ssftp-clean
       storageAccountName: strgacisftpfileshare
-      storageAccountKey: Ia5DUVs4097ina7J9jDZ6lmyGT/mmT5Xgq3cXE6rE8nBwJMjQqXb9NAkplfLYCA2C/vjeK2a7hdG3+clsqB+Dw==
+      storageAccountKey: /QxRjgUHfNg304STRsR9WeMqP+ufvvERfAE5urZaHBqCo+XPPuhSXAdoXHQ9fuVSSKOVn6fDbTY/a4Gfc7tdBQ==
   - name: fs-quarantine
     azureFile:
       sharename: ssftp-quarantine
       storageAccountName: strgacisftpfileshare
-      storageAccountKey: Ia5DUVs4097ina7J9jDZ6lmyGT/mmT5Xgq3cXE6rE8nBwJMjQqXb9NAkplfLYCA2C/vjeK2a7hdG3+clsqB+Dw==
+      storageAccountKey: /QxRjgUHfNg304STRsR9WeMqP+ufvvERfAE5urZaHBqCo+XPPuhSXAdoXHQ9fuVSSKOVn6fDbTY/a4Gfc7tdBQ==
   - name: fs-error
     azureFile:
       sharename: ssftp-error
       storageAccountName: strgacisftpfileshare
-      storageAccountKey: Ia5DUVs4097ina7J9jDZ6lmyGT/mmT5Xgq3cXE6rE8nBwJMjQqXb9NAkplfLYCA2C/vjeK2a7hdG3+clsqB+Dw==
+      storageAccountKey: /QxRjgUHfNg304STRsR9WeMqP+ufvvERfAE5urZaHBqCo+XPPuhSXAdoXHQ9fuVSSKOVn6fDbTY/a4Gfc7tdBQ==
   - name: fs-log
     azureFile:
       sharename: ssftp-log
       storageAccountName: strgacisftpfileshare
-      storageAccountKey: Ia5DUVs4097ina7J9jDZ6lmyGT/mmT5Xgq3cXE6rE8nBwJMjQqXb9NAkplfLYCA2C/vjeK2a7hdG3+clsqB+Dw==
+      storageAccountKey: /QxRjgUHfNg304STRsR9WeMqP+ufvvERfAE5urZaHBqCo+XPPuhSXAdoXHQ9fuVSSKOVn6fDbTY/a4Gfc7tdBQ==
   
   ipAddress:
     type: Private
