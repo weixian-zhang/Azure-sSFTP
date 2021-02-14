@@ -45,8 +45,8 @@ func (lc LogClient) Info(msg string) {
 }
 
 //Infof logs string message in fmt.Sprintf format
-func (lc LogClient) Infof(msgTemplate string, args ...string) {
-	logInfoToSinks(fmt.Sprintf(msgTemplate, args))
+func (lc LogClient) Infof(msgTemplate string, args ...interface{}) {
+	logInfoToSinks(fmt.Sprintf(msgTemplate, args...))
 }
 
 func (lc LogClient) ErrIf(err error) (bool) {

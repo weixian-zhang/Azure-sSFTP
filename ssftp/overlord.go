@@ -18,12 +18,6 @@ type FileMovedByStatus struct {
 
 func NewOverlord(conf Config) (Overlord, error) {
 
-	// afs :=  NewAzFileClient(conf)
-	// fserr := afs.createFileShares()
-	// if isErr(fserr) {
-	// 	return Overlord{}, err
-	// }
-
 	clamav := NewClamAvClient()
 
 	proceed := make(chan bool)
@@ -71,33 +65,31 @@ func (overlord Overlord) startWork(exit chan bool) {
 		
 	}()
 
-	overlord.fileWatcher.startWatch(overlord.config.stagingPath)
-
-	//TODO: azfile move clean file to cleanpath and virus file to quarantine path
+	overlord.fileWatcher.startWatch(overlord.config.StagingPath)
 }
 
 func (overlord Overlord) moveFileByStatus(scanR ClamAvScanResult) {
 
-	cleanPath := filepath.Join(overlord.config.cleanPath, scanR.fileName)
-	quarantinePath := filepath.Join(overlord.config.quarantinePath, scanR.fileName)
+	cleanPath := filepath.Join(overlord.config.CleanPath, scanR.fileName)
+	quarantinePath := filepath.Join(overlord.config.QuarantinePath, scanR.fileName)
 
 	if scanR.Status == OK {
 
-		err := moveFile(scanR.filePath, cleanPath)
-		if logclient.ErrIf(err) {
+		err := overlord.fileWatcher.moveFileBetweenDrives(scanR.filePath, cleanPath)
+		if err != nil {
 			return
 		}
 
-		logclient.Infof("moving clean file %s to %s", scanR.fileName, cleanPath)
+		logclient.Infof("File %q is clean moving file to %q", scanR.fileName, cleanPath)
 
 	} else if scanR.Status == Virus {
 
-		err := moveFile(scanR.filePath, quarantinePath)
-		if logclient.ErrIf(err) {
+		err := overlord.fileWatcher.moveFileBetweenDrives(scanR.filePath, string(quarantinePath))
+		if err != nil {
 			return
 		}
 
-		logclient.Infof("Virus found on %s, moving file to %s", scanR.fileName, quarantinePath)
+		logclient.Infof("Virus found in file %q, moving file to quarantine %q", scanR.fileName, quarantinePath)
 
 		//TODO: trigger webhook
 	}

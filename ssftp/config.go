@@ -3,22 +3,24 @@ package main
 import (
 	"errors"
 	"os"
+	"fmt"
+	"log"
 )
 
 type Config struct {
-	stagingPath string
-	cleanPath string
-	quarantinePath string
-	errorPath string
-	logPath string
+	StagingPath string				`json:"stagingPath"`
+	CleanPath string				`json:"CleanPath"`
+	QuarantinePath string			`json:"QuarantinePath"`
+	ErrorPath string				`json:"ErrorPath"`
+	LogPath string					`json:"LogPath"`
 
-	stagingFileShareName string
-	cleanFileShareName string
-	quarantineFileShareName string
-	errorFileShareName string
-	logFileShareName string
+	StagingFileShareName string		`json:"StagingFileShareName"`
+	CleanFileShareName string		`json:"CleanFileShareName"`
+	QuarantineFileShareName string	`json:"QuarantineFileShareName"`
+	ErrorFileShareName string		`json:"ErrorFileShareName"`
+	LogFileShareName string			`json:"LogFileShareName"`
 	
-	virusFoundWebhookUrl string
+	VirusFoundWebhookUrl string		`json:"VirusFoundWebhookUrl"`
 	// azStorageName string
 	// azStorageKey string
 }
@@ -31,45 +33,45 @@ const logFileShareDefaultName = "ssftp-log"
 
 func NewConfig() (Config, error) {
 	conf := Config{
-		stagingPath: os.Getenv("stagingPath"),
-		cleanPath: os.Getenv("cleanPath"),
-		quarantinePath: os.Getenv("quarantinePath"),
-		errorPath: os.Getenv("errorPath"),
-		logPath: os.Getenv("logPath"),
+		StagingPath: os.Getenv("stagingPath"),
+		CleanPath: os.Getenv("cleanPath"),
+		QuarantinePath: os.Getenv("quarantinePath"),
+		ErrorPath: os.Getenv("errorPath"),
+		LogPath: os.Getenv("logPath"),
 
-		stagingFileShareName: os.Getenv("stagingFileShareName"),
-		cleanFileShareName: os.Getenv("cleanFileShareName"),
-		quarantineFileShareName: os.Getenv("quarantineFileShareName"),
-		errorFileShareName: os.Getenv("errorFileShareName"),
-		logFileShareName: os.Getenv("logFileShareName"),
+		StagingFileShareName: os.Getenv("stagingFileShareName"),
+		CleanFileShareName: os.Getenv("cleanFileShareName"),
+		QuarantineFileShareName: os.Getenv("quarantineFileShareName"),
+		ErrorFileShareName: os.Getenv("errorFileShareName"),
+		LogFileShareName: os.Getenv("logFileShareName"),
 
-		//azStorageName: os.Getenv("azStorageName"),
-		//azStorageKey: os.Getenv("azStorageKey"),
-		
-		virusFoundWebhookUrl: os.Getenv("virusFoundWebhookUrl"),
+		VirusFoundWebhookUrl: os.Getenv("virusFoundWebhookUrl"),
 	}
 
-	if conf.stagingPath == "" || conf.cleanPath == "" || conf.quarantinePath == "" || conf.errorPath == "" {
+	if conf.StagingPath == "" || conf.CleanPath == "" || conf.QuarantinePath == "" || conf.ErrorPath == "" {
 		err := errors.New("Environment variables missing for stagingPath, cleanPath, quarantinePath or errorPath")
-		logclient.ErrIf(err)
+		log.Fatalln(err)
 		return conf, err
 	}
 
-	if conf.stagingFileShareName == "" {
-		conf.stagingFileShareName = stagingFileShareDefaultName
+	if conf.StagingFileShareName == "" {
+		conf.StagingFileShareName = stagingFileShareDefaultName
 	}
-	if conf.cleanFileShareName == "" {
-		conf.cleanFileShareName = cleanFileShareDefaultName
+	if conf.CleanFileShareName == "" {
+		conf.CleanFileShareName = cleanFileShareDefaultName
 	}
-	if conf.quarantineFileShareName == "" {
-		conf.quarantineFileShareName = quarantineFileShareDefaultName
+	if conf.QuarantineFileShareName == "" {
+		conf.QuarantineFileShareName = quarantineFileShareDefaultName
 	}
-	if conf.errorFileShareName == "" {
-		conf.errorFileShareName = errorFileShareDefaultName
+	if conf.ErrorFileShareName == "" {
+		conf.ErrorFileShareName = errorFileShareDefaultName
 	}
-	if conf.logFileShareName == "" {
-		conf.logFileShareName = logFileShareDefaultName
+	if conf.LogFileShareName == "" {
+		conf.LogFileShareName = logFileShareDefaultName
 	}
+
+	configJStr := ToJsonString(conf)
+	log.Println(fmt.Sprintf("sSFTP initialized config: %s", configJStr))
 
 	return conf, nil
 }

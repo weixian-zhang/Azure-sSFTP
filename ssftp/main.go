@@ -11,7 +11,7 @@ func main() {
 
 	conf, err := NewConfig()
 	if isErr(err) {
-		fmt.Println()
+		fmt.Println(fmt.Sprintf("sSFTP initialized config"))
 	}
 	
 	logclient = NewLogClient(conf)

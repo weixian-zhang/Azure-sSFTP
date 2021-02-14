@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"time"
+	"os"
+	"io"
 	"github.com/radovskyb/watcher"
+	"path/filepath"
 )
 
 type File struct {
@@ -74,7 +77,7 @@ func (fw FileWatcher) registerFileWatchEvents() {
 					logclient.Infof("File watch on file: %s", event.Name())
 
 					fileOnWatch := File{
-						Path: event.Path,
+						Path: filepath.FromSlash(event.Path),
 						Name: event.Name(), 
 						Size: event.Size(),
 						Operation: event.Op.String(),
@@ -90,5 +93,36 @@ func (fw FileWatcher) registerFileWatchEvents() {
 				}
 		}
 	}
+}
+
+func (fw FileWatcher) moveFileBetweenDrives(srcPath string, destPath string) (error) {
+
+	srcFile, err := os.Open(srcPath)
+    if logclient.ErrIf(err) {
+		return err
+	}
+
+    destFile, err := os.Create(destPath)
+    if logclient.ErrIf(err) {
+		srcFile.Close()
+		return err
+	}
+
+    defer destFile.Close()
+
+    _, err = io.Copy(destFile, srcFile)
+    srcFile.Close()
+    if err != nil {
+        logclient.ErrIf(err)
+		return err
+    }
+
+    // The copy was successful, so now delete the original file
+    err = os.Remove(srcPath)
+    if logclient.ErrIf(err) {
+		return err
+	}
+
+	return nil
 }
 

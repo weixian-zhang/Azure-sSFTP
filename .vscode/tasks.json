@@ -47,5 +47,16 @@
             },
             "problemMatcher": []
         },
+        {
+            "label": "Docker Push sSFTP",
+            "command": "docker-push.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
     ]
 }

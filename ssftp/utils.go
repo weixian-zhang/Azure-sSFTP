@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 )
 
@@ -30,4 +31,14 @@ func isErr(err error) bool {
 	} else {
 		return false
 	}
+}
+
+func ToJsonString(v interface{}) (string) {
+	if v == nil {
+		return "{}"
+	}
+
+	b, _ := json.Marshal(v)
+
+	return string(b)
 }

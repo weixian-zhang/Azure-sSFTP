@@ -21,7 +21,7 @@ func NewRollingFileLogClient(conf Config) (RollingFileLogClient) {
 	errorFileName := "ssftp-error.log"
 
 	infow := log.New(&lumberjack.Logger{
-		Filename:   filepath.Join(conf.logPath, infoFileName),
+		Filename:   filepath.Join(conf.LogPath, infoFileName),
 		MaxSize:    10, // megabytes
 		MaxBackups: 0,
 		MaxAge:     1, //days
@@ -30,7 +30,7 @@ func NewRollingFileLogClient(conf Config) (RollingFileLogClient) {
 	}, "", 0)
 
 	errorw := log.New(&lumberjack.Logger{
-		Filename:   filepath.Join(conf.logPath, errorFileName),
+		Filename:   filepath.Join(conf.LogPath, errorFileName),
 		MaxSize:    10, // megabytes
 		MaxBackups: 0,
 		MaxAge:     1, //days
