@@ -21,9 +21,10 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
    2.1 Login to Azure  
         <code> az login </code>
 
-   2.2 To deploy ACI into a VNet Subnet ACI needs a network profile, this network profile can then be reuse to deploy 1 or more future ACI Contaier Groups.  
+   2.2 To deploy ACI into a VNet Subnet ACI needs a network profile, this network profile can then be reuse to deploy 1 or more future ACI Container Groups into the same Subnet.  
        The following command creates a temporary container instance in order to create a reusable network profile.  
-        <code> az container create --resource-group <resource group> --name aci-temp-test-np --image alpine --vnet $vnetName --subnet $subnetName --restart-policy never </code>  
+        <code> az container create --resource-group <resource group> --name aci-temp-test-np --image alpine --vnet $vnetName --subnet $subnetName --restart-policy never </code>        <br />
+       <br />
        Wait a moment for  "aci-temp-test-np" container to complete creation, then copy the <b>network profile id</b>  
    
      <img src="./doc/azcli-networkprofile.png" width="750" height="450" />
@@ -39,7 +40,12 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
         
       <img src="./doc/aci-template-1.png" width="550" height="400" />  
       <br />
-      <img src="./doc/aci-template-2.png" width="550" height="400" />  
+      <img src="./doc/aci-template-2.png" width="550" height="400" />
+      <br />
+      <br />
+      Webhook Url is optional.  
+      Once sSFTP detects virus in a file, sSFTP invokes this webhook Url which allows sSFTP to integrate  with Azure Logic App and Function App for many other possibilities.
+      <br />
       <br />
       <img src="./doc/aci-template-3.png" width="550" height="400" />  
       <br />
