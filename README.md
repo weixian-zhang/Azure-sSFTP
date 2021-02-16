@@ -2,18 +2,16 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
-* [How it works](#how-it-works)
-* Azure Architecture of sSFTP
+* [How it works](#behind-the-scenes-how-ssftp-works)
 
 #### What is sSFTP
-Azure Scanned SFTP or sSFTP is a solution thats provides SFTP server with integrated virus scanning and Azure File as the file storage.  
+Azure sSFTP (Scanned SFTP) is a PaaS solution thats provides SFTP server with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as the file storage. sSFTP leverages Azure Container Instance to host 3 containers into a single Container Group namely [SFTP Server (by atmoz)](https://hub.docker.com/r/atmoz/sftp/) listening to port 22, [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with self update of virus signature and Clamd (daemon) listening to port 3310, and lastly sSFTP (by Weixian) daemon watches for uploaded files, sends file for scanning and sort files to appropriate mounted directories differentiating clean and virus-detected files.
 
-#### Deploy sSFTP
+#### Setup & Usage  
 
 
-#### How it works
 
-#### Azure Architecture of sSFTP
+#### Behind the Scenes How sSFTP Works
 
 
 
