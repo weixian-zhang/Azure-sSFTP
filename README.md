@@ -11,7 +11,7 @@ sSFTP leverages Azure Container Instance to host 3 containers into a single Cont
 * [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdate of virus signature and Clamd (daemon) listening to port 3310.
 * [sSFTP (by weixian-zhang) container](https://hub.docker.com/repository/docker/wxzd/ssftp) watches for uploaded files, sends files for scanning and sort files into appropriate mounted directories to isolate clean and virus-detected files.
 
-This solution favours the deployment of Container Instance into VNet-Subnet as most Enterprise based solutions practice similar 
+This solution favors deploying Container Instance into VNet-Subnet, SFTP server is then exposed to the public Internet through Azure Firewall or any NextGen Firewall
 ### Deploy sSFTP  
 1. Prerequisites  
 [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)  
