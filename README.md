@@ -7,11 +7,11 @@
 ### What is sSFTP
 Azure sSFTP (Scanned SFTP) is a PaaS solution thats provides SFTP server with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as the file storage.  
 sSFTP leverages Azure Container Instance to host 3 containers into a single Container Group namely
-* [SFTP Server (by atmoz)](https://hub.docker.com/r/atmoz/sftp/) listening to port 22
-* [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdate of virus signature and Clamd (daemon) listening to port 3310.
+* [SFTP Server (by atmoz)](https://hub.docker.com/r/atmoz/sftp/) that listens to port 22
+* [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdating of virus signature and Clamd (daemon) listening to port 3310 for virus scan commands.
 * [sSFTP (by weixian-zhang) container](https://hub.docker.com/repository/docker/wxzd/ssftp) watches for uploaded files, sends files for scanning and sort files into appropriate mounted directories to isolate clean and virus-detected files.
 
-This solution favors deploying Container Instance into VNet-Subnet, SFTP server is then exposed to the public Internet through Azure Firewall or any NextGen Firewall
+This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall
 ### Deploy sSFTP  
 1. Prerequisites  
 [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)  
@@ -32,7 +32,9 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
     2.3 Delete container "aci-temp-test-np"
     <code> az container delete -g <resource group> -n aci-temp-test-np -y </code>  
    
-    2.4 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/deploy-aci-template.yaml) as "deploy-aci.yaml".  
+3. Deploy sSFTP using Container Instance Yaml
+
+    3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/deploy-aci-template.yaml) as "deploy-aci.yaml".  
         Replace all < values > in this file and save the file. Refer to the following screenshots.  
         
       <img src="./doc/aci-template-1.png" width="550" height="400" />  
@@ -45,7 +47,7 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
       <br />
         
         
-    2.5 Deploy yaml file by running the following command  
+    3.2 Deploy yaml file by running the following command  
         <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
 
 
