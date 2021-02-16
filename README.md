@@ -44,7 +44,7 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
       <br />
       <br />
       Webhook Url is optional.  
-      Once sSFTP detects virus in a file, sSFTP invokes this webhook Url which allows sSFTP to integrate  with Azure Logic App and Function App for many other possibilities.
+      Once sSFTP detects virus in a file, this Wwebhook Url is invoked which allows sSFTP to integrate with Azure Logic App, Function and custom apps for many other possibilities.
       <br />
       <br />
       <img src="./doc/aci-template-3.png" width="550" height="400" />  
