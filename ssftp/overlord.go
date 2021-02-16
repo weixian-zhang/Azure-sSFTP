@@ -9,6 +9,7 @@ type Overlord struct {
 	config      Config
 	clamav      ClamAv
 	fileWatcher FileWatcher
+	httpClient HttpClient
 	fileMoved   chan FileMovedByStatus
 }
 
@@ -26,6 +27,8 @@ func NewOverlord(conf Config) (Overlord, error) {
 
 	<- proceed //block until ssftp able to connect to Clamd on tcp://localhost:3310
 
+	httpClient := NewHttpClient(conf)
+
 	onFileMoved := make(chan FileMovedByStatus)
 
 	fw := NewFileWatcher()
@@ -35,6 +38,7 @@ func NewOverlord(conf Config) (Overlord, error) {
 		config: conf,
 		clamav: clamav,
 		fileWatcher: fw,
+		httpClient: httpClient,
 		fileMoved: onFileMoved,
 	}, nil
 }
@@ -90,6 +94,8 @@ func (overlord Overlord) moveFileByStatus(scanR ClamAvScanResult) {
 		}
 
 		logclient.Infof("Virus found in file %q, moving file to quarantine %q", scanR.fileName, quarantinePath)
+
+		overlord.httpClient.callWebhook(scanR.fileName, quarantinePath)
 
 		//TODO: trigger webhook
 	}

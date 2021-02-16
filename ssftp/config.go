@@ -14,11 +14,11 @@ type Config struct {
 	ErrorPath string				`json:"ErrorPath"`
 	LogPath string					`json:"LogPath"`
 
-	StagingFileShareName string		`json:"StagingFileShareName"`
-	CleanFileShareName string		`json:"CleanFileShareName"`
-	QuarantineFileShareName string	`json:"QuarantineFileShareName"`
-	ErrorFileShareName string		`json:"ErrorFileShareName"`
-	LogFileShareName string			`json:"LogFileShareName"`
+	// StagingFileShareName string		`json:"StagingFileShareName"`
+	// CleanFileShareName string		`json:"CleanFileShareName"`
+	// QuarantineFileShareName string	`json:"QuarantineFileShareName"`
+	// ErrorFileShareName string		`json:"ErrorFileShareName"`
+	// LogFileShareName string			`json:"LogFileShareName"`
 	
 	VirusFoundWebhookUrl string		`json:"VirusFoundWebhookUrl"`
 	// azStorageName string
@@ -39,11 +39,11 @@ func NewConfig() (Config, error) {
 		ErrorPath: os.Getenv("errorPath"),
 		LogPath: os.Getenv("logPath"),
 
-		StagingFileShareName: os.Getenv("stagingFileShareName"),
-		CleanFileShareName: os.Getenv("cleanFileShareName"),
-		QuarantineFileShareName: os.Getenv("quarantineFileShareName"),
-		ErrorFileShareName: os.Getenv("errorFileShareName"),
-		LogFileShareName: os.Getenv("logFileShareName"),
+		// StagingFileShareName: os.Getenv("stagingFileShareName"),
+		// CleanFileShareName: os.Getenv("cleanFileShareName"),
+		// QuarantineFileShareName: os.Getenv("quarantineFileShareName"),
+		// ErrorFileShareName: os.Getenv("errorFileShareName"),
+		// LogFileShareName: os.Getenv("logFileShareName"),
 
 		VirusFoundWebhookUrl: os.Getenv("virusFoundWebhookUrl"),
 	}
@@ -54,21 +54,21 @@ func NewConfig() (Config, error) {
 		return conf, err
 	}
 
-	if conf.StagingFileShareName == "" {
-		conf.StagingFileShareName = stagingFileShareDefaultName
-	}
-	if conf.CleanFileShareName == "" {
-		conf.CleanFileShareName = cleanFileShareDefaultName
-	}
-	if conf.QuarantineFileShareName == "" {
-		conf.QuarantineFileShareName = quarantineFileShareDefaultName
-	}
-	if conf.ErrorFileShareName == "" {
-		conf.ErrorFileShareName = errorFileShareDefaultName
-	}
-	if conf.LogFileShareName == "" {
-		conf.LogFileShareName = logFileShareDefaultName
-	}
+	// if conf.StagingFileShareName == "" {
+	// 	conf.StagingFileShareName = stagingFileShareDefaultName
+	// }
+	// if conf.CleanFileShareName == "" {
+	// 	conf.CleanFileShareName = cleanFileShareDefaultName
+	// }
+	// if conf.QuarantineFileShareName == "" {
+	// 	conf.QuarantineFileShareName = quarantineFileShareDefaultName
+	// }
+	// if conf.ErrorFileShareName == "" {
+	// 	conf.ErrorFileShareName = errorFileShareDefaultName
+	// }
+	// if conf.LogFileShareName == "" {
+	// 	conf.LogFileShareName = logFileShareDefaultName
+	// }
 
 	configJStr := ToJsonString(conf)
 	log.Println(fmt.Sprintf("sSFTP initialized config: %s", configJStr))

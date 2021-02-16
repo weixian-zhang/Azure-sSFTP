@@ -58,5 +58,27 @@
             },
             "problemMatcher": []
         },
+        {
+            "label": "ACI Delete",
+            "command": "aci-remove.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "ACI Create",
+            "command": "aci-create.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
     ]
 }
