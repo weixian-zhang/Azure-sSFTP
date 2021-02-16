@@ -24,7 +24,29 @@ This solution favours the deployment of Container Instance into VNet-Subnet as m
    2.2 To deploy ACI into a VNet Subnet ACI needs a network profile, this network profile can then be reuse to deploy 1 or more future ACI Contaier Groups.  
        The following command creates a temporary container instance in order to create a reusable network profile.  
         <code> az container create --resource-group <resource group> --name aci-temp-test-np --image alpine --vnet $vnetName --subnet $subnetName --restart-policy never </code>  
-       Wait a moment for container "aci-temp-test-np" to complete creation, and copy the <b>network profile id</b>
+       Wait a moment for  "aci-temp-test-np" container to complete creation, then copy the <b>network profile id</b>  
+   
+     <img src="./doc/azcli-networkprofile.png" width="750" height="450" />
+     <br />
+     <br />
+    2.3 Delete container "aci-temp-test-np"
+    <code> az container delete -g <resource group> -n aci-temp-test-np -y </code>  
+   
+    2.4 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/deploy-aci-template.yaml) as "deploy-aci.yaml".  
+        Replace all < values > in this file and save the file. Refer to the following screenshots.  
+        
+      <img src="./doc/aci-template-1.png" width="550" height="400" />  
+      <br />
+      <img src="./doc/aci-template-2.png" width="550" height="400" />  
+      <br />
+      <img src="./doc/aci-template-3.png" width="550" height="400" />  
+      <br />
+      <img src="./doc/aci-template-4.png" width="550" height="400" />  
+      <br />
+        
+        
+    2.5 Deploy yaml file by running the following command  
+        <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
 
 
 ### Behind the Scenes How sSFTP Works
