@@ -1,5 +1,6 @@
 # Binaries for programs and plugins
 launch.json
+deploy-aci.yaml
 deploy/deploy-aci.yaml
 
 *.exe
