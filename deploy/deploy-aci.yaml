@@ -48,7 +48,7 @@ properties:
         - name: 'logPath'
           value: '/mnt/ssftp/log'
         - name: 'virusFoundWebhookUrl'
-          value: 'https://prod-00-ise-app-workflo-x3ftwztqrja52-internal.southeastasia.environments.microsoftazurelogicapps.net:443/workflows/05776bea6fe74ed58c7b55ea6f020e8a/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=OP_eiy0-2yC42dSNM8f-F5yl1cf2NN99lOMc2RMFeeM'
+          value: 'https://httpbin.org/post' #'https://prod-00-ise-app-workflo-x3ftwztqrja52-internal.southeastasia.environments.microsoftazurelogicapps.net:443/workflows/05776bea6fe74ed58c7b55ea6f020e8a/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=OP_eiy0-2yC42dSNM8f-F5yl1cf2NN99lOMc2RMFeeM'
       volumeMounts:
       - mountPath: /mnt/ssftp/staging
         name: fs-staging
