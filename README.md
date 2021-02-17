@@ -2,6 +2,7 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
+* [Networking](#networking) 
 * [How it works](#behind-the-scenes-how-ssftp-works)
 
 ### What is sSFTP
@@ -38,7 +39,7 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
     3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/deploy-aci-template.yaml) as "deploy-aci.yaml".  
         Replace all < values > in this file and save the file. Refer to the following screenshots.  
         
-      <img src="./doc/aci-template-1.png" width="550" height="400" />  
+      <img src="./doc/aci-template-1.png" width="650" height="450" />  
       <br />
       <img src="./doc/aci-template-2.png" width="550" height="400" />
       <br />
@@ -55,6 +56,15 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
         
     3.2 Deploy yaml file by running the following command  
         <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
+
+### Networking  
+As ACI is deployed in a Subnet, you can choose to assign a User-Defined Route (UDR) to route all outbound traffic from sSFTP to an Azure Firewall or any NextGen Firewall.  
+An example of Azure Firewall Application Rule with domains whitelisted for sSFTP to work.  
+Also refer to [How it works](#behind-the-scenes-how-ssftp-works) for more details.  
+<br />
+<img src="./doc/azfw-app-rules.png" width="850" height="150" />  
+<br />
+<br />
 
 
 ### Behind the Scenes How sSFTP Works
