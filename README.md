@@ -10,7 +10,7 @@ Azure sSFTP (Scanned SFTP) is a PaaS solution thats provides SFTP server with in
 sSFTP leverages Azure Container Instance to host 3 containers into a single Container Group namely
 * [SFTP Server (by atmoz)](https://hub.docker.com/r/atmoz/sftp/) that listens to port 22
 * [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdating of virus signature and Clamd (daemon) listening to port 3310 for virus scan commands.
-* [sSFTP (by weixian-zhang) container](https://hub.docker.com/repository/docker/wxzd/ssftp) watches for uploaded files, sends files for scanning and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
+* [sSFTP (by weixian) container](https://hub.docker.com/repository/docker/wxzd/ssftp) watches for uploaded files, sends files for scanning and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
 
 This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall
 ### Deploy sSFTP  
