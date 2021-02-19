@@ -2,6 +2,7 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
+* [Networking](#networking) 
 * [How it works](#behind-the-scenes-how-ssftp-works)
 
 ### What is sSFTP
@@ -9,7 +10,7 @@ Azure sSFTP (Scanned SFTP) is a PaaS solution thats provides SFTP server with in
 sSFTP leverages Azure Container Instance to host 3 containers into a single Container Group namely
 * [SFTP Server (by atmoz)](https://hub.docker.com/r/atmoz/sftp/) that listens to port 22
 * [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdating of virus signature and Clamd (daemon) listening to port 3310 for virus scan commands.
-* [sSFTP (by weixian-zhang) container](https://hub.docker.com/repository/docker/wxzd/ssftp) watches for uploaded files, sends files for scanning and sort files into appropriate mounted directories to isolate clean and virus-detected files.
+* [sSFTP (by weixian) container](https://hub.docker.com/repository/docker/wxzd/ssftp) watches for uploaded files, sends files for scanning and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
 
 This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall
 ### Deploy sSFTP  
@@ -38,7 +39,7 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
     3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/deploy-aci-template.yaml) as "deploy-aci.yaml".  
         Replace all < values > in this file and save the file. Refer to the following screenshots.  
         
-      <img src="./doc/aci-template-1.png" width="550" height="400" />  
+      <img src="./doc/aci-template-1.png" width="650" height="450" />  
       <br />
       <img src="./doc/aci-template-2.png" width="550" height="400" />
       <br />
@@ -55,6 +56,15 @@ This solution favors deploying Container Instance into VNet-Subnet, SFTP server 
         
     3.2 Deploy yaml file by running the following command  
         <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
+
+### Networking  
+As ACI is deployed in a Subnet, you can choose to assign a User-Defined Route (UDR) to route all outbound traffic from sSFTP to an Azure Firewall or any NextGen Firewall.  
+An example of Azure Firewall Application Rule with domains whitelisted for sSFTP to work.  
+Also refer to [How it works](#behind-the-scenes-how-ssftp-works) for more details.  
+<br />
+<img src="./doc/azfw-app-rules.png" width="850" height="150" />  
+<br />
+<br />
 
 
 ### Behind the Scenes How sSFTP Works
