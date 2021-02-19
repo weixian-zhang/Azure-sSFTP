@@ -8,10 +8,10 @@ RUN apk add --no-cache git
 WORKDIR /app
 
 # We want to populate the module cache based on the go.{mod,sum} files.
-COPY go.mod .
-COPY go.sum .
+COPY ssftp/go.mod .
+COPY ssftp/go.sum .
 
-RUN go mod download
+#RUN go mod download
 
 COPY /ssftp/. .
 

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
 	//"runtime"
 )
@@ -52,6 +53,24 @@ func (lc LogClient) Infof(msgTemplate string, args ...interface{}) {
 func (lc LogClient) ErrIf(err error) (bool) {
 	if err != nil {
 		logErrToSinks(err)
+		return true
+	} else {
+		return false
+	}
+}
+
+func (lc LogClient) ErrIfm(msg string, err error) (bool) {
+	if err != nil {
+		logErrToSinks(errors.New(fmt.Sprintf(msg, err.Error())))
+		return true
+	} else {
+		return false
+	}
+}
+
+func (lc LogClient) ErrIffmsg(msgTemplate string, err error, args...string) (bool) {
+	if err != nil {
+		logErrToSinks(errors.New(fmt.Sprintf(msgTemplate, args) + "\nError: " + err.Error()))
 		return true
 	} else {
 		return false

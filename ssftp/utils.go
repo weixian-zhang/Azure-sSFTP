@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"net/url"
+	"runtime"
 )
 
 func moveFile(oldloc string, newloc string) (error) {
@@ -23,6 +24,14 @@ func isDir(path string) (bool) {
 		return true
 	} else {
 		return false
+	}
+}
+
+func isDirExist(path string) (bool) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+	   return false
+	} else {
+		return true
 	}
 }
 
@@ -52,4 +61,12 @@ func ToJsonString(v interface{}) (string) {
 	b, _ := json.Marshal(v)
 
 	return string(b)
+}
+
+func isWindows() (bool) {
+	if runtime.GOOS == "windows" {
+		return true
+	} else {
+		return false
+	}
 }
