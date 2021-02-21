@@ -2,6 +2,7 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [AzFile, Folder Structure & Conventions](#azure-file,-folder-structure-&-cConventions)
+* [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Networking](#networking) 
 * [How it works](#behind-the-scenes-how-ssftp-works)
@@ -16,6 +17,9 @@ sSFTP leverages Azure Container Instance to host 3 containers into a single Cont
 This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall  
 
 ### Azure File, Folder Structure & Conventions
+
+### Configuring sSFTP  
+
 
 ### Deploy sSFTP  
 1. Prerequisites  
