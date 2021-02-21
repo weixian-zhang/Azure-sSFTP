@@ -1,21 +1,27 @@
 ## Azure Scanned SFTP  
 
 * [What is sSFTP](#what-is-ssftp)
-* [Folder Structure](#folder-structure)
+* [AzFile, Folder Structure & Conventions](#azure-file,-folder-structure-&-cConventions)
+* [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Networking](#networking) 
 * [How it works](#behind-the-scenes-how-ssftp-works)
 
 ### What is sSFTP
 Azure sSFTP (Scanned SFTP) is a PaaS solution thats provides SFTP server with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as the file storage.  
-sSFTP leverages Azure Container Instance to host 3 containers into a single Container Group namely
-* [SFTP Server (by atmoz)](https://hub.docker.com/r/atmoz/sftp/) that listens to port 22
+sSFTP leverages Azure Container Instance to host 2 containers into a single Container Group namely
 * [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdating of virus signature and Clamd (daemon) listening to port 3310 for virus scan commands.
-* [sSFTP (by weixian) container](https://hub.docker.com/repository/docker/wxzd/ssftp) watches for uploaded files, sends files for scanning and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
+* [sSFTP (by weixian) container](https://hub.docker.com/repository/docker/wxzd/ssftp) runs a SFTP server, watches for uploaded files, scans and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
+<br />
+<b>Features</b>  
+
 
 This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall  
 
-### Folder Structure  
+### Azure File, Folder Structure & Conventions
+
+### Configuring sSFTP  
+
 
 ### Deploy sSFTP  
 1. Prerequisites  
