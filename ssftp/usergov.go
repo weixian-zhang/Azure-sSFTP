@@ -1,20 +1,17 @@
 package main
 
 import (
-	// "os/exec"
-	// "os/user"
-	// "fmt"
+	"os"
+	"path/filepath"
 )
+
+// "os/exec"
+// "os/user"
+// "fmt"
 
 type UserGov struct {
 	users []User
 	config Config
-}
-
-type User struct {
-	name string
-	pass string
-	userdir string
 }
 
 //NewUserRepo has nil Users until LoadUsers is called
@@ -26,12 +23,38 @@ func NewUserGov(conf Config) UserGov {
 	}
 }
 
-func (ug UserGov) Auth(name string, pass string) (bool) {
-	return false
+func (ug UserGov) Auth(name string, pass string) (User, bool) {
+	for _, v := range ug.config.Users {
+		if v.Name == name && v.Password == pass {
+			return v, true
+		}
+	}
+	return User{}, false
 }
 
-func (ug UserGov) LoadUser(env string) ([]User) {
-	return []User{}
+func (ug UserGov) CreateUserDir(name string) {
+
+	dirPath := filepath.Join(ug.config.StagingPath, name)
+
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		os.Mkdir(dirPath, 0777)
+		logclient.Infof("Created user directory at %s", dirPath)
+	} else {
+		logclient.Infof("Skip creation user directory exist at %s", dirPath)
+	}
+}
+
+func (ug UserGov) createSftpSvcRoutes() ([]Route) {
+	routes := make([]Route,0)
+
+	for _, v := range ug.config.Users {
+		routes = append(routes, Route{
+			Username: v.Name,
+			Password: v.Password,
+		})
+	}
+
+	return routes
 }
 
 // User is created by executing shell command useradd

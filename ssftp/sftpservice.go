@@ -42,8 +42,10 @@ type WriteNotification struct {
 	Path     string
 }
 
+
 type SftpService struct {
 	usergov  		   UserGov
+	loginUser			User
 	routes             []Route
 	routesMutex        *sync.RWMutex
 	privateKey         ssh.Signer
@@ -61,6 +63,7 @@ type SftpService struct {
 func NewSftpService(host string, port int, chroot string, routes []Route, privateKey ssh.Signer, usrgov UserGov) *SftpService {
 	return &SftpService{
 		usergov:			usrgov,
+		loginUser:			User{},
 		routes:             routes,
 		routesMutex:        &sync.RWMutex{},
 		privateKey:         privateKey,
@@ -80,11 +83,15 @@ func (s *SftpService) Start() error {
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			// Should use constant-time compare (or better, salt+hash) in
 			// a production setting.
-			if (c.User() == "testuser" || c.User() == "testuser2") && (string(pass) == "tiger" || string(pass) == "lion") {
+
+			if usr, ok := s.usergov.Auth(c.User(), string(pass)); ok {
 				
-				// ss.usergov.createAdminGroup()
-				// ss.usergov.AddNewUser(filepath.Join(ss.config.StagingPath,"testuser"), "testuser", "tiger")
-				// ss.createUserDir("testuser")
+				logclient.Infof("User %s has signed in", usr.Name)
+
+				s.loginUser = usr
+
+				s.usergov.CreateUserDir(usr.Directory)
+				
 
 				return nil, nil
 			}
@@ -193,11 +200,12 @@ func (s *SftpService) handleClient(conn net.Conn, config *ssh.ServerConfig) {
 			}
 		}(requests)
 
+		// !important, sftp uses "AsUser" to chroot user to folder.
+		//Default folder name = username. Changing to support multi-user same folder
 		serverOptions := []sftp.ServerOption{
 			sftp.Chroot(s.chroot),
 			sftp.NotifyWrite(s.incoming),
-			sftp.AsUser(serverConn.User()),
-			// sftp.DisableRemove(),
+			sftp.AsUser(s.loginUser.Directory), //(serverConn.User()), 
 		}
 
 		server, err := sftp.NewServer(channel, serverOptions...)
@@ -233,6 +241,8 @@ func (s *SftpService) watchIncoming() {
 			Path:     writtenFile.Path,
 		}
 
+		logclient.Infof("User %s uploads file %s", s.loginUser.Name, writtenFile.Path)
+		
 		s.writeNotifications <- notification
 	}
 }
@@ -240,6 +250,7 @@ func (s *SftpService) watchIncoming() {
 func (s *SftpService) WriteNotifications() chan WriteNotification {
 	return s.writeNotifications
 }
+	
 
 func (s SftpService) genSSHKey() (ssh.Signer) {
 	key, err :=  rsa.GenerateKey(rand.Reader, 2048)
@@ -274,6 +285,12 @@ func (s SftpService) genSSHKey() (ssh.Signer) {
 	if err != nil {
 		logclient.ErrIfm("Failed to parse as ssh key", ppkerr)
 		return nil
+	}
+
+	//remove pem file
+	os.Remove("private.pem")
+	if err != nil {
+		logclient.ErrIfm("Failed to delete private.pem", ppkerr)
 	}
 
 	return sshSigner

@@ -2,6 +2,7 @@
 launch.json
 deploy-aci.yaml
 deploy/deploy-aci.yaml
+private.pem
 
 *.exe
 *.exe~

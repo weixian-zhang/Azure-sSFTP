@@ -9,7 +9,7 @@ import (
 )
 
 type HttpClient struct {
-	config Config
+	confsvc *ConfigService
 }
 
 type VirusDetectedWebhookPostData struct {
@@ -18,9 +18,9 @@ type VirusDetectedWebhookPostData struct {
 	TimeGenerated string	`json:"timeGenerated"`
 }
 
-func NewHttpClient(conf Config) (HttpClient) {
+func NewHttpClient(confsvc *ConfigService) (HttpClient) {
 	return HttpClient{
-		config: conf,
+		confsvc: confsvc,
 	}
 }
 
@@ -34,10 +34,11 @@ func (hc HttpClient) callWebhook(virusDetectedFileName string, mountFilePath str
 
 	if !logclient.ErrIf(jerr) {
 
-		if isValidUrl(hc.config.VirusFoundWebhookUrl) {
+		vfUrl := hc.confsvc.config.getWebHook(VirusFound)
+		if isValidUrl(vfUrl) {
 
-			logclient.Infof("Calling webhook %s with params %s", hc.config.VirusFoundWebhookUrl, string(b))
-			resp, herr := http.Post(hc.config.VirusFoundWebhookUrl, "application/json", bytes.NewBuffer(b) )
+			logclient.Infof("Calling webhook %s with params %s", vfUrl, string(b))
+			resp, herr := http.Post(vfUrl, "application/json", bytes.NewBuffer(b) )
 			
 			if !logclient.ErrIf(herr) {
 				logclient.Infof("Webhook invokation status %s", resp.Status)

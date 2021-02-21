@@ -1,0 +1,19 @@
+sftpPort: 22      #port needs to be exposed at ACI yaml
+webhooks:
+  - name: virusFound
+    url: "https://httpbin.org/post"
+logSinks:
+  - kind: file
+    path: "/mnt/ssftp/log"
+users:
+  - name: "testuser"
+    password: "tiger"
+    directory: "agency-z"
+
+  - name: "testuser"
+    password: "tiger"
+    directory: "agency-z"
+
+  - name: "testuser2"
+    password: "lion"
+    directory: "twin-systems"
