@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -5,9 +6,6 @@ import (
 	"path/filepath"
 )
 
-// "os/exec"
-// "os/user"
-// "fmt"
 
 type UserGov struct {
 	users []User
@@ -44,18 +42,19 @@ func (ug UserGov) CreateUserDir(name string) {
 	}
 }
 
-func (ug UserGov) createSftpSvcRoutes() ([]Route) {
-	routes := make([]Route,0)
+// func (ug UserGov) createSftpSvcRoutes() ([]Route) {
+// 	routes := make([]Route,0)
 
-	for _, v := range ug.config.Users {
-		routes = append(routes, Route{
-			Username: v.Name,
-			Password: v.Password,
-		})
-	}
+// 	for _, v := range ug.config.Users {
+// 		routes = append(routes, Route{
+// 			Username: v.Name,
+// 			Password: v.Password,
+// 			Endpoint: filepath.Join(ug.config.StagingPath, v.Directory),
+// 		})
+// 	}
 
-	return routes
-}
+// 	return routes
+// }
 
 // User is created by executing shell command useradd
 // func (ug UserGov) AddNewUser(dir string, name string, pass string) (error) {

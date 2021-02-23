@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -10,6 +11,8 @@ type Overlord struct {
 	confsvc      *ConfigService
 	clamav      ClamAv
 	fileWatcher FileWatcher
+	//sftpservice *SftpService
+	usergov 	UserGov
 	httpClient HttpClient
 	fileMoved   chan FileMovedByStatus
 }
@@ -41,10 +44,14 @@ func NewOverlord(confsvc *ConfigService) (Overlord, error) {
 		fileWatcher: fw,
 		httpClient: httpClient,
 		fileMoved: onFileMoved,
+		//sftpservice: sftpsvc,
+		//usergov: ug,
 	}, nil
 }
 
 func (overlord Overlord) startWork(exit chan bool) {
+
+	//overlord.sftpservice.Start()
 
 	go func() {
 
@@ -52,9 +59,15 @@ func (overlord Overlord) startWork(exit chan bool) {
 
 			select {
 
-				case fileCreated := <- overlord.fileWatcher.fileCreateEvent:
+			//case sftpFileUploaded := <- overlord.sftpservice.writeNotifications:
 
-					go overlord.clamav.ScanFile(fileCreated.Path)
+				//logclient.Infof("User %s uploads file %s", sftpFileUploaded.Username, sftpFileUploaded.Path)
+
+				//go overlord.clamav.ScanFile(sftpFileUploaded.Path)
+
+				// case fileCreated := <- overlord.fileWatcher.fileCreateEvent:
+
+				// 	go overlord.clamav.ScanFile(fileCreated.Path)
 
 				case scanR := <-overlord.clamav.scanEvent:
 
@@ -70,7 +83,7 @@ func (overlord Overlord) startWork(exit chan bool) {
 		
 	}()
 
-	overlord.fileWatcher.startWatch(overlord.confsvc.config.StagingPath)
+	//overlord.fileWatcher.startWatch(overlord.confsvc.config.StagingPath)
 }
 
 func (overlord Overlord) moveFileByStatus(scanR ClamAvScanResult) {

@@ -1,3 +1,5 @@
+
+
 package main
 
 import (
@@ -5,9 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
+	//"os"
 	"runtime"
-	"path/filepath"
+	//"path/filepath"
 	"github.com/goccy/go-yaml"
 )
 
@@ -118,7 +120,7 @@ func (c ConfigService) LoadYamlConfig() chan bool {
 				}
 
 				configJStr := ToJsonString(c.config)
-				log.Println(fmt.Sprintf("sSFTP loaded config from /mnt/ssftp/system/ssftp-config.yaml: %s", configJStr))
+				log.Println(fmt.Sprintf("sSFTP loaded config from /mnt/ssftp/system/ssftp.yaml: %s", configJStr))
 
 				break
 			}
@@ -133,7 +135,7 @@ func (c ConfigService) getYamlConfgPath() string {
 	if runtime.GOOS != "windows" {
 		return SystemConfigPath
 	} else {
-		return filepath.Join(os.Getenv("systemPath"), "ssftp-config.yaml")
+		return "ssftp.yaml"
 	}
 }
 

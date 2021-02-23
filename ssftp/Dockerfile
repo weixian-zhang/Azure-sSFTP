@@ -15,8 +15,7 @@ COPY ssftp/go.sum .
 
 COPY /ssftp/. .
 
-# # Build the Go app
-#RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o ./out . #/app/out
+# Build the Go app
 RUN go build -o /app/out
 
 # start fresh from a smaller image

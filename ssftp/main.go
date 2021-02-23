@@ -1,3 +1,4 @@
+
 package main
 
 var logclient LogClient
@@ -10,24 +11,23 @@ func main() {
 	configLoaded := confsvc.LoadYamlConfig()
 
 	<- configLoaded
+
+	ug := NewUserGov(*confsvc.config)
+
+	//routes := ug.createSftpSvcRoutes()
+	sftpsvc := NewSFTPService(&confsvc, ug)
+	sftpsvc.Start()
 	
 	logclient.InitLogDests(*confsvc.config)
 	logclient.Info("sSFTP started...")
 
-	ug := NewUserGov(*confsvc.config)
-
-	routes := ug.createSftpSvcRoutes()
-
-	sftpsvc := NewSftpService("", confsvc.config.SftpPort, confsvc.config.StagingPath, routes, nil, ug)
-	sftpsvc.Start()
 	
-	
-	ol, err := NewOverlord(&confsvc)
-	logclient.ErrIf(err)
+	//ol, err := NewOverlord(&confsvc)
+	//logclient.ErrIf(err)
 
 	exit := make(chan bool)
 
-	ol.startWork(exit)
+	//ol.startWork(exit)
 
 	<- exit
 }
