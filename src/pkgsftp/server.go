@@ -4,6 +4,7 @@ package sftp
 
 import (
 	"encoding"
+	//"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/weixian-zhang/ssftp/user"
 )
 
 const (
@@ -34,6 +36,23 @@ type Server struct {
 	openFiles     map[string]*os.File
 	openFilesLock sync.RWMutex
 	handleCount   int
+	user	  	  user.User
+	stagingPath   string
+}
+
+func (svr *Server) getUserJailPath(filePath string) string {
+	if svr.stagingPath == "" {
+		return filePath
+	}
+	chroot := svr.stagingPath
+	if svr.user.JailDirectory != "" {
+		chroot = filepath.Join(chroot, svr.user.JailDirectory)
+	}
+	c := filepath.Clean(filePath)
+	if filepath.IsAbs(c) && filepath.HasPrefix(c, chroot) {
+		return c
+	}
+	return filepath.Join(chroot, c)
 }
 
 func (svr *Server) nextHandle(f *os.File) string {
@@ -175,7 +194,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 		}
 	case *sshFxpStatPacket:
 		// stat the requested file
-		info, err := os.Stat(p.Path)
+		info, err := os.Stat(s.getUserJailPath(p.Path)) //os.Stat(p.Path)
 		rpkt = sshFxpStatResponse{
 			ID:   p.ID,
 			info: info,
@@ -185,7 +204,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 		}
 	case *sshFxpLstatPacket:
 		// stat the requested file
-		info, err := os.Lstat(p.Path)
+		info, err := os.Lstat(s.getUserJailPath(p.Path)) //os.Lstat(p.Path)
 		rpkt = sshFxpStatResponse{
 			ID:   p.ID,
 			info: info,
@@ -209,24 +228,26 @@ func handlePacket(s *Server, p orderedRequest) error {
 		}
 	case *sshFxpMkdirPacket:
 		// TODO FIXME: ignore flags field
-		err := os.Mkdir(p.Path, 0755)
+		err := os.Mkdir(s.getUserJailPath(p.Path), 0755) //os.Mkdir(p.Path, 0755)
 		rpkt = statusFromError(p, err)
 	case *sshFxpRmdirPacket:
-		err := os.Remove(p.Path)
+		err := os.Remove(s.getUserJailPath(p.Path))//os.Remove(p.Path)
 		rpkt = statusFromError(p, err)
 	case *sshFxpRemovePacket:
-		err := os.Remove(p.Filename)
+		err :=  os.Remove(s.getUserJailPath(p.Filename)) //os.Remove(p.Filename)
 		rpkt = statusFromError(p, err)
 	case *sshFxpRenamePacket:
-		err := os.Rename(p.Oldpath, p.Newpath)
+		err :=   os.Rename(s.getUserJailPath(p.Oldpath), s.getUserJailPath(p.Newpath)) //os.Rename(p.Oldpath, p.Newpath)
 		rpkt = statusFromError(p, err)
 	case *sshFxpSymlinkPacket:
-		err := os.Symlink(p.Targetpath, p.Linkpath)
+		err := os.Symlink(s.getUserJailPath(p.Targetpath), s.getUserJailPath(p.Linkpath)) //os.Symlink(p.Targetpath, p.Linkpath)
 		rpkt = statusFromError(p, err)
 	case *sshFxpClosePacket:
+		//TODO: notify file upload/written complete
 		rpkt = statusFromError(p, s.closeHandle(p.Handle))
+
 	case *sshFxpReadlinkPacket:
-		f, err := os.Readlink(p.Path)
+		f, err := os.Readlink(s.getUserJailPath(p.Path)) //os.Readlink(p.Path)
 		rpkt = sshFxpNamePacket{
 			ID: p.ID,
 			NameAttrs: []sshFxpNameAttr{{
@@ -239,7 +260,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpRealpathPacket:
-		f, err := filepath.Abs(p.Path)
+		f, err := filepath.Abs(s.getUserJailPath(p.Path))  //filepath.Abs(p.Path)
 		f = cleanPath(f)
 		rpkt = sshFxpNamePacket{
 			ID: p.ID,
@@ -253,11 +274,11 @@ func handlePacket(s *Server, p orderedRequest) error {
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpOpendirPacket:
-		if stat, err := os.Stat(p.Path); err != nil {
+		if stat, err := os.Stat(s.getUserJailPath(p.Path)); err != nil {
 			rpkt = statusFromError(p, err)
 		} else if !stat.IsDir() {
 			rpkt = statusFromError(p, &os.PathError{
-				Path: p.Path, Err: syscall.ENOTDIR})
+				Path: s.getUserJailPath(p.Path), Err: syscall.ENOTDIR})
 		} else {
 			rpkt = sshFxpOpenPacket{
 				ID:     p.ID,

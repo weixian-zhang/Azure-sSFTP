@@ -2,7 +2,7 @@
 package main
 
 import (
-	//"path/filepath"
+	"github.com/weixian-zhang/ssftp/user"
 	"strings"
 	"time"
 )
@@ -12,7 +12,7 @@ type Overlord struct {
 	clamav      ClamAv
 	fileWatcher FileWatcher
 	//sftpservice *SftpService
-	usergov 	UserGov
+	usergov 	user.UserGov
 	httpClient HttpClient
 	fileMoved   chan FileMovedByStatus
 }

@@ -11,6 +11,7 @@ import (
 	"runtime"
 	//"path/filepath"
 	"github.com/goccy/go-yaml"
+	"github.com/weixian-zhang/ssftp/user"
 )
 
 const (
@@ -34,15 +35,8 @@ type Config struct {
 	QuarantinePath string			//`json:"quarantinePath, yaml:"quarantinePath"`
 	ErrorPath string				//`json:"errorPath", yaml:"errorPath"`
 	LogDests[]LogDest				`json:"logDests", yaml:"logDests"`
-	Users []User					`json:"users", yaml:"users"`
+	Users []user.User					`json:"users", yaml:"users"`
 	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
-}
-
-type User struct {
-	Name string			`json:"name", yaml:"name"`
-	Password string		`json:"password", yaml:"password"`
-	Directory string	`json:"directory", yaml:"directory"`
-	Readonly  bool		`json:"readonly", yaml:"readonly"`
 }
 
 type Webhook struct {

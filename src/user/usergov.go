@@ -1,28 +1,33 @@
 
-package main
+package user
 
 import (
 	"os"
 	"path/filepath"
 )
 
+type User struct {
+	Name string				`json:"name", yaml:"name"`
+	Password string			`json:"password", yaml:"password"`
+	JailDirectory string	`json:"directory", yaml:"directory"`
+	Readonly  bool			`json:"readonly", yaml:"readonly"`
+}
+
 
 type UserGov struct {
-	users []User
-	config Config
+	Users []User
 }
 
 //NewUserRepo has nil Users until LoadUsers is called
-func NewUserGov(conf Config) UserGov {
+func NewUserGov(users []User) UserGov {
 	
 	return UserGov{
-		config: conf,
-		users: nil,
+		Users: users,
 	}
 }
 
 func (ug UserGov) Auth(name string, pass string) (User, bool) {
-	for _, v := range ug.config.Users {
+	for _, v := range ug.Users {
 		if v.Name == name && v.Password == pass {
 			return v, true
 		}
@@ -30,16 +35,13 @@ func (ug UserGov) Auth(name string, pass string) (User, bool) {
 	return User{}, false
 }
 
-func (ug UserGov) CreateUserDir(name string) {
+func (ug UserGov) CreateUserDir(baseDir string, name string) {
 
-	dirPath := filepath.Join(ug.config.StagingPath, name)
+	dirPath := filepath.Join(baseDir, name)
 
 	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
 		os.Mkdir(dirPath, 0777)
-		logclient.Infof("Created user directory at %s", dirPath)
-	} else {
-		logclient.Infof("Skip creation user directory exist at %s", dirPath)
-	}
+	} 
 }
 
 // func (ug UserGov) createSftpSvcRoutes() ([]Route) {

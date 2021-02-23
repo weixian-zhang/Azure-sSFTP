@@ -1,6 +1,10 @@
 
 package main
 
+import (
+	"github.com/weixian-zhang/ssftp/user"
+)
+
 var logclient LogClient
 
 func main() {
@@ -12,7 +16,7 @@ func main() {
 
 	<- configLoaded
 
-	ug := NewUserGov(*confsvc.config)
+	ug := user.NewUserGov(confsvc.config.Users)
 
 	//routes := ug.createSftpSvcRoutes()
 	sftpsvc := NewSFTPService(&confsvc, ug)

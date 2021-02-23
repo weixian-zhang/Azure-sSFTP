@@ -9,7 +9,7 @@
             "type": "shell",
             "args": [],
             "options": {
-                "cwd": "${workspaceFolder}/ssftp",
+                "cwd": "${workspaceFolder}/src/ssftp",
                 "env": {}
             },
             "problemMatcher": []

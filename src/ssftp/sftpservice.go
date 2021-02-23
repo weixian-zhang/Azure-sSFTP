@@ -17,8 +17,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"crypto/x509"
 	"encoding/pem"
-	//"path/filepath"
-	//"strconv"
+	"github.com/weixian-zhang/ssftp/user"
 )
 
 // https://github.com/pkg/sftp/blob/master/examples/go-sftp-server/main.go
@@ -31,11 +30,11 @@ import (
 
 type SFTPService struct {
 	configsvc *ConfigService
-	usrgov 		UserGov
+	usrgov 		user.UserGov
 	netListener  net.Listener
 }
 
-func NewSFTPService(configsvc *ConfigService, usrgov UserGov) (SFTPService) {
+func NewSFTPService(configsvc *ConfigService, usrgov user.UserGov) (SFTPService) {
 	return SFTPService{
 		configsvc: configsvc,
 		usrgov: usrgov,
