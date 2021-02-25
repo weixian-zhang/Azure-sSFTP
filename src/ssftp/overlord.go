@@ -48,7 +48,7 @@ func (ol *Overlord) Start(exit chan bool) {
 
 	go ol.fileWatcher.startWatchConfigFileChange()
 
-	//ol.fileWatcher.startStagingDirWatch(ol.confsvc.config.StagingPath)
+	go ol.fileWatcher.startStagingDirWatch(ol.confsvc.config.StagingPath)
 
 	go func() {
 
@@ -56,21 +56,32 @@ func (ol *Overlord) Start(exit chan bool) {
 
 			select {
 
-			//case sftpFileUploaded := <- overlord.sftpservice.writeNotifications:
+			case fileCreateChange := <- ol.fileWatcher.fileCreateChangeEvent:
 
-				//logclient.Infof("User %s uploads file %s", sftpFileUploaded.Username, sftpFileUploaded.Path)
+				logclient.Infof("sending file %s for scanning", fileCreateChange.Path)
 
-				//go overlord.clamav.ScanFile(sftpFileUploaded.Path)
+				go ol.clamav.ScanFile(fileCreateChange.Path)
 
-				// case filecc := <- overlord.fileWatcher.fileCreateChangeEvent:
 
-				// 	go overlord.clamav.ScanFile(filecc.Path)
+			case scanR := <-ol.clamav.scanEvent:
 
-				// case scanR := <-ol.clamav.scanEvent:
+				ol.fileWatcher.ScanDone <- true
 
-				// 	ol.fileWatcher.moveFileByStatus(scanR)
+				logclient.Infof("Scanning done for file %s and virus found is %v", scanR.filePath, scanR.VirusFound)
 
-				case <- exit:
+				destPath := ol.fileWatcher.moveFileByStatus(scanR)
+
+				if scanR.VirusFound {
+
+					ol.httpClient.callVirusFoundWebhook(VirusDetectedWebhookData{
+						FileName: scanR.fileName,
+						FilePath: destPath,
+						ScanMessage: scanR.Message,
+						TimeGenerated: (time.Now()).Format(time.ANSIC),
+					})
+				}				
+
+			case <- exit:
 
 					ol.fileWatcher.watcher.Close()
 					logclient.Info("Overlord exiting due to exit signal")

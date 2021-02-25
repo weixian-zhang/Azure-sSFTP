@@ -29,6 +29,7 @@ type ClamAvScanResult struct {
 	Message string
 	Size int
 	Status ScanStatus
+	VirusFound bool
 }
 
 func NewClamAvClient() (ClamAv)  {
@@ -63,12 +64,14 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 
 	file, err := os.Open(filePath)
 	if logclient.ErrIf(err) {
+		status, vf := convertClamdStatusToLocalEnum("ERROR")
 		cav.scanEvent <- ClamAvScanResult{
 			filePath: filePath,
 			fileName: "",
 			Message: "error reading file",
 			Size: 0,
-			Status: convertClamdStatusToLocalEnum("ERROR"),
+			Status: status,
+			VirusFound: vf,
 		}
 		return
 	}
@@ -78,24 +81,28 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 
 	resp, err :=  cav.clamClient.ScanStream(bufio.NewReader(file), nil)
 	if logclient.ErrIf(err) {
+		status, vf := convertClamdStatusToLocalEnum("ERROR")
 		cav.scanEvent <- ClamAvScanResult{
 			filePath: filePath,
 			fileName: fileinfo.Name(),
 			Message: "clamav encountered an error scanning file",
 			Size: 0,
-			Status: convertClamdStatusToLocalEnum("ERROR"),
+			Status: status,
+			VirusFound: vf,
 		}
 		return
 	}
 
 	result := <- resp
 
+	status, vf := convertClamdStatusToLocalEnum("ERROR")
 	scanResult := ClamAvScanResult{
 		filePath: filePath,
 		fileName: fileinfo.Name(),
 		Message: result.Raw,
 		Size: int(fileinfo.Size()),
-		Status: convertClamdStatusToLocalEnum(result.Status),
+		Status: status,
+		VirusFound: vf,
 	}
 	
 	logclient.InfoStruct(scanResult)
@@ -111,14 +118,15 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 	}
 }
 
-func convertClamdStatusToLocalEnum(status string) (ScanStatus) {
+//convertClamdStatusToLocalEnum also returns virusFound = true/false
+func convertClamdStatusToLocalEnum(status string) (ScanStatus, bool) {
 	if status == "OK" {
-		return OK
+		return OK, false
 	} else if status == "FOUND"{
-		return Virus
+		return Virus, true
 	} else if status == "ERROR"{
-		return Error
+		return Error, false
 	} else {
-		return Error 
+		return Error, false
 	}
 }

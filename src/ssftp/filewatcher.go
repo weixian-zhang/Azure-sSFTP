@@ -31,8 +31,9 @@ type FileWatcher struct {
 }
 
 type FileMoveChanContext struct {
-	IsVirusFound bool
-	DestPath string
+	IsVirusFound 	 bool
+	DestPath 		 string
+	ClamavScanResult ClamAvScanResult
 }
 
 func NewFileWatcher(confsvc *ConfigService, usrgov  *user.UserGov, scanDone chan bool) (FileWatcher) { 
@@ -152,7 +153,8 @@ func (fw *FileWatcher) registerConfigFileChangeEvent() {
 	}
 }
 
-func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult)  {
+//moveFileByStatus returns destination path where file is moved. Either /mnt/ssftp/clean|quaratine|error
+func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 
 	//replace "staging" folder path with new Clean and Quarantine path so when file is moved to either
 	//clean/quarantine, the sub-folder structure remains the same as staging.
@@ -160,41 +162,26 @@ func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult)  {
 	cleanPath := strings.Replace(scanR.filePath, fw.confsvc.config.StagingPath, fw.confsvc.config.CleanPath, -1)
 	quarantinePath := strings.Replace(scanR.filePath, fw.confsvc.config.StagingPath, fw.confsvc.config.QuarantinePath, -1)
 
-	hasVirus := false
 	destPath := cleanPath
 	
-	if scanR.Status == Virus {
-		hasVirus = true
-		destPath = quarantinePath
-	} 
-
-	if !hasVirus {
+	if !scanR.VirusFound {
 
 		err := fw.moveFileBetweenDrives(scanR.filePath,cleanPath)
-		if err != nil {
-			return
-		}
+		logclient.ErrIfm("Error moving file between drives when virus is not found", err)
 
 		logclient.Infof("File %q is clean moving file to %q", scanR.fileName, cleanPath)
 
 	} else {
 
+		destPath = quarantinePath
+
 		err := fw.moveFileBetweenDrives(scanR.filePath, quarantinePath)
-		if err != nil {
-			return
-		}
-
+		logclient.ErrIfm("Error moving file between drives when virus is found", err)
+		
 		logclient.Infof("Virus found in file %q, moving file to quarantine %q", scanR.fileName, quarantinePath)
-
-		//fw.httpClient.callWebhook(scanR.fileName, quarantinePath)
-
-		//TODO: trigger webhook
 	}
 
-	fw.fileMovedEvent <- FileMoveChanContext{
-		IsVirusFound: hasVirus,
-		DestPath: destPath,
-	}
+	return destPath
 }
 
 //moveFileBetweenDrives also creates subfolders following staging/../.. if any

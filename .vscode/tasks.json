@@ -5,7 +5,7 @@
     "tasks": [
         {
             "label": "go build sSFTP",
-            "command": "go build",
+            "command": "go build --race",
             "type": "shell",
             "args": [],
             "options": {
