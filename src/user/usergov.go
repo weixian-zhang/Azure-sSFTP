@@ -26,7 +26,11 @@ func NewUserGov(users []User) UserGov {
 	}
 }
 
-func (ug UserGov) Auth(name string, pass string) (User, bool) {
+func (ug *UserGov) SetUsers(users []User) {
+	ug.Users = users
+}
+
+func (ug *UserGov) Auth(name string, pass string) (User, bool) {
 	for _, v := range ug.Users {
 		if v.Name == name && v.Password == pass {
 			return v, true
@@ -35,7 +39,7 @@ func (ug UserGov) Auth(name string, pass string) (User, bool) {
 	return User{}, false
 }
 
-func (ug UserGov) CreateUserDir(baseDir string, name string) {
+func (ug *UserGov) CreateUserDir(baseDir string, name string) {
 
 	dirPath := filepath.Join(baseDir, name)
 

@@ -8,6 +8,8 @@ import (
 	"io"
 	"github.com/radovskyb/watcher"
 	"path/filepath"
+	"github.com/weixian-zhang/ssftp/user"
+	"strings"
 )
 
 type File struct {
@@ -20,13 +22,20 @@ type File struct {
 
 type FileWatcher struct {
 	confsvc *ConfigService
+	usergov  *user.UserGov
 	watcher *watcher.Watcher
 	configWatcher *watcher.Watcher
-	fileCreateEvent chan File
-	fileMoved chan FileMovedByStatus
+	ScanDone		chan bool
+	fileCreateChangeEvent chan File
+	fileMovedEvent chan FileMoveChanContext
 }
 
-func NewFileWatcher(confsvc *ConfigService) (FileWatcher) { 
+type FileMoveChanContext struct {
+	IsVirusFound bool
+	DestPath string
+}
+
+func NewFileWatcher(confsvc *ConfigService, usrgov  *user.UserGov, scanDone chan bool) (FileWatcher) { 
 
 	w := watcher.New()
 	w.FilterOps(watcher.Create, watcher.Write, watcher.Rename)
@@ -39,16 +48,18 @@ func NewFileWatcher(confsvc *ConfigService) (FileWatcher) {
 	conferr := cw.AddRecursive(confsvc.getYamlConfgPath())
 	logclient.ErrIf(conferr)
 
-	fileChan := make(chan File)
 	return FileWatcher{
 		watcher: w,
 		configWatcher: cw,
 		confsvc: confsvc,
-		fileCreateEvent: fileChan,
+		usergov: usrgov,
+		fileCreateChangeEvent:  make(chan File),
+		fileMovedEvent: make(chan FileMoveChanContext),
+		ScanDone: scanDone,
 	}
 }
 
-func (fw FileWatcher) startWatchConfigFileChange() {
+func (fw *FileWatcher) startWatchConfigFileChange() {
 
 	go fw.registerConfigFileChangeEvent()
 
@@ -57,7 +68,7 @@ func (fw FileWatcher) startWatchConfigFileChange() {
 }
 
 //startWatch goes into a control loop to continuously watch for newly created files
-func (fw FileWatcher) startWatch(dirPathToWatch string) {
+func (fw *FileWatcher) startStagingDirWatch(dirPathToWatch string) {
 
 	logclient.Info(fmt.Sprintf("ssftp started watching directory: %s", dirPathToWatch))
 
@@ -67,7 +78,7 @@ func (fw FileWatcher) startWatch(dirPathToWatch string) {
 	logclient.ErrIf(serr)
 }
 
-func (fw FileWatcher) registerFileWatchEvents() {
+func (fw *FileWatcher) registerFileWatchEvents() {
 
 	for {
 
@@ -83,12 +94,11 @@ func (fw FileWatcher) registerFileWatchEvents() {
 					continue
 				}
 
-				//only watch for create event
-				if event.Op == watcher.Create || event.Op == watcher.Rename || event.Op == watcher.Write  {
+				if event.Op == watcher.Create || event.Op == watcher.Write  {
 
 					time.Sleep(1 * time.Second)
 
-					logclient.Infof("File watch on file: %s", event.Name())
+					logclient.Infof("Filewatcher: file upload/write detected: %s", event.Name())
 
 					fileOnWatch := File{
 						Path: filepath.FromSlash(event.Path),
@@ -98,18 +108,20 @@ func (fw FileWatcher) registerFileWatchEvents() {
 						TimeCreated: (time.Now()).Format(time.ANSIC),
 					}
 
-					fw.fileCreateEvent <-fileOnWatch //notifies overlord to scan file
+					fw.fileCreateChangeEvent <-fileOnWatch //notifies overlord to scan file
 
-					<-fw.fileMoved // blocks, continue only after previous file scan done
+					logclient.Infof("Filewatcher blocks for %s", fileOnWatch.Path)
 
-					logclient.Infof("File watch unblocked for %s, continue with next file", fileOnWatch.Path)
+					<- fw.ScanDone // blocks, continue only after previous file scan done
+
+					logclient.Infof("Filewatcher unblocked for %s, continue with next file", fileOnWatch.Path)
 					
 				}
 		}
 	}
 }
 
-func (fw FileWatcher) registerConfigFileChangeEvent() {
+func (fw *FileWatcher) registerConfigFileChangeEvent() {
 	for {
 		select {
 			case err := <- fw.configWatcher.Error:
@@ -117,18 +129,76 @@ func (fw FileWatcher) registerConfigFileChangeEvent() {
 
 			case event := <- fw.configWatcher.Event:
 
-				if SystemConfigFileName ==  event.Name() {
-					logclient.Infof("sSFTP config file %s change detected", SystemConfigPath)
-
-					fw.confsvc.LoadYamlConfig()
+				if event.IsDir() {
+					continue
 				}
 
+				if event.Op == watcher.Create || event.Op == watcher.Write  {
+
+					if SystemConfigFileName ==  event.Name() {
+
+						logclient.Infof("Config file %s change detected", SystemConfigPath)
+	
+						loaded := fw.confsvc.LoadYamlConfig()
+
+						config := <- loaded
+
+						logclient.Infof("Config file loaded successfully")
+
+						fw.usergov.SetUsers(config.Users)
+					}
+				}
 		}
 	}
 }
 
+func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult)  {
+
+	//replace "staging" folder path with new Clean and Quarantine path so when file is moved to either
+	//clean/quarantine, the sub-folder structure remains the same as staging.
+	//e.g: Staging:/mnt/ssftp/'staging'/userB/sub = Clean:/mnt/ssftp/'clean'/userB/sub or Quarantine:/mnt/ssftp/'quarantine'/userB/sub
+	cleanPath := strings.Replace(scanR.filePath, fw.confsvc.config.StagingPath, fw.confsvc.config.CleanPath, -1)
+	quarantinePath := strings.Replace(scanR.filePath, fw.confsvc.config.StagingPath, fw.confsvc.config.QuarantinePath, -1)
+
+	hasVirus := false
+	destPath := cleanPath
+	
+	if scanR.Status == Virus {
+		hasVirus = true
+		destPath = quarantinePath
+	} 
+
+	if !hasVirus {
+
+		err := fw.moveFileBetweenDrives(scanR.filePath,cleanPath)
+		if err != nil {
+			return
+		}
+
+		logclient.Infof("File %q is clean moving file to %q", scanR.fileName, cleanPath)
+
+	} else {
+
+		err := fw.moveFileBetweenDrives(scanR.filePath, quarantinePath)
+		if err != nil {
+			return
+		}
+
+		logclient.Infof("Virus found in file %q, moving file to quarantine %q", scanR.fileName, quarantinePath)
+
+		//fw.httpClient.callWebhook(scanR.fileName, quarantinePath)
+
+		//TODO: trigger webhook
+	}
+
+	fw.fileMovedEvent <- FileMoveChanContext{
+		IsVirusFound: hasVirus,
+		DestPath: destPath,
+	}
+}
+
 //moveFileBetweenDrives also creates subfolders following staging/../.. if any
-func (fw FileWatcher) moveFileBetweenDrives(srcPath string, destPath string) (error) {
+func (fw *FileWatcher) moveFileBetweenDrives(srcPath string, destPath string) (error) {
 
 	srcFile, err := os.Open(srcPath)
     if logclient.ErrIf(err) {

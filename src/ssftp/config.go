@@ -80,11 +80,11 @@ const (
 // 	// return conf, nil
 // }
 
-func (c ConfigService) LoadYamlConfig() chan bool {
+func (c ConfigService) LoadYamlConfig() chan Config {
 
-	loaded := make(chan bool)
+	loaded := make(chan Config)
 
-		go func(){ 
+		go func() { 
 			for {
 				yamlConfgPath := c.getYamlConfgPath()
 
@@ -116,10 +116,11 @@ func (c ConfigService) LoadYamlConfig() chan bool {
 				configJStr := ToJsonString(c.config)
 				log.Println(fmt.Sprintf("sSFTP loaded config from /mnt/ssftp/system/ssftp.yaml: %s", configJStr))
 
+				loaded <- *c.config
+
 				break
 			}
-
-			loaded <- true
+			
 		}()
 	
 	return loaded

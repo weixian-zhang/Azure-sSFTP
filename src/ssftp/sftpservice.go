@@ -30,12 +30,12 @@ import (
 
 type SFTPService struct {
 	configsvc *ConfigService
-	usrgov 		user.UserGov
+	usrgov 		*user.UserGov
 	loginUser   user.User
 	netListener  net.Listener
 }
 
-func NewSFTPService(configsvc *ConfigService, usrgov user.UserGov) (SFTPService) {
+func NewSFTPService(configsvc *ConfigService, usrgov *user.UserGov) (SFTPService) {
 	return SFTPService{
 		configsvc: configsvc,
 		usrgov: usrgov,

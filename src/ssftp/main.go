@@ -19,19 +19,19 @@ func main() {
 	ug := user.NewUserGov(confsvc.config.Users)
 
 	//routes := ug.createSftpSvcRoutes()
-	sftpsvc := NewSFTPService(&confsvc, ug)
-	sftpsvc.Start()
+	sftpsvc := NewSFTPService(&confsvc, &ug)
+	go sftpsvc.Start()
 	
 	logclient.InitLogDests(*confsvc.config)
 	logclient.Info("sSFTP started...")
 
 	
-	//ol, err := NewOverlord(&confsvc)
-	//logclient.ErrIf(err)
+	ol, err := NewOverlord(&confsvc, &ug)
+	logclient.ErrIf(err)
 
 	exit := make(chan bool)
 
-	//ol.startWork(exit)
+	ol.Start(exit)
 
 	<- exit
 }

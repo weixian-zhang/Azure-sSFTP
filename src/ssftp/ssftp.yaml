@@ -6,14 +6,14 @@ logSinks:
   - kind: file
     path: "/mnt/ssftp/log"
 users:
-  - name: "testuser"
-    password: "tiger"
-    directory: "agency-z"
-
-  - name: "testuser"
-    password: "tiger"
+  - name: "admin"
+    password: "222"
     directory: "agency-z"
 
   - name: "testuser2"
+    password: "tiger"
+    directory: "agency-z"
+
+  - name: "testuser3"
     password: "lion"
     directory: "twin-systems"
