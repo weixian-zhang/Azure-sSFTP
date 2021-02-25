@@ -4,7 +4,8 @@ package sftp
 
 import (
 	"encoding"
-	//"errors"
+	"runtime"
+	"strings"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,13 +42,25 @@ type Server struct {
 }
 
 func (svr *Server) getUserJailPath(filePath string) string {
+
+	jailPath := filepath.Join(svr.stagingPath, svr.user.JailDirectory)
+
+	if runtime.GOOS == "windows" {
+		if filePath[:1] == "/" {
+			filePath = strings.Replace(filePath, "/", "", 1)
+		}
+	}
+
 	if svr.stagingPath == "" {
 		return filePath
 	}
 	chroot := svr.stagingPath
 	if svr.user.JailDirectory != "" {
 		chroot = filepath.Join(chroot, svr.user.JailDirectory)
+	} else if filePath == jailPath { //if filePath is already == stagingPath
+		chroot = filePath
 	}
+	
 	c := filepath.Clean(filePath)
 	if filepath.IsAbs(c) && filepath.HasPrefix(c, chroot) {
 		return c
@@ -93,7 +106,7 @@ type serverRespondablePacket interface {
 // functions may be specified to further configure the Server.
 //
 // A subsequent call to Serve() is required to begin serving files over SFTP.
-func NewServer(rwc io.ReadWriteCloser, options ...ServerOption) (*Server, error) {
+func NewServer(rwc io.ReadWriteCloser, user user.User, stagingPath string, options ...ServerOption) (*Server, error) {
 	svrConn := &serverConn{
 		conn: conn{
 			Reader:      rwc,
@@ -105,6 +118,8 @@ func NewServer(rwc io.ReadWriteCloser, options ...ServerOption) (*Server, error)
 		debugStream: ioutil.Discard,
 		pktMgr:      newPktMgr(svrConn),
 		openFiles:   make(map[string]*os.File),
+		user: user,
+		stagingPath: stagingPath,
 	}
 
 	for _, o := range options {
@@ -177,6 +192,7 @@ func (svr *Server) sftpServerWorker(pktChan chan orderedRequest) error {
 		}
 
 		if err := handlePacket(svr, pkt); err != nil {
+			fmt.Println(fmt.Sprintf("handlePacket, error: %s", err.Error()))
 			return err
 		}
 	}
@@ -193,6 +209,8 @@ func handlePacket(s *Server, p orderedRequest) error {
 			Extensions: sftpExtensions,
 		}
 	case *sshFxpStatPacket:
+		fmt.Println(fmt.Sprintf("sshFxpStatPacket, path: %s", s.getUserJailPath(p.Path)))
+
 		// stat the requested file
 		info, err := os.Stat(s.getUserJailPath(p.Path)) //os.Stat(p.Path)
 		rpkt = sshFxpStatResponse{
@@ -200,16 +218,22 @@ func handlePacket(s *Server, p orderedRequest) error {
 			info: info,
 		}
 		if err != nil {
+			fmt.Println(fmt.Sprintf("sshFxpStatPacket, error: %s", err.Error()))
+
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpLstatPacket:
+		fmt.Println(fmt.Sprintf("sshFxpLstatPacket, path: %s", p.Path))
+
 		// stat the requested file
-		info, err := os.Lstat(s.getUserJailPath(p.Path)) //os.Lstat(p.Path)
+		info, err := os.Lstat(p.Path)
 		rpkt = sshFxpStatResponse{
 			ID:   p.ID,
 			info: info,
 		}
 		if err != nil {
+			fmt.Println(fmt.Sprintf("sshFxpLstatPacket, error: %s", err.Error()))
+
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpFstatPacket:
@@ -227,26 +251,63 @@ func handlePacket(s *Server, p orderedRequest) error {
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpMkdirPacket:
+
+		chroot := s.getUserJailPath(p.Path)
+
+		//fmt.Println(fmt.Sprintf("sshFxpMkdirPacket, path: %s", chroot))
+
+
+
 		// TODO FIXME: ignore flags field
-		err := os.Mkdir(s.getUserJailPath(p.Path), 0755) //os.Mkdir(p.Path, 0755)
+		err := os.Mkdir(chroot, 0755) //os.Mkdir(p.Path, 0755)
+
+		//fmt.Println(fmt.Sprintf("sshFxpMkdirPacket, error: %s", err.Error()))
+
 		rpkt = statusFromError(p, err)
+		
 	case *sshFxpRmdirPacket:
+		//fmt.Println(fmt.Sprintf("sshFxpRmdirPacket, path: %s", s.getUserJailPath(p.Path)))
+
 		err := os.Remove(s.getUserJailPath(p.Path))//os.Remove(p.Path)
+
+		//fmt.Println(fmt.Sprintf("sshFxpRmdirPacket, error: %s", err.Error()))
+
 		rpkt = statusFromError(p, err)
 	case *sshFxpRemovePacket:
-		err :=  os.Remove(s.getUserJailPath(p.Filename)) //os.Remove(p.Filename)
+
+		//fmt.Println(fmt.Sprintf("sshFxpRemovePacket, path: %s", p.Filename))
+
+		err :=  os.Remove(p.Filename)
+
+		//fmt.Println(fmt.Sprintf("sshFxpRemovePacket, error: %s", err.Error()))
+
 		rpkt = statusFromError(p, err)
 	case *sshFxpRenamePacket:
-		err :=   os.Rename(s.getUserJailPath(p.Oldpath), s.getUserJailPath(p.Newpath)) //os.Rename(p.Oldpath, p.Newpath)
+
+		//fmt.Println(fmt.Sprintf("sshFxpRenamePacket, oldpath: %s, newPath: %s", p.Oldpath, p.Newpath))
+
+		err := os.Rename(p.Oldpath, p.Newpath)
+		
+		//fmt.Println(fmt.Sprintf("sshFxpRenamePacket, error: %s", err.Error()))
+
 		rpkt = statusFromError(p, err)
 	case *sshFxpSymlinkPacket:
+
+		//fmt.Println(fmt.Sprintf("sshFxpSymlinkPacket, targetPath: %s, linkPath: %s", s.getUserJailPath(p.Targetpath),s.getUserJailPath(p.Linkpath)))
+
 		err := os.Symlink(s.getUserJailPath(p.Targetpath), s.getUserJailPath(p.Linkpath)) //os.Symlink(p.Targetpath, p.Linkpath)
+		
+		//fmt.Println(fmt.Sprintf("sshFxpSymlinkPacket, error: %s", err.Error()))
+
 		rpkt = statusFromError(p, err)
 	case *sshFxpClosePacket:
 		//TODO: notify file upload/written complete
 		rpkt = statusFromError(p, s.closeHandle(p.Handle))
 
 	case *sshFxpReadlinkPacket:
+
+		//fmt.Println(fmt.Sprintf("sshFxpReadlinkPacket, path: %s", s.getUserJailPath(p.Path)))
+
 		f, err := os.Readlink(s.getUserJailPath(p.Path)) //os.Readlink(p.Path)
 		rpkt = sshFxpNamePacket{
 			ID: p.ID,
@@ -257,9 +318,14 @@ func handlePacket(s *Server, p orderedRequest) error {
 			}},
 		}
 		if err != nil {
+			//fmt.Println(fmt.Sprintf("sshFxpReadlinkPacket, error: %s", err.Error()))
+
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpRealpathPacket:
+
+		//fmt.Println(fmt.Sprintf("sshFxpRealpathPacket, path: %s", s.getUserJailPath(p.Path)))
+
 		f, err := filepath.Abs(s.getUserJailPath(p.Path))  //filepath.Abs(p.Path)
 		f = cleanPath(f)
 		rpkt = sshFxpNamePacket{
@@ -271,12 +337,27 @@ func handlePacket(s *Server, p orderedRequest) error {
 			}},
 		}
 		if err != nil {
+
+			//fmt.Println(fmt.Sprintf("sshFxpRealpathPacket, error: %s", err.Error()))
+
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpOpendirPacket:
+
+		//fmt.Println(fmt.Sprintf("sshFxpOpendirPacket, path: %s", s.getUserJailPath(p.Path)))
+
 		if stat, err := os.Stat(s.getUserJailPath(p.Path)); err != nil {
+
+			if err != nil {
+				fmt.Println(fmt.Sprintf("sshFxpOpendirPacket, error: %s", err.Error()))
+			}
+			
+
 			rpkt = statusFromError(p, err)
 		} else if !stat.IsDir() {
+
+			fmt.Println(fmt.Sprintf("sshFxpOpendirPacket stat.IsDir(), path: %s", s.getUserJailPath(p.Path)))
+		
 			rpkt = statusFromError(p, &os.PathError{
 				Path: s.getUserJailPath(p.Path), Err: syscall.ENOTDIR})
 		} else {

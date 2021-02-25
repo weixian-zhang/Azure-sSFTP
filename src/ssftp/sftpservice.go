@@ -31,6 +31,7 @@ import (
 type SFTPService struct {
 	configsvc *ConfigService
 	usrgov 		user.UserGov
+	loginUser   user.User
 	netListener  net.Listener
 }
 
@@ -38,10 +39,11 @@ func NewSFTPService(configsvc *ConfigService, usrgov user.UserGov) (SFTPService)
 	return SFTPService{
 		configsvc: configsvc,
 		usrgov: usrgov,
+		loginUser: user.User{},
 	}
 }
 
-func (ss SFTPService) Start() {
+func (ss *SFTPService) Start() {
 
 	debugStream := os.Stderr
 	
@@ -52,11 +54,16 @@ func (ss SFTPService) Start() {
 			// Should use constant-time compare (or better, salt+hash) in
 			// a production setting.
 			fmt.Fprintf(debugStream, "Login: %s\n", c.User())
-			if c.User() == "testuser" && string(pass) == "tiger" {
+			// if c.User() == "testuser" && string(pass) == "tiger" {
+				if usr, ok := ss.usrgov.Auth(c.User(), string(pass)); ok {
+
+					ss.loginUser = usr
+					ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser .JailDirectory)
 				
 				// ss.usergov.createAdminGroup()
 				// ss.usergov.AddNewUser(filepath.Join(ss.config.StagingPath,"testuser"), "testuser", "tiger")
 				// ss.createUserDir("testuser")
+				
 
 				return nil, nil
 			}
@@ -88,7 +95,7 @@ func (ss SFTPService) Start() {
 
 }
 
-func (ss SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
+func (ss *SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
 	for {
 		
 		newConn, err := ss.netListener.Accept()
@@ -103,12 +110,12 @@ func (ss SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
 	}
 }
 
-func (ss SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.ServerConfig) {
+func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.ServerConfig) {
 
 	debugStream := os.Stderr
 
 	go func() {
-		time.Sleep(20 * time.Second)
+		time.Sleep(300 * time.Second)
 
 		logclient.Info("Handshake took too long, timing out")
 
@@ -181,6 +188,8 @@ func (ss SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Serv
 
 		server, err := sftp.NewServer(
 			channel,
+			ss.loginUser,
+			ss.configsvc.config.StagingPath,
 			serverOptions...,
 		)
 		if err != nil {
@@ -196,7 +205,7 @@ func (ss SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Serv
 
 }
 
-func (ss SFTPService) genSSHKey() (ssh.Signer) {
+func (ss *SFTPService) genSSHKey() (ssh.Signer) {
 
 	if _ , err := os.Stat("private.pem"); os.IsExist(err) {
 		

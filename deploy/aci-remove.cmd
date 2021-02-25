@@ -1,1 +1,1 @@
-az container delete -g rgGCCSHOL -n aci-containergroup-ssftp -y
+az container delete -g rgGCCSHOL -n aci-ssftp -y
