@@ -1,6 +1,7 @@
 ## Azure Scanned SFTP  
 
 * [What is sSFTP](#what-is-ssftp)
+* [Features](#features)
 * [AzFile, Folder Structure & Conventions](#azure-file,-folder-structure-&-cConventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
@@ -14,6 +15,20 @@ sSFTP leverages Azure Container Instance to host 2 containers into a single Cont
 * [sSFTP container](https://hub.docker.com/repository/docker/wxzd/ssftp) runs a SFTP server, watches for uploaded files, scans and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
 <br />
 <b>Features</b>  
+
+### Features  
+
+* Pure PaaS solution, sSFTP runs on Azure Container Instance
+* sSFTP's Container Instance runs in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
+* SFTP server integrated, no separate product license needed
+* ClamAV virus scan integrated
+* Azure File as the file storage for SFTP server
+* Each SFTP user/service login account is rooted to his or her configured directory only
+* Supports multi-user/service accounts per each root directory
+* Add or remove user/service accounts without restarting SFTP server
+* Easy configuration using a single Yaml file
+* Yaml config changes is recognized on-the-fly with no restart needed
+* For whatever reason if sSFTP's Container Instance is restarted or removed, files are still retained in Azure File
 
 
 This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall  
