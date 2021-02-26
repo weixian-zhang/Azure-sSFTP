@@ -92,9 +92,9 @@ Also refer to [How it works](#behind-the-scenes-how-ssftp-works) for more detail
 <br />
 
 
-### Behind the Scenes How sSFTP Works
+### How sSFTP Works
 
-
+<img src="./doc/ssftp-azure-architecture.png" width="850" height="500" />  
 
 
 https://docs.microsoft.com/en-us/azure/container-instances/container-instances-region-availability
