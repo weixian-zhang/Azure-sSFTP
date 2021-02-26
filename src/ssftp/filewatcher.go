@@ -95,9 +95,7 @@ func (fw *FileWatcher) registerFileWatchEvents() {
 					continue
 				}
 
-				if event.Op == watcher.Create || event.Op == watcher.Write  {
-
-					time.Sleep(1 * time.Second)
+				if event.Op == watcher.Create  {
 
 					logclient.Infof("Filewatcher: file upload/write detected: %s", event.Name())
 
@@ -169,7 +167,7 @@ func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 		err := fw.moveFileBetweenDrives(scanR.filePath,cleanPath)
 		logclient.ErrIfm("Error moving file between drives when virus is not found", err)
 
-		logclient.Infof("File %q is clean moving file to %q", scanR.fileName, cleanPath)
+		logclient.Infof("Moving clean file %q to %q", scanR.fileName, cleanPath)
 
 	} else {
 
@@ -178,7 +176,7 @@ func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 		err := fw.moveFileBetweenDrives(scanR.filePath, quarantinePath)
 		logclient.ErrIfm("Error moving file between drives when virus is found", err)
 		
-		logclient.Infof("Virus found in file %q, moving file to quarantine %q", scanR.fileName, quarantinePath)
+		logclient.Infof("Virus found in file %q, moving to quarantine %q", scanR.fileName, quarantinePath)
 	}
 
 	return destPath
@@ -221,4 +219,6 @@ func (fw *FileWatcher) moveFileBetweenDrives(srcPath string, destPath string) (e
 
 	return nil
 }
+
+
 

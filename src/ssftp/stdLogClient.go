@@ -22,10 +22,10 @@ func NewStdLogClient() (StdLogClient) {
 }
 
 func (stdl StdLogClient) Info(msg string) {
-	stdl.stdoutWriter.Println(createLogMessage(msg))
+	stdl.stdoutWriter.Println(msg)
 }
 
 func (stdl StdLogClient) Err(err error) {
-	stdl.stderrWriter.Println(createLogMessage(err.Error()))
+	stdl.stderrWriter.Println(err.Error())
 }
 

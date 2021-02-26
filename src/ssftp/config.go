@@ -29,13 +29,13 @@ type ConfigService struct {
 
 type Config struct {
 	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
-	AllDirFollowUserDir bool		`json:"allDirFollowUserDir, yaml:"allDirFollowUserDir"`
+	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
 	StagingPath string				//`json:"stagingPath, yaml:"stagingPath"`
 	CleanPath string				//`json:"cleanPath, yaml:"cleanPath"`
 	QuarantinePath string			//`json:"quarantinePath, yaml:"quarantinePath"`
 	ErrorPath string				//`json:"errorPath", yaml:"errorPath"`
-	LogDests[]LogDest				`json:"logDests", yaml:"logDests"`
-	Users []user.User					`json:"users", yaml:"users"`
+	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
+	Users []user.User				`json:"users", yaml:"users"`
 	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
 }
 
@@ -45,7 +45,7 @@ type Webhook struct {
 }
 
 type LogDest struct {
-	Kind string
+	Kind string			`json:"kind", yaml:"kind"`
 	Properties Props	`json:"props", yaml:"props"`
 }
 type Props map[string]string	
@@ -126,7 +126,7 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 	return loaded
 }
 
-func (c ConfigService) getYamlConfgPath() string {
+func (c *ConfigService) getYamlConfgPath() string {
 	if runtime.GOOS != "windows" {
 		return SystemConfigPath
 	} else {
@@ -134,8 +134,8 @@ func (c ConfigService) getYamlConfgPath() string {
 	}
 }
 
-func (c *Config) isLogDestConfigured(kind string) (bool) {
-	for _, v := range c.LogDests {
+func (c *ConfigService) isLogDestConfigured(kind string) (bool) {
+	for _, v := range c.config.LogDests {
 		if v.Kind == kind {
 			return true
 		}
@@ -143,8 +143,8 @@ func (c *Config) isLogDestConfigured(kind string) (bool) {
 	return false
 }
 
-func (c *Config) getLogDestProp(kind string, prop string) (string) {
-	for _, v := range c.LogDests {
+func (c *ConfigService) getLogDestProp(kind string, prop string) (string) {
+	for _, v := range c.config.LogDests {
 		if v.Kind == kind {
 			propVal := v.Properties[prop]
 			return propVal
@@ -153,9 +153,9 @@ func (c *Config) getLogDestProp(kind string, prop string) (string) {
 	return ""
 }
 
-func (c *Config) getWebHook(kind string) string {
+func (c *ConfigService) getWebHook(kind string) string {
 
-	for _, v := range c.Webhooks {
+	for _, v := range c.config.Webhooks {
 		if v.Name == kind {
 			return v.Url
 		}

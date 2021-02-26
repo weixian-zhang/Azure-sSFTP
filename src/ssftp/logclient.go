@@ -15,7 +15,7 @@ type LogSink interface {
 }
 
 type LogClient struct {
-	config Config
+	configsvc *ConfigService
 	logsinks []LogSink
 }
 
@@ -36,31 +36,31 @@ func NewBasicLogClient() (LogClient) {
 	logsinks = append(logsinks, stdLogClient)
 
 	return LogClient{
-		config: Config{},
+		configsvc: &ConfigService{},
 		logsinks: logsinks,
 	}
 }
 
-func (lc LogClient) InitLogDests(conf Config) {
+func (lc *LogClient) InitLogDests(configsvc *ConfigService) {
 
-	lc.config = conf
+	lc.configsvc = configsvc
 
-	if lc.config.isLogDestConfigured("file") {
-		rfLogClient := NewRollingFileLogClient(lc.config)
+	if lc.configsvc.isLogDestConfigured("file") {
+		rfLogClient := NewRollingFileLogClient(configsvc)
 		lc.logsinks = append(lc.logsinks, rfLogClient)
 	}
 }
 
-func (lc LogClient) Info(msg string) {
+func (lc *LogClient) Info(msg string) {
 	lc.logInfoToSinks(msg)
 }
 
 //Infof logs string message in fmt.Sprintf format
-func (lc LogClient) Infof(msgTemplate string, args ...interface{}) {
+func (lc *LogClient) Infof(msgTemplate string, args ...interface{}) {
 	lc.logInfoToSinks(fmt.Sprintf(msgTemplate, args...))
 }
 
-func (lc LogClient) ErrIf(err error) (bool) {
+func (lc *LogClient) ErrIf(err error) (bool) {
 	if err != nil {
 		lc.logErrToSinks(err)
 		return true
@@ -69,7 +69,7 @@ func (lc LogClient) ErrIf(err error) (bool) {
 	}
 }
 
-func (lc LogClient) ErrIfm(msg string, err error) (bool) {
+func (lc *LogClient) ErrIfm(msg string, err error) (bool) {
 	if err != nil {
 		lc.logErrToSinks(errors.New(fmt.Sprintf(msg, err.Error())))
 		return true
@@ -78,7 +78,7 @@ func (lc LogClient) ErrIfm(msg string, err error) (bool) {
 	}
 }
 
-func (lc LogClient) ErrIffmsg(msgTemplate string, err error, args...string) (bool) {
+func (lc *LogClient) ErrIffmsg(msgTemplate string, err error, args...string) (bool) {
 	if err != nil {
 		lc.logErrToSinks(errors.New(fmt.Sprintf(msgTemplate, args) + "\nError: " + err.Error()))
 		return true
@@ -88,24 +88,26 @@ func (lc LogClient) ErrIffmsg(msgTemplate string, err error, args...string) (boo
 }
 
 //InfoStruct marshals struct to json strings before logging to all sinks
-func (lc LogClient) InfoStruct(p interface{}) {
+func (lc *LogClient) InfoStruct(p interface{}) {
 	j, _ := json.Marshal(p)
 	lc.logInfoToSinks(string(j))
 }
 
-func (lc LogClient) logInfoToSinks(msg string) {
+func (lc *LogClient) logInfoToSinks(msg string) {
 	for _, v := range lc.logsinks {
-		v.Info(msg)
+		newMsg := lc.createLogMessage(msg)
+		v.Info(newMsg)
 	}
 }
 
-func (lc LogClient) logErrToSinks(err error) {
+func (lc *LogClient) logErrToSinks(err error) {
 	for _, v := range lc.logsinks {
-		v.Err(err)
+		newMsg := lc.createLogMessage(err)
+		v.Err(errors.New(newMsg))
 	}
 }
 
-func createLogMessage(val interface{}) (string) {
+func (lc *LogClient) createLogMessage(val interface{}) (string) {
 
 	t := time.Now()
 	timegen := t.Format(time.ANSIC)
@@ -129,13 +131,3 @@ func createLogMessage(val interface{}) (string) {
 
 	return string(b)
 }
-
-// func getCaller() (string) {
-// 	var caller string = "?.go:0"
-// 	_, file, line, ok := runtime.Caller(0)
-
-// 	if ok {
-// 		caller = file + ":" + string(line)
-// 	}
-// 	return caller
-// }

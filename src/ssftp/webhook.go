@@ -27,7 +27,7 @@ func NewHttpClient(confsvc *ConfigService) (HttpClient) {
 
 func (hc HttpClient) callVirusFoundWebhook(data VirusDetectedWebhookData) {
 
-	vfUrl := hc.confsvc.config.getWebHook(VirusFound)
+	vfUrl := hc.confsvc.getWebHook(VirusFound)
 	if isValidUrl(vfUrl) {
 
 		b, jerr := json.Marshal(data)

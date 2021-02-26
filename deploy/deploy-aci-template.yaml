@@ -1,23 +1,8 @@
 apiVersion: 2019-12-01
 location: southeastasia
-name: aci-containergroup-ssftp
+name: aci-ssftp
 properties:
   containers:
-  - name: sftp-server
-    properties:
-      image: atmoz/sftp:latest
-      resources:
-        requests:
-          cpu: 1
-          memoryInGb: 2.5
-      ports:
-      - port: 22
-      environmentVariables:
-        - name: 'SFTP_USERS'
-          value: '<sftp username>:<sftp password>:::staging' #staging is the subfolder of mounted file share.
-      volumeMounts:
-      - mountPath: /home/<sftp username>/staging #dir name same as login username
-        name: fs-staging
 
   - name: clamav-clamd  # ClamAv virus DB & Scan API daemon
     properties:
@@ -36,20 +21,10 @@ properties:
         requests:
           cpu: 1
           memoryInGb: 2.5
-      environmentVariables:
-        - name: 'stagingPath'
-          value: '/mnt/ssftp/staging'
-        - name: 'cleanPath'
-          value: '/mnt/ssftp/clean'
-        - name: 'quarantinePath'
-          value: '/mnt/ssftp/quarantine'
-        - name: 'errorPath'
-          value: '/mnt/ssftp/error'
-        - name: 'logPath'
-          value: '/mnt/ssftp/log'
-        - name: 'virusFoundWebhookUrl'
-          value: '<webhook url>'
-      volumeMounts:
+      ports:
+        - port: 22
+      
+      volumeMounts: # mountPath by convention, don't change path
       - mountPath: /mnt/ssftp/staging
         name: fs-staging
         readOnly: false
@@ -62,14 +37,17 @@ properties:
       - mountPath: /mnt/ssftp/error
         name: fs-error
         readOnly: false
-      - mountPath: /mnt/ssftp/log
+      - mountPath: /mnt/ssftp/log         # optional, if exist to match LogSink.Path in ssftp.yaml
         name: fs-log
+        readOnly: false
+      - mountPath: /mnt/ssftp/system
+        name: fs-system
         readOnly: false
   volumes:
   - name: fs-staging
     azureFile:
       sharename: ssftp-staging
-      storageAccountName: <storage name>
+      storageAccountName: <storage name>  # all storage name and keys "commonly" the same due to same AzStorage used
       storageAccountKey: <storage key>
   - name: fs-clean
     azureFile:
@@ -91,6 +69,11 @@ properties:
       sharename: ssftp-log
       storageAccountName: <storage name>
       storageAccountKey: <storage key>
+  - name: fs-system
+    azureFile:
+      sharename: ssftp-system
+      storageAccountName: <storage name>
+      storageAccountKey: <storage key>
   
   ipAddress:
     type: Private
@@ -98,7 +81,7 @@ properties:
     - protocol: tcp
       port: 22
   networkProfile:
-    id: <network profile id>
+    id: < network profile >
   restartPolicy: Always
   osType: Linux
 tags: null

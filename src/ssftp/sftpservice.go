@@ -10,23 +10,12 @@ import (
 	"time"
 	"net"
 	"os"
-	//"os/user"
-	//"runtime"
 	sftp "github.com/weixian-zhang/ssftp/pkgsftp"
-	//"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"crypto/x509"
 	"encoding/pem"
 	"github.com/weixian-zhang/ssftp/user"
 )
-
-// https://github.com/pkg/sftp/blob/master/examples/go-sftp-server/main.go
-
-// https://github.com/atmoz/sftp/blob/master/files/create-sftp-user
-
-
-// shuttle SFTP example: https://github.com/TaitoUnited/shuttle/blob/master/sftpservice.go
-// new SFTP antipaste: https://github.com/AntiPaste/sftp/blob/master/server.go
 
 type SFTPService struct {
 	configsvc *ConfigService

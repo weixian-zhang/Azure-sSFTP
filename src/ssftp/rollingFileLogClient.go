@@ -13,17 +13,17 @@ import (
 //https://github.com/natefinch/lumberjack
 
 type RollingFileLogClient struct {
-	config Config
+	confsvc *ConfigService
 	errorWriter *log.Logger
 	infoWriter *log.Logger
 }
 
-func NewRollingFileLogClient(conf Config) (RollingFileLogClient) {
+func NewRollingFileLogClient(confsvc *ConfigService) (RollingFileLogClient) {
 
 	infoFileName := "ssftp-info.log"
 	errorFileName := "ssftp-error.log"
 
-	logPath := conf.getLogDestProp("file", "path")
+	logPath := confsvc.getLogDestProp("file", "path")
 	if logPath == "" {
 		logclient.ErrIf(errors.New("LogDest file path not found"))
 		return RollingFileLogClient{}
@@ -48,17 +48,17 @@ func NewRollingFileLogClient(conf Config) (RollingFileLogClient) {
 	}, "", 0)
 
 	return RollingFileLogClient{
-		config: conf,
+		confsvc: confsvc,
 		errorWriter: errorw,
 		infoWriter: infow,
 	}
 }
 
 func (rfc RollingFileLogClient) Info(msg string) {
-	rfc.infoWriter.Println(createLogMessage(msg))
+	rfc.infoWriter.Println(msg)
 }
 
 func (rfc RollingFileLogClient) Err(err error) {
-	rfc.errorWriter.Println((createLogMessage(err.Error())))
+	rfc.errorWriter.Println((err.Error()))
 }
 

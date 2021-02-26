@@ -60,8 +60,15 @@ func (ol *Overlord) Start(exit chan bool) {
 
 				logclient.Infof("sending file %s for scanning", fileCreateChange.Path)
 
-				go ol.clamav.ScanFile(fileCreateChange.Path)
+				if !ol.confsvc.config.EnableVirusScan {
 
+					logclient.Infof("Virus scan is disabled")
+
+					ol.fileWatcher.ScanDone <- true
+
+				} else {
+					go ol.clamav.ScanFile(fileCreateChange.Path)
+				}
 
 			case scanR := <-ol.clamav.scanEvent:
 
@@ -90,18 +97,16 @@ func (ol *Overlord) Start(exit chan bool) {
 		}
 		
 	}()
-
-	//overlord.fileWatcher.startWatch(overlord.confsvc.config.StagingPath)
 }
-
-
 
 func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {
 	for {
 		_, err := clamav.PingClamd()
 
-			if logclient.ErrIf(err) {
+			if err != nil {
+				logclient.Info("sSFTP waiting for Clamd to be ready, connecting at tcp://localhost:3310")
 				time.Sleep(3 * time.Second)
+				continue
 			} else {
 				logclient.Info("sSFTP connected to Clamd on tcp://localhost:3310")
 				proceed <- true

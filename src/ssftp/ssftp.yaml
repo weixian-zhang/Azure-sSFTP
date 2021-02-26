@@ -1,13 +1,16 @@
-sftpPort: 22      #port needs to be exposed at ACI yaml
+ #sSFTP re-inits without restarting on any canges to this config file
+sftpPort: 22              #port needs to be exposed at ACI yaml
+enableVirusScan: true     #if disabled, files in Staging will remain and not moved
 webhooks:
   - name: virusFound
     url: "https://httpbin.org/post"
-logSinks:
+logDests:
   - kind: file
-    path: "/mnt/ssftp/log"
+    props:
+      path: "/mnt/ssftp/log"
 users:
   - name: "admin"
-    password: "222"
+    password: "22222"
     directory: "agency-z"
 
   - name: "testuser2"

@@ -16,15 +16,12 @@ func main() {
 
 	<- configLoaded
 
+	logclient.InitLogDests(&confsvc)
+
 	ug := user.NewUserGov(confsvc.config.Users)
 
-	//routes := ug.createSftpSvcRoutes()
 	sftpsvc := NewSFTPService(&confsvc, &ug)
 	go sftpsvc.Start()
-	
-	logclient.InitLogDests(*confsvc.config)
-	logclient.Info("sSFTP started...")
-
 	
 	ol, err := NewOverlord(&confsvc, &ug)
 	logclient.ErrIf(err)
