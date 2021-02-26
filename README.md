@@ -94,7 +94,4 @@ Also refer to [How it works](#behind-the-scenes-how-ssftp-works) for more detail
 
 ### How sSFTP Works
 
-<img src="./doc/ssftp-azure-architecture.png" width="850" height="500" />  
-
-
-https://docs.microsoft.com/en-us/azure/container-instances/container-instances-region-availability
+<img src="./doc/ssftp-azure-architecture.png" width="600" height="750" />
