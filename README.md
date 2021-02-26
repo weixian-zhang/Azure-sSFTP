@@ -6,7 +6,7 @@
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Networking](#networking) 
-* [How it works](#behind-the-scenes-how-ssftp-works)
+* [How it works](#how-ssftp-works)
 
 ### What is sSFTP
 Azure sSFTP (Scanned SFTP) is a PaaS solution thats provides SFTP server with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as the file storage.  
