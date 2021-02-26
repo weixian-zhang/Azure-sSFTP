@@ -21,6 +21,7 @@ sSFTP leverages Azure Container Instance to host 2 containers into a single Cont
 * SFTP server integrated, no separate product license needed
 * ClamAV virus scan integrated
 * Azure File as the file storage for SFTP server
+* Supports Webhook invocation when virus is detected per file
 * Each SFTP user/service login account is rooted to his or her configured directory only
 * Supports multi-user/service accounts per each root directory
 * Add or remove user/service accounts without restarting SFTP server
