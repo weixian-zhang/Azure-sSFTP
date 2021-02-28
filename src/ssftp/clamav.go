@@ -95,7 +95,7 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 
 	result := <- resp
 
-	status, vf := convertClamdStatusToLocalEnum("ERROR")
+	status, vf := convertClamdStatusToLocalEnum(result.Status)
 	scanResult := ClamAvScanResult{
 		filePath: filePath,
 		fileName: fileinfo.Name(),

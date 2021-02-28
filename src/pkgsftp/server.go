@@ -223,7 +223,6 @@ func handlePacket(s *Server, p orderedRequest) error {
 			rpkt = statusFromError(p, err)
 		}
 	case *sshFxpLstatPacket:
-		fmt.Println(fmt.Sprintf("sshFxpLstatPacket, path: %s", p.Path))
 
 		// stat the requested file
 		info, err := os.Lstat(p.Path)
@@ -590,7 +589,9 @@ func (p sshFxpSetstatPacket) respond(svr *Server) responsePacket {
 		} else {
 			atimeT := time.Unix(int64(atime), 0)
 			mtimeT := time.Unix(int64(mtime), 0)
-			err = os.Chtimes(p.Path, atimeT, mtimeT)
+			if _, fnferr := os.Stat(p.Path); os.IsExist(fnferr) {
+				err = os.Chtimes(p.Path, atimeT, mtimeT)
+			}
 		}
 	}
 	if (p.Flags & sshFileXferAttrUIDGID) != 0 {

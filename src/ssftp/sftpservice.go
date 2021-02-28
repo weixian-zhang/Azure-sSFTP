@@ -12,7 +12,7 @@ import (
 	"net"
 	"os"
 	"time"
-
+	"strconv"
 	sftp "github.com/weixian-zhang/ssftp/pkgsftp"
 	"github.com/weixian-zhang/ssftp/user"
 	"golang.org/x/crypto/ssh"
@@ -67,13 +67,12 @@ func (ss *SFTPService) Start() {
 			}
 
 			if ok {
+				logclient.Infof("User %s has logged in successfully using certificate authentication", conn.User())
 				ss.loginUser = usr
 				return nil, nil
 			} else {
 				return nil, fmt.Errorf("Public Key authentication is unsuccessful for %s", conn.User())
 			}
-
-			return nil, nil
 		},
 	}
 
@@ -82,7 +81,7 @@ func (ss *SFTPService) Start() {
 
 	// Once a ServerConfig has been configured, connections can be
 	// accepted.
-	listener, err := net.Listen("tcp", "0.0.0.0:22")
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", strconv.Itoa(ss.configsvc.config.SftpPort)))
 	if err != nil {
 		logclient.ErrIfm("failed to listen for connection", err)
 	}
