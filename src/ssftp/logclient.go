@@ -78,6 +78,11 @@ func (lc *LogClient) ErrIfm(msg string, err error) (bool) {
 	}
 }
 
+func (lc *LogClient) Errmfo(msgTemplate string, args...interface{}) {
+	err := fmt.Errorf(msgTemplate, args)
+	lc.logErrToSinks(err)
+}
+
 func (lc *LogClient) ErrIffmsg(msgTemplate string, err error, args...string) (bool) {
 	if err != nil {
 		lc.logErrToSinks(errors.New(fmt.Sprintf(msgTemplate, args) + "\nError: " + err.Error()))

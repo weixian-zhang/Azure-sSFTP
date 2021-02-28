@@ -4,13 +4,19 @@ package user
 import (
 	"os"
 	"path/filepath"
+	"golang.org/x/crypto/ssh"
 )
 
 type User struct {
 	Name string				`json:"name", yaml:"name"`
-	Password string			`json:"password", yaml:"password"`
 	JailDirectory string	`json:"directory", yaml:"directory"`
 	Readonly  bool			`json:"readonly", yaml:"readonly"`
+	Auth Auth				`json:"auth", yaml:"auth"`
+}
+
+type Auth struct {
+	Password string  		`json:"password", yaml:"password"`
+	PublicKey string  		`json:"publicKey", yaml:"publicKey"`
 }
 
 
@@ -30,13 +36,38 @@ func (ug *UserGov) SetUsers(users []User) {
 	ug.Users = users
 }
 
-func (ug *UserGov) Auth(name string, pass string) (User, bool) {
+func (ug *UserGov) AuthPass(name string, pass string) (User, bool) {
 	for _, v := range ug.Users {
-		if v.Name == name && v.Password == pass {
+		if v.Name == name && v.Auth.Password == pass {
 			return v, true
 		}
 	}
 	return User{}, false
+}
+
+func (ug *UserGov) AuthPublicKey(name string, pubKey ssh.PublicKey) (User, bool, error) {
+	for _, v := range ug.Users {
+
+		if v.Name == name {
+
+			usrAuthPKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(v.Auth.PublicKey))
+
+			if err != nil {
+				return v, false, err
+			}
+
+			usrPubKeyStr := string(usrAuthPKey.Marshal())
+			passedInPubKey := string(pubKey.Marshal())
+
+			if usrPubKeyStr  == passedInPubKey {
+				return v, true, nil 
+			} 
+
+		}
+
+		
+	}
+	return User{}, false, nil
 }
 
 func (ug *UserGov) CreateUserDir(baseDir string, name string) {

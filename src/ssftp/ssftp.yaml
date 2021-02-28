@@ -9,14 +9,20 @@ logDests:
     props:
       path: "/mnt/ssftp/log"
 users:
-  - name: "admin"
-    password: "22222"
+  - name: "testuser1"
     directory: "agency-z"
+    auth:
+      password: "22222"
+      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAhOTkkqYRRTQ5iE82LDTGdJ0GY9XNi5Mg9om3n2kobcmX5tkVy8zDn3l2ummJmQLijC4Ka/tyhfATWIv6hV0xcrARrBhXyqZiSDktM7FURSHLtQ6KYm6Mm7eYGRNj+cKWnV1d348cpQYbC3i53JOVGrXQAPlBZn5A6fyfpgEfL299+okjMfq4h8rSPYAy+fGIkQ0K1y0HoJzJph6xyLITUrucTqnol56mpUGVdd4hOYSteklxCc/R+Df7Ha0348wf68HhwvqW94j8epV92Zthuto2Sd7EveTPVjv2VabNv7mZTYH8xTsTOVnIL21Q3Jxnpb2MteSm7x25bPjqo91Dpw== rsa-key-20210228"
 
   - name: "testuser2"
-    password: "tiger"
     directory: "agency-z"
+    auth:
+      password: "tiger"
+      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAo+ZCuxuvbrRZEApzR9IQkqLSKRQ8Q3MlEPqxzBm0DZjN3DGOpesq9z0mJ7oSyQozhutxhce4zYQFB5aRV9aUk+Cbn/pjFVyR9xlAyOV7kg7ThC/HAGeB/GpwdOaiHQ2IubyNmH3jxIEHUV7ZFtfgfocncBUvEO5ayiZUEOJYPCUxQ0zW7RKvg6osmXQ40yJdOh1JmKGFeaVxe72Sqzw26cGxaCoNadTvdAqY9MCn/H+QVadrkbpB7RRrIG++uS6QFaNrOVlK+vO8YCAnrOOS9T3XNvf55nVaQXpBMY6VW2GhNwhCLr2Q0h0EaiGqZfmGHeR2UmOLYC9GKhTTGMAyJQ== rsa-key-20210228"
 
   - name: "testuser3"
-    password: "lion"
     directory: "twin-systems"
+    auth:
+      password: "22222"
+      publicKey: ""

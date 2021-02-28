@@ -1,20 +1,21 @@
- package main
+package main
 
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"time"
 	"net"
 	"os"
+	"time"
+
 	sftp "github.com/weixian-zhang/ssftp/pkgsftp"
-	"golang.org/x/crypto/ssh"
-	"crypto/x509"
-	"encoding/pem"
 	"github.com/weixian-zhang/ssftp/user"
+	"golang.org/x/crypto/ssh"
 )
 
 type SFTPService struct {
@@ -34,29 +35,45 @@ func NewSFTPService(configsvc *ConfigService, usrgov *user.UserGov) (SFTPService
 
 func (ss *SFTPService) Start() {
 
-	debugStream := os.Stderr
 	
-// An SSH server is represented by a ServerConfig, which holds
+	// An SSH server is represented by a ServerConfig, which holds
 	// certificate details and handles authentication of ServerConns.
 	config := &ssh.ServerConfig{
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			// Should use constant-time compare (or better, salt+hash) in
-			// a production setting.
-			fmt.Fprintf(debugStream, "Login: %s\n", c.User())
-			// if c.User() == "testuser" && string(pass) == "tiger" {
-				if usr, ok := ss.usrgov.Auth(c.User(), string(pass)); ok {
+		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+			
+			logclient.Infof("User %s attempting password authentication", conn.User())
 
-					ss.loginUser = usr
-					ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser .JailDirectory)
-				
-				// ss.usergov.createAdminGroup()
-				// ss.usergov.AddNewUser(filepath.Join(ss.config.StagingPath,"testuser"), "testuser", "tiger")
-				// ss.createUserDir("testuser")
-				
+			if usr, ok := ss.usrgov.AuthPass(conn.User(), string(pass)); ok {
 
+				ss.loginUser = usr
+				ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser .JailDirectory)
+			
 				return nil, nil
 			}
-			return nil, fmt.Errorf("password rejected for %q", c.User())
+
+			return nil, fmt.Errorf("password rejected for %q", conn.User())
+		},
+		PublicKeyCallback: func(conn ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
+			//https://blog.gopheracademy.com/advent-2015/ssh-server-in-go/
+			//https://security.stackexchange.com/questions/9366/ssh-public-private-key-pair/9389#9389
+			//https://github.com/bored-engineer/ssh/commit/1b71c35864fb15ae4623d2f63ddb0a508e7038ec
+			
+			logclient.Infof("User %s attempting certificate authentication", conn.User())
+
+			usr, ok, err :=  ss.usrgov.AuthPublicKey(conn.User(), pubKey)
+
+			if logclient.ErrIf(err) {
+				return nil, err
+			}
+
+			if ok {
+				ss.loginUser = usr
+				return nil, nil
+			} else {
+				return nil, fmt.Errorf("Public Key authentication is unsuccessful for %s", conn.User())
+			}
+
+			return nil, nil
 		},
 	}
 
@@ -251,8 +268,6 @@ func (ss *SFTPService) genSSHKey() (ssh.Signer) {
 
 	return sshSigner
 }
-
-
 
 // func (ss SFTPService) createUserDir(userName string) {
 
