@@ -6,15 +6,13 @@
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Networking](#networking) 
-* [How it works](#behind-the-scenes-how-ssftp-works)
+* [How it works](#how-ssftp-works)
 
 ### What is sSFTP
 Azure sSFTP (Scanned SFTP) is a PaaS solution thats provides SFTP server with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as the file storage.  
 sSFTP leverages Azure Container Instance to host 2 containers into a single Container Group namely
 * [ClamAV (by mkodockx) container](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdating of virus signature and Clamd (daemon) listening to port 3310 for virus scan commands.
 * [sSFTP container](https://hub.docker.com/repository/docker/wxzd/ssftp) runs a SFTP server, watches for uploaded files, scans and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
-<br />
-<b>Features</b>  
 
 ### Features  
 
@@ -22,8 +20,10 @@ sSFTP leverages Azure Container Instance to host 2 containers into a single Cont
 * sSFTP's Container Instance runs in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
 * SFTP server integrated, no separate product license needed
 * ClamAV virus scan integrated
+* Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
-* Each SFTP user/service login account is rooted to his or her configured directory only
+* Supports Webhook invocation when virus is detected per file
+* Each SFTP user/service login account is rooted to its configured directory only
 * Supports multi-user/service accounts per each root directory
 * Add or remove user/service accounts without restarting SFTP server
 * Easy configuration using a single Yaml file
@@ -92,9 +92,6 @@ Also refer to [How it works](#behind-the-scenes-how-ssftp-works) for more detail
 <br />
 
 
-### Behind the Scenes How sSFTP Works
+### How sSFTP Works
 
-
-
-
-https://docs.microsoft.com/en-us/azure/container-instances/container-instances-region-availability
+<img src="./doc/ssftp-azure-architecture.png" width="600" height="750" />
