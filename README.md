@@ -20,6 +20,7 @@ sSFTP leverages Azure Container Instance to host 2 containers into a single Cont
 * sSFTP's Container Instance runs in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
 * SFTP server integrated, no separate product license needed
 * ClamAV virus scan integrated
+* Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
 * Supports Webhook invocation when virus is detected per file
 * Each SFTP user/service login account is rooted to his or her configured directory only
