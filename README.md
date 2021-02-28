@@ -23,7 +23,7 @@ sSFTP leverages Azure Container Instance to host 2 containers into a single Cont
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
 * Supports Webhook invocation when virus is detected per file
-* Each SFTP user/service login account is rooted to his or her configured directory only
+* Each SFTP user/service login account is rooted to its configured directory only
 * Supports multi-user/service accounts per each root directory
 * Add or remove user/service accounts without restarting SFTP server
 * Easy configuration using a single Yaml file
