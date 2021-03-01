@@ -7,11 +7,11 @@ import (
 	"runtime"
 )
 
-func moveFile(oldloc string, newloc string) (error) {
-	err := os.Rename(oldloc, newloc)
-	logclient.ErrIf(err)
-	return err
-}
+// func moveFile(oldloc string, newloc string) (error) {
+// 	err := os.Rename(oldloc, newloc)
+// 	logclient.ErrIf(err)
+// 	return err
+// }
 
 func isDir(path string) (bool) {
 	f, err := os.Stat(path) 
@@ -33,6 +33,14 @@ func isDirExist(path string) (bool) {
 	} else {
 		return true
 	}
+}
+
+func isFileExist(filePath string) (bool) {
+	if _, err := os.Stat(filePath); err == nil {
+		return true
+	 } else {
+		 return false
+	 }
 }
 
 func isErr(err error) bool {

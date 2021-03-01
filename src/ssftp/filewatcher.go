@@ -2,7 +2,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"time"
 	"os"
 	"io"
@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"github.com/weixian-zhang/ssftp/user"
 	"strings"
+	"math"
+	"bufio"
 )
 
 type File struct {
 	Name string
 	Path string
 	Size int64
-	Operation string
 	TimeCreated string
 }
 
@@ -25,9 +26,18 @@ type FileWatcher struct {
 	usergov  *user.UserGov
 	watcher *watcher.Watcher
 	configWatcher *watcher.Watcher
+
 	ScanDone		chan bool
+	OverlordProcessedUploadedFile chan string
+	BatchedUploadedFilesProcessDone chan bool
+
 	fileCreateChangeEvent chan File
 	fileMovedEvent chan FileMoveChanContext
+}
+
+type FileUploadContext struct {
+	Path string
+	Info os.FileInfo
 }
 
 type FileMoveChanContext struct {
@@ -57,7 +67,184 @@ func NewFileWatcher(confsvc *ConfigService, usrgov  *user.UserGov, scanDone chan
 		fileCreateChangeEvent:  make(chan File),
 		fileMovedEvent: make(chan FileMoveChanContext),
 		ScanDone: scanDone,
+		OverlordProcessedUploadedFile: make(chan string),
+		BatchedUploadedFilesProcessDone: make(chan bool),
 	}
+}
+
+func (fw *FileWatcher) StartPickupUploadedFiles() {
+
+	for {
+
+		logclient.Infof("FileWatcher walks directory %s to pick up uploaded files", fw.confsvc.config.StagingPath)
+
+		var files []FileUploadContext
+
+		err := filepath.Walk(fw.confsvc.config.StagingPath, func(path string, info os.FileInfo, err error) error {
+
+			if !info.IsDir() {
+				files = append(files, FileUploadContext{
+					Path: path,
+					Info: info,
+				})
+			}
+
+			return nil
+		})
+
+		if logclient.ErrIffmsg("FileWatcher error occured while walking staging dir %s", err, fw.confsvc.config.StagingPath) {
+			continue
+		}
+
+		if len(files) > 0 {
+
+			logclient.Infof("FileWatcher detects %d files, batching uploaded files for processing: %s", ToJsonString(files))
+
+			go fw.notifyOverlordOnFileUploaded(files)
+
+			<- fw.BatchedUploadedFilesProcessDone
+
+		} else {
+			logclient.Info("FileWatcher detects 0 file uploaded")
+			time.Sleep(3 * time.Second)
+		}
+	}
+}
+
+func (fw *FileWatcher) notifyOverlordOnFileUploaded(files []FileUploadContext) {
+
+	for _, f := range files {
+
+		yes, err := fw.IsFileStillUploading(f.Path)
+		logclient.ErrIffmsg("Error while checking if file %s is still uploading", err, f.Path)
+
+		if !yes {
+			continue
+		}
+
+		logclient.Infof("FileWatcher notifies Overlord on pick up file %s", f.Path)
+
+		fileOnWatch := File{
+			Path: filepath.FromSlash(f.Path),
+			Name:f.Info.Name(), 
+			Size: f.Info.Size(),
+			TimeCreated: (time.Now()).Format(time.ANSIC),
+		}
+
+		logclient.Infof("FileWatcher blocks for Overlord to process file %s", f.Path)
+	
+		fw.fileCreateChangeEvent <-fileOnWatch //notifies overlord to scan file
+
+		logclient.Infof("FileWatcher unblocks for file %s", f.Path)
+
+		<- fw.OverlordProcessedUploadedFile
+	}
+
+	logclient.Infof("FileWatcher completed processing for batch uploaded files: %s", ToJsonString(files))
+
+	fw.BatchedUploadedFilesProcessDone <- true
+}
+
+func ByByteOne(rd io.Reader, function func(byte)) error {
+
+	logclient.Info("ByByteOne starts detecting file uploading")
+
+	bufferedRD := bufio.NewReader(rd)
+
+	for {
+		
+
+		fileByte, err := bufferedRD.ReadByte()
+		if err == io.EOF {
+
+			logclient.Info("ByByteOne detected EOF for file")
+
+			break
+		} else if err != nil {
+			return err
+		}
+
+		function(fileByte)
+	}
+
+	logclient.Info("ByByteOne detected EOF")
+
+	return nil
+}
+
+func (fw *FileWatcher) IsFileStillUploading(file string) (bool, error) {
+
+	// pr, pw := io.Pipe()
+
+	logclient.Infof("FileWatcher checking if file %s still uploading", file)
+
+	f, err :=  os.Open(file)
+
+	if err != nil {
+		logclient.ErrIffmsg("Error opening file %s", err, file)
+		return false, err
+	}
+
+	defer f.Close()
+
+	// bberr := ByByteOne(f, func(b byte) {
+	// 	//logclient.Info("ByByteOne func print byte still reading")
+	// })
+
+	//logclient.ErrIfm("ByByteOne throws error", bberr)
+
+	logclient.Infof("FileWatcher starts checking file uploading for %s", file)
+
+	for {
+
+		//https://stackoverflow.com/questions/41208359/how-to-test-eof-on-io-reader-in-go
+
+		dataBuf := make([]byte, 10000)
+
+		_, ferr :=  f.Read(dataBuf)
+
+		if ferr != nil {
+			if ferr == io.EOF {
+				logclient.Infof("File %s upload completes", file)
+				break
+			} else {
+				info, err := os.Stat(file)
+				logclient.ErrIffmsg("File is still uploading %s, %fMB", err, file, fw.roundToMB(float64(info.Size()), .5, 2))
+
+				continue
+			}
+		}
+
+		if len(dataBuf) > 0 {
+			logclient.Infof("File %s still uploading", file)
+			continue
+		} else {
+			logclient.Infof("File %s completed upload", file)
+			break
+		}
+
+	// 	} else {
+	// 		logclient.Infof("File %s upload completes", file)
+	// 		break
+	// 	}
+	// // }
+	}
+
+	return true, nil
+}
+
+func (fw *FileWatcher) roundToMB(val float64, roundOn float64, places int ) (newVal float64) {
+	var round float64
+	pow := math.Pow(10, float64(places))
+	digit := pow * val
+	_, div := math.Modf(digit)
+	if div >= roundOn {
+		round = math.Ceil(digit)
+	} else {
+		round = math.Floor(digit)
+	}
+	newVal = round / pow
+	return
 }
 
 func (fw *FileWatcher) startWatchConfigFileChange() {
@@ -66,58 +253,6 @@ func (fw *FileWatcher) startWatchConfigFileChange() {
 
 	serr := fw.configWatcher.Start(time.Millisecond * 300)
 	logclient.ErrIf(serr)
-}
-
-//startWatch goes into a control loop to continuously watch for newly created files
-func (fw *FileWatcher) startStagingDirWatch(dirPathToWatch string) {
-
-	logclient.Info(fmt.Sprintf("ssftp started watching directory: %s", dirPathToWatch))
-
-	go fw.registerFileWatchEvents()
-	
-	serr := fw.watcher.Start(time.Millisecond * 100)
-	logclient.ErrIf(serr)
-}
-
-func (fw *FileWatcher) registerFileWatchEvents() {
-
-	for {
-
-		select {
-
-			case err := <- fw.watcher.Error:
-				logclient.ErrIf(err)
-
-				
-			case event := <- fw.watcher.Event:
-
-				if event.IsDir() {
-					continue
-				}
-
-				if event.Op == watcher.Create  {
-
-					logclient.Infof("Filewatcher: file upload/write detected: %s", event.Name())
-
-					fileOnWatch := File{
-						Path: filepath.FromSlash(event.Path),
-						Name: event.Name(), 
-						Size: event.Size(),
-						Operation: event.Op.String(),
-						TimeCreated: (time.Now()).Format(time.ANSIC),
-					}
-
-					fw.fileCreateChangeEvent <-fileOnWatch //notifies overlord to scan file
-
-					logclient.Infof("Filewatcher blocks for %s", fileOnWatch.Path)
-
-					<- fw.ScanDone // blocks, continue only after previous file scan done
-
-					logclient.Infof("Filewatcher unblocked for %s, continue with next file", fileOnWatch.Path)
-					
-				}
-		}
-	}
 }
 
 func (fw *FileWatcher) registerConfigFileChangeEvent() {
@@ -154,6 +289,8 @@ func (fw *FileWatcher) registerConfigFileChangeEvent() {
 //moveFileByStatus returns destination path where file is moved. Either /mnt/ssftp/clean|quaratine|error
 func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 
+	logclient.Infof("FileWatcher starts moving file %s by scan status", scanR.fileName)
+
 	//replace "staging" folder path with new Clean and Quarantine path so when file is moved to either
 	//clean/quarantine, the sub-folder structure remains the same as staging.
 	//e.g: Staging:/mnt/ssftp/'staging'/userB/sub = Clean:/mnt/ssftp/'clean'/userB/sub or Quarantine:/mnt/ssftp/'quarantine'/userB/sub
@@ -179,15 +316,24 @@ func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 		logclient.Infof("Virus found in file %q, moving to quarantine %q", scanR.fileName, quarantinePath)
 	}
 
+	logclient.Infof("FileWatcher move file completed, new destication: %s", destPath)
+
+	fw.OverlordProcessedUploadedFile <- destPath //unblocks filepath.Walk to start pickup n
+
 	return destPath
 }
 
 //moveFileBetweenDrives also creates subfolders following staging/../.. if any
 func (fw *FileWatcher) moveFileBetweenDrives(srcPath string, destPath string) (error) {
 
+	//file has moved by other goroutine
+	if !isFileExist(srcPath) {
+		return nil
+	}
+
 	srcFile, err := os.Open(srcPath)
-    if logclient.ErrIf(err) {
-		return err
+    if os.IsNotExist(err) {
+		return nil
 	}
 
 	//creates all subfolders following staging/.../... if any

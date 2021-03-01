@@ -21,6 +21,12 @@ const (
 type ClamAv struct{
 	clamClient *clamd.Clamd
 	scanEvent chan ClamAvScanResult
+	clamdError chan ClamdError
+}
+
+//happens when clamd container is terminated or connenction can't be established
+type ClamdError struct {
+	file string
 }
 
 type ClamAvScanResult struct {
@@ -43,6 +49,7 @@ func NewClamAvClient() (ClamAv)  {
 	return ClamAv{
 		clamClient: clamClient,
 		scanEvent: scanEvent,
+		clamdError: make(chan ClamdError),
 	}
 }
 
@@ -80,16 +87,21 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 	logclient.ErrIf(ferr)
 
 	resp, err :=  cav.clamClient.ScanStream(bufio.NewReader(file), nil)
-	if logclient.ErrIf(err) {
+	if err != nil {
 		status, vf := convertClamdStatusToLocalEnum("ERROR")
 		cav.scanEvent <- ClamAvScanResult{
 			filePath: filePath,
 			fileName: fileinfo.Name(),
-			Message: "clamav encountered an error scanning file",
+			Message: err.Error(),
 			Size: 0,
 			Status: status,
 			VirusFound: vf,
 		}
+
+		cav.clamdError <- ClamdError{
+			file: filePath,
+		}
+
 		return
 	}
 

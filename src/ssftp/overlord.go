@@ -48,7 +48,9 @@ func (ol *Overlord) Start(exit chan bool) {
 
 	go ol.fileWatcher.startWatchConfigFileChange()
 
-	go ol.fileWatcher.startStagingDirWatch(ol.confsvc.config.StagingPath)
+	go ol.fileWatcher.StartPickupUploadedFiles()
+
+	//go ol.fileWatcher.startStagingDirWatch(ol.confsvc.config.StagingPath)
 
 	go func() {
 
@@ -70,9 +72,16 @@ func (ol *Overlord) Start(exit chan bool) {
 					go ol.clamav.ScanFile(fileCreateChange.Path)
 				}
 
+			//happens when clamd container is terminated or tcp connection can't be established
+			case fileOnScan := <-ol.clamav.clamdError:
+
+				//ol.fileWatcher.ScanDone <- true
+
+				logclient.Infof("Overlord detects connectivity error to Clamd during scan for %s", fileOnScan)
+
 			case scanR := <-ol.clamav.scanEvent:
 
-				ol.fileWatcher.ScanDone <- true
+				//ol.fileWatcher.ScanDone <- true
 
 				logclient.Infof("Scanning done for file %s and virus found is %v", scanR.filePath, scanR.VirusFound)
 

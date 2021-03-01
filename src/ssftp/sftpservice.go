@@ -46,7 +46,7 @@ func (ss *SFTPService) Start() {
 			if usr, ok := ss.usrgov.AuthPass(conn.User(), string(pass)); ok {
 
 				ss.loginUser = usr
-				ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser .JailDirectory)
+				ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser.JailDirectory)
 			
 				return nil, nil
 			}
@@ -67,8 +67,13 @@ func (ss *SFTPService) Start() {
 			}
 
 			if ok {
+				
 				logclient.Infof("User %s has logged in successfully using certificate authentication", conn.User())
+
 				ss.loginUser = usr
+
+				ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser.JailDirectory)
+
 				return nil, nil
 			} else {
 				return nil, fmt.Errorf("Public Key authentication is unsuccessful for %s", conn.User())

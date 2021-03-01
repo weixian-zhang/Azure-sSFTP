@@ -12,6 +12,7 @@ type User struct {
 	JailDirectory string	`json:"directory", yaml:"directory"`
 	Readonly  bool			`json:"readonly", yaml:"readonly"`
 	Auth Auth				`json:"auth", yaml:"auth"`
+	IsInternalUser bool		`json:"isInternalUser"`
 }
 
 type Auth struct {

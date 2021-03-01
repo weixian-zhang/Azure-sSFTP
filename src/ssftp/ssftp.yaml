@@ -1,6 +1,6 @@
  #sSFTP re-inits without restarting on any canges to this config file
 sftpPort: 2002              #port needs to be exposed at ACI yaml
-enableVirusScan: true     #if disabled, files in Staging will remain and not moved
+enableVirusScan: true       #if disabled, files in Staging will remain and not moved
 webhooks:
   - name: virusFound
     url: "https://httpbin.org/post"
@@ -8,7 +8,15 @@ logDests:
   - kind: file
     props:
       path: "/mnt/ssftp/log"
-users:
+
+internalUsers:              
+- name: "testuser1"       # user/service accounts to access Clean (scanned) directory for internal processing
+  directory: "agency-z"
+  auth:
+    password: "pass"
+    publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+
+users:            # user/service accounts for file upload to Staging directory
   - name: "testuser1"
     directory: "agency-z"
     auth:
@@ -28,7 +36,7 @@ users:
       publicKey: ""
   
   - name: "testuser4"
-    directory: "zzzzz"
+    directory: "testuser4"
     auth:
-      password: "12345"
-      publicKey: ""
+      password: "111"
+      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr+mqkNyD1EHXLlvdrYVhTQg0PfSPpJ5UT9c8gyQn8xvTGffv4trigu4bbvWG2LcW2XEfa9g489iXCB2LNMtgbZxYjNL8Mh8oSzgV6Met1e9vWshWSn8/oLgRmTnCanCD9UXKGNvq/LIf64ITMxGpCAYXWIE/3hnVC5AGBKt6l0yNXseqqi54wjgMhlAUFDkjE07BBBH0/j9yAb9s1IdO2Z4j7e4T0mYEiuCMMCSvRvpk86DSoainXMG+69jKWG6HRbE8AmIT0kY4CAGEoba4ORv56uZQ2SuF0s2Ii1fO9s5axq4FnkKbexzqaAO6+2NNDu9whsUDItC7IFLQihXNew== rsa-key-20210301"
