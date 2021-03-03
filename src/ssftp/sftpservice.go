@@ -23,6 +23,7 @@ type SFTPService struct {
 	usrgov 		*user.UserGov
 	loginUser   user.User
 	netListener  net.Listener
+	servers		[]*sftp.Server
 }
 
 func NewSFTPService(configsvc *ConfigService, usrgov *user.UserGov) (SFTPService) {
@@ -30,6 +31,7 @@ func NewSFTPService(configsvc *ConfigService, usrgov *user.UserGov) (SFTPService
 		configsvc: configsvc,
 		usrgov: usrgov,
 		loginUser: user.User{},
+		servers: make([]*sftp.Server, 0),
 	}
 }
 
@@ -95,14 +97,6 @@ func (ss *SFTPService) Start() {
 	ss.netListener = listener
 
 	ss.acceptConns(config)
-
-	// newConn, err := listener.Accept() //waits until a connection is accepted
-	// if err != nil {
-	// 	logclient.ErrIfm("failed to accept incoming connection", err)
-	// }
-
-	
-
 }
 
 func (ss *SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
@@ -149,7 +143,8 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 		// Channels have a type, depending on the application level
 		// protocol intended. In the case of an SFTP session, this is "subsystem"
 		// with a payload string of "<length=4>sftp"
-		fmt.Fprintf(debugStream, "Incoming channel: %s\n", newChannel.ChannelType())
+		//fmt.Fprintf(debugStream, "Incoming channel: %s\n", newChannel.ChannelType())
+
 		if newChannel.ChannelType() != "session" {
 			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
 			fmt.Fprintf(debugStream, "Unknown channel type: %s\n", newChannel.ChannelType())
@@ -202,17 +197,37 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 			ss.configsvc.config.StagingPath,
 			serverOptions...,
 		)
+
 		if err != nil {
 			logclient.ErrIf(err)
 		}
+		
+		ss.servers = append(ss.servers, server)
+
 		if err := server.Serve(); err == io.EOF {
-			server.Close()
-			logclient.Info("sftp client exited session.")
+		    server.Close()
+			logclient.Infof("sftp client %s exited session", server.User.Name)
+
+			logclient.Infof("Removed sftp.Server connection %s", server.User.Name)
+			ss.removeServer(server)
+
+			if len(ss.servers) == 0 {
+				logclient.Info("No active sftp client")
+			}
+
 		} else if err != nil {
 			logclient.ErrIfm("sftp server completed with error:", err)
 		}
 	}
 
+}
+
+func (ss *SFTPService) removeServer(server *sftp.Server) {
+	for i := len(ss.servers) -1; i > 0; i-- {
+		if ss.servers[i] == server {
+			ss.servers = append(ss.servers[:i], ss.servers[i+1:]...)
+		}
+	}
 }
 
 func (ss *SFTPService) genSSHKey() (ssh.Signer) {

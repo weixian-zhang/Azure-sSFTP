@@ -19,9 +19,6 @@ func main() {
 	logclient.InitLogDests(&confsvc)
 
 	ug := user.NewUserGov(confsvc.config.Users)
-
-	sftpsvc := NewSFTPService(&confsvc, &ug)
-	go sftpsvc.Start()
 	
 	ol, err := NewOverlord(&confsvc, &ug)
 	logclient.ErrIf(err)

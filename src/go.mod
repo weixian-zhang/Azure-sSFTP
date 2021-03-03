@@ -3,6 +3,7 @@ module github.com/weixian-zhang/ssftp
 go 1.14
 
 require (
+	github.com/c2h5oh/datasize v0.0.0-20200825124411-48ed595a09d2
 	github.com/dutchcoders/go-clamd v0.0.0-20170520113014-b970184f4d9e
 	github.com/goccy/go-yaml v1.8.8
 	github.com/kr/fs v0.1.0

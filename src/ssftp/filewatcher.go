@@ -1,23 +1,20 @@
-
 package main
 
 import (
-	//"fmt"
-	"time"
-	"os"
 	"io"
-	"github.com/radovskyb/watcher"
+	"os"
 	"path/filepath"
-	"github.com/weixian-zhang/ssftp/user"
 	"strings"
-	"math"
-	"bufio"
+	"time"
+	"github.com/radovskyb/watcher"
+	"github.com/weixian-zhang/ssftp/user"
 )
 
-type File struct {
+type ScavengedFileProcessContext struct {
 	Name string
 	Path string
 	Size int64
+	User user.User
 	TimeCreated string
 }
 
@@ -27,17 +24,19 @@ type FileWatcher struct {
 	watcher *watcher.Watcher
 	configWatcher *watcher.Watcher
 
+	sftpService *SFTPService
+
 	ScanDone		chan bool
 	OverlordProcessedUploadedFile chan string
-	BatchedUploadedFilesProcessDone chan bool
+	BatchedScavengedFilesProcessDone chan bool
 
-	fileCreateChangeEvent chan File
+	fileCreateChangeEvent chan ScavengedFileProcessContext
 	fileMovedEvent chan FileMoveChanContext
 }
 
 type FileUploadContext struct {
 	Path string
-	Info os.FileInfo
+	User user.User
 }
 
 type FileMoveChanContext struct {
@@ -46,7 +45,7 @@ type FileMoveChanContext struct {
 	ClamavScanResult ClamAvScanResult
 }
 
-func NewFileWatcher(confsvc *ConfigService, usrgov  *user.UserGov, scanDone chan bool) (FileWatcher) { 
+func NewFileWatcher(sftpService *SFTPService, confsvc *ConfigService, usrgov  *user.UserGov, scanDone chan bool) (FileWatcher) { 
 
 	w := watcher.New()
 	w.FilterOps(watcher.Create, watcher.Write, watcher.Rename)
@@ -64,19 +63,20 @@ func NewFileWatcher(confsvc *ConfigService, usrgov  *user.UserGov, scanDone chan
 		configWatcher: cw,
 		confsvc: confsvc,
 		usergov: usrgov,
-		fileCreateChangeEvent:  make(chan File),
+		sftpService: sftpService,
+		fileCreateChangeEvent:  make(chan ScavengedFileProcessContext),
 		fileMovedEvent: make(chan FileMoveChanContext),
 		ScanDone: scanDone,
 		OverlordProcessedUploadedFile: make(chan string),
-		BatchedUploadedFilesProcessDone: make(chan bool),
+		BatchedScavengedFilesProcessDone: make(chan bool),
 	}
 }
 
-func (fw *FileWatcher) StartPickupUploadedFiles() {
+func (fw *FileWatcher) ScavengeUploadedFiles() {
 
 	for {
 
-		logclient.Infof("FileWatcher walks directory %s to pick up uploaded files", fw.confsvc.config.StagingPath)
+		logclient.Infof("FileWatcher scavenging directory %s", fw.confsvc.config.StagingPath)
 
 		var files []FileUploadContext
 
@@ -85,7 +85,6 @@ func (fw *FileWatcher) StartPickupUploadedFiles() {
 			if !info.IsDir() {
 				files = append(files, FileUploadContext{
 					Path: path,
-					Info: info,
 				})
 			}
 
@@ -98,154 +97,192 @@ func (fw *FileWatcher) StartPickupUploadedFiles() {
 
 		if len(files) > 0 {
 
-			logclient.Infof("FileWatcher detects %d files, batching uploaded files for processing: %s", ToJsonString(files))
+			logclient.Infof("FileWatcher - detects %d files, batching uploaded files for processing", len(files))
 
-			go fw.notifyOverlordOnFileUploaded(files)
+			closedFiles, ok := fw.checkScavengedFilesUploadState(files)
 
-			<- fw.BatchedUploadedFilesProcessDone
+			if !ok {
+				logclient.Info("FileWatcher - detected open files, waiting for files to complete uploading")
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
 
-		} else {
-			logclient.Info("FileWatcher detects 0 file uploaded")
-			time.Sleep(3 * time.Second)
+			logclient.Info("FileWatcher - Upload state check completed")
+
+			go fw.notifyOverlordProcessScavengedFiles(closedFiles)
+
+			//<- fw.BatchedScavengedFilesProcessDone
+
 		}
+
+		logclient.Info("FileWatcher - no file uploaded")
+		time.Sleep(3 * time.Second)
 	}
 }
 
-func (fw *FileWatcher) notifyOverlordOnFileUploaded(files []FileUploadContext) {
+func (fw *FileWatcher) checkScavengedFilesUploadState(files []FileUploadContext) ([]FileUploadContext, bool) {
+
+	logclient.Info("Checking for files in upload state from SFTP clients")
+
+	closeds := make([]FileUploadContext, 0)
+
+	opens := fw.getAllOpenFilesFromAllServers()
+
+	if len(opens) == 0 {
+		logclient.Info("No SFTP open file found")
+		return files, true
+	}
+
+	for _, o := range opens {
+		
+		for _, f := range files {
+
+			if o.Path != f.Path {
+				closeds = append(closeds, f)
+				logclient.Infof("File: %s upload completed by client %s", o.Path, o.User.Name)
+			} else {
+				logclient.Infof("File %s is in upload state from client %s", o.Path, o.User.Name)
+			}
+		}
+	}
+	
+	if len(closeds) > 0 {
+		return closeds, true
+	} else {
+		return closeds, false
+	}
+
+	
+}
+
+func (fw *FileWatcher) getAllOpenFilesFromAllServers() ([]FileUploadContext) {
+
+	var opens []FileUploadContext
+
+	for _, v := range fw.sftpService.servers {
+		for _, f := range v.OpenFiles {	
+			
+			opens = append(opens, FileUploadContext{
+				Path: f.Name(),
+				User: v.User,
+			})
+		}
+	}
+
+	return opens
+}
+
+func (fw *FileWatcher) notifyOverlordProcessScavengedFiles(files []FileUploadContext) {
 
 	for _, f := range files {
 
-		yes, err := fw.IsFileStillUploading(f.Path)
-		logclient.ErrIffmsg("Error while checking if file %s is still uploading", err, f.Path)
+		logclient.Infof("FileWatcher notifies Overlord to pick up file %s", f.Path)
 
-		if !yes {
-			continue
-		}
-
-		logclient.Infof("FileWatcher notifies Overlord on pick up file %s", f.Path)
-
-		fileOnWatch := File{
+		fileOnWatch := ScavengedFileProcessContext{
 			Path: filepath.FromSlash(f.Path),
-			Name:f.Info.Name(), 
-			Size: f.Info.Size(),
+			Name:f.Path,
+			User: f.User,
 			TimeCreated: (time.Now()).Format(time.ANSIC),
 		}
 
-		logclient.Infof("FileWatcher blocks for Overlord to process file %s", f.Path)
+		logclient.Infof("FileWatcher blocks scavenging for Overlord to process file %s", f.Path)
 	
 		fw.fileCreateChangeEvent <-fileOnWatch //notifies overlord to scan file
 
 		logclient.Infof("FileWatcher unblocks for file %s", f.Path)
 
-		<- fw.OverlordProcessedUploadedFile
+		//<- fw.OverlordProcessedUploadedFile
 	}
 
-	logclient.Infof("FileWatcher completed processing for batch uploaded files: %s", ToJsonString(files))
+	//logclient.Infof("FileWatcher completed processing for batch uploaded files: %s", ToJsonString(files))
 
-	fw.BatchedUploadedFilesProcessDone <- true
+	//fw.BatchedScavengedFilesProcessDone <- true
 }
 
-func ByByteOne(rd io.Reader, function func(byte)) error {
 
-	logclient.Info("ByByteOne starts detecting file uploading")
+//IsFileStillUploading is blocking until file completes upload
+// func (fw *FileWatcher) blocksCheckFileUploadComplete(file string) {
 
-	bufferedRD := bufio.NewReader(rd)
+// 	logclient.Infof("FileWatcher checking if file %s still uploading", file)
 
-	for {
+// 	f, err :=  os.Open(file)
+
+// 	if err != nil {
+// 		logclient.ErrIffmsg("Error opening file %s", err, file)
+// 		return
+// 	}
+
+// 	defer f.Close()
+
+// 	logclient.Infof("FileWatcher starts checking file uploading for %s", file)
+
+// 	var totalSize int64
+
+// 	for {
+
+// 		i, serr := os.Stat(file)
 		
+// 		// // if time.Now().After(i.ModTime()) {
+// 		// // 	break
+// 		// // }
 
-		fileByte, err := bufferedRD.ReadByte()
-		if err == io.EOF {
+// 		// b, rerr := 
+// 		if serr != nil {
+// 			logclient.ErrIffmsg("Filewatcher - checks uploading Stat error for file %s", serr, file)
+// 			continue
+// 		}
 
-			logclient.Info("ByByteOne detected EOF for file")
+// 		logclient.Infof("modtime: %s, Stat: %d", i.ModTime().String(), i.Size())
+// 		logclient.Infof("now: %s, totalSize: %d", time.Now().String(), totalSize)
 
-			break
-		} else if err != nil {
-			return err
-		}
+// 		if i.Size() == totalSize {
+// 			break
+// 		} else {
+// 			totalSize = i.Size()
+// 			time.Sleep(600 * time.Millisecond)
+// 		}
 
-		function(fileByte)
-	}
+// 		//https://stackoverflow.com/questions/41208359/how-to-test-eof-on-io-reader-in-go
 
-	logclient.Info("ByByteOne detected EOF")
+// 		// dataBuf := make([]byte, 1024)
 
-	return nil
-}
+// 		// n, ferr :=  f.Read(dataBuf)
 
-func (fw *FileWatcher) IsFileStillUploading(file string) (bool, error) {
+// 		// if ferr != nil {
+// 		// 	if ferr == io.EOF {
+// 		// 		logclient.Infof("FileWatcher - file %s upload completed", file)
+// 		// 		break
+// 		// 	} else {
+// 		// 		logclient.ErrIffmsg("FileWatcher - Read error for file %s", ferr, file)
+// 		// 		continue
+// 		// 	}
+// 		// }
 
-	// pr, pw := io.Pipe()
+// 		// logclient.Infof("length of file read: %d", n)
 
-	logclient.Infof("FileWatcher checking if file %s still uploading", file)
+// 		// if n > 0 {
+			
+// 		// 	logclient.Infof("FileWatcher - file %s upload in progess, %d Mb", file, fw.fileSizeMb(file))
 
-	f, err :=  os.Open(file)
+// 		// 	time.Sleep(200 * time.Millisecond)
+			
+// 		// 	continue
+// 		// }
 
-	if err != nil {
-		logclient.ErrIffmsg("Error opening file %s", err, file)
-		return false, err
-	}
+// 		// logclient.Infof("FileWatcher - file %s upload completed", file)
+// 		// break
+// 	}
+// }
 
-	defer f.Close()
+// func (fw *FileWatcher) fileSizeMb(file string) (newSize int) {
+// 	info, _ := os.Stat(file)
 
-	// bberr := ByByteOne(f, func(b byte) {
-	// 	//logclient.Info("ByByteOne func print byte still reading")
-	// })
+// 	mb := info.Size() / (1024 * 1024)
 
-	//logclient.ErrIfm("ByByteOne throws error", bberr)
+// 	newSize = int(mb)
 
-	logclient.Infof("FileWatcher starts checking file uploading for %s", file)
-
-	for {
-
-		//https://stackoverflow.com/questions/41208359/how-to-test-eof-on-io-reader-in-go
-
-		dataBuf := make([]byte, 10000)
-
-		_, ferr :=  f.Read(dataBuf)
-
-		if ferr != nil {
-			if ferr == io.EOF {
-				logclient.Infof("File %s upload completes", file)
-				break
-			} else {
-				info, err := os.Stat(file)
-				logclient.ErrIffmsg("File is still uploading %s, %fMB", err, file, fw.roundToMB(float64(info.Size()), .5, 2))
-
-				continue
-			}
-		}
-
-		if len(dataBuf) > 0 {
-			logclient.Infof("File %s still uploading", file)
-			continue
-		} else {
-			logclient.Infof("File %s completed upload", file)
-			break
-		}
-
-	// 	} else {
-	// 		logclient.Infof("File %s upload completes", file)
-	// 		break
-	// 	}
-	// // }
-	}
-
-	return true, nil
-}
-
-func (fw *FileWatcher) roundToMB(val float64, roundOn float64, places int ) (newVal float64) {
-	var round float64
-	pow := math.Pow(10, float64(places))
-	digit := pow * val
-	_, div := math.Modf(digit)
-	if div >= roundOn {
-		round = math.Ceil(digit)
-	} else {
-		round = math.Floor(digit)
-	}
-	newVal = round / pow
-	return
-}
+// 	return newSize
+// }
 
 func (fw *FileWatcher) startWatchConfigFileChange() {
 
@@ -365,6 +402,34 @@ func (fw *FileWatcher) moveFileBetweenDrives(srcPath string, destPath string) (e
 
 	return nil
 }
+
+
+// func ByByteOne(rd io.Reader, function func(byte)) error {
+
+// 	logclient.Info("ByByteOne starts detecting file uploading")
+
+// 	bufferedRD := bufio.NewReader(rd)
+
+// 	for {
+		
+
+// 		fileByte, err := bufferedRD.ReadByte()
+// 		if err == io.EOF {
+
+// 			logclient.Info("ByByteOne detected EOF for file")
+
+// 			break
+// 		} else if err != nil {
+// 			return err
+// 		}
+
+// 		function(fileByte)
+// 	}
+
+// 	logclient.Info("ByByteOne detected EOF")
+
+// 	return nil
+// }
 
 
 

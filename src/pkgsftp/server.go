@@ -34,16 +34,16 @@ type Server struct {
 	debugStream   io.Writer
 	readOnly      bool
 	pktMgr        *packetManager
-	openFiles     map[string]*os.File
+	OpenFiles     map[string]*os.File
 	openFilesLock sync.RWMutex
 	handleCount   int
-	user	  	  user.User
+	User	  	  user.User
 	stagingPath   string
 }
 
 func (svr *Server) getUserJailPath(filePath string) string {
 
-	jailPath := filepath.Join(svr.stagingPath, svr.user.JailDirectory)
+	jailPath := filepath.Join(svr.stagingPath, svr.User.JailDirectory)
 
 	if runtime.GOOS == "windows" {
 		if filePath[:1] == "/" {
@@ -55,8 +55,8 @@ func (svr *Server) getUserJailPath(filePath string) string {
 		return filePath
 	}
 	chroot := svr.stagingPath
-	if svr.user.JailDirectory != "" {
-		chroot = filepath.Join(chroot, svr.user.JailDirectory)
+	if svr.User.JailDirectory != "" {
+		chroot = filepath.Join(chroot, svr.User.JailDirectory)
 	} else if filePath == jailPath { //if filePath is already == stagingPath
 		chroot = filePath
 	}
@@ -73,15 +73,15 @@ func (svr *Server) nextHandle(f *os.File) string {
 	defer svr.openFilesLock.Unlock()
 	svr.handleCount++
 	handle := strconv.Itoa(svr.handleCount)
-	svr.openFiles[handle] = f
+	svr.OpenFiles[handle] = f
 	return handle
 }
 
 func (svr *Server) closeHandle(handle string) error {
 	svr.openFilesLock.Lock()
 	defer svr.openFilesLock.Unlock()
-	if f, ok := svr.openFiles[handle]; ok {
-		delete(svr.openFiles, handle)
+	if f, ok := svr.OpenFiles[handle]; ok {
+		delete(svr.OpenFiles, handle)
 		return f.Close()
 	}
 
@@ -91,7 +91,7 @@ func (svr *Server) closeHandle(handle string) error {
 func (svr *Server) getHandle(handle string) (*os.File, bool) {
 	svr.openFilesLock.RLock()
 	defer svr.openFilesLock.RUnlock()
-	f, ok := svr.openFiles[handle]
+	f, ok := svr.OpenFiles[handle]
 	return f, ok
 }
 
@@ -112,13 +112,13 @@ func NewServer(rwc io.ReadWriteCloser, user user.User, stagingPath string, optio
 			Reader:      rwc,
 			WriteCloser: rwc,
 		},
-	}
+	} 
 	s := &Server{
 		serverConn:  svrConn,
 		debugStream: ioutil.Discard,
 		pktMgr:      newPktMgr(svrConn),
-		openFiles:   make(map[string]*os.File),
-		user: user,
+		OpenFiles:   make(map[string]*os.File),
+		User: user,
 		stagingPath: stagingPath,
 	}
 
@@ -200,6 +200,7 @@ func (svr *Server) sftpServerWorker(pktChan chan orderedRequest) error {
 }
 
 func handlePacket(s *Server, p orderedRequest) error {
+
 	var rpkt responsePacket
 	orderID := p.orderID()
 	switch p := p.requestPacket.(type) {
@@ -300,6 +301,8 @@ func handlePacket(s *Server, p orderedRequest) error {
 
 		rpkt = statusFromError(p, err)
 	case *sshFxpClosePacket:
+
+		
 		//TODO: notify file upload/written complete
 		rpkt = statusFromError(p, s.closeHandle(p.Handle))
 
@@ -464,7 +467,7 @@ func (svr *Server) Serve() error {
 	wg.Wait()      // wait for all workers to exit
 
 	// close any still-open files
-	for handle, file := range svr.openFiles {
+	for handle, file := range svr.OpenFiles {
 		fmt.Fprintf(svr.debugStream, "sftp server file with handle %q left open: %v\n", handle, file.Name())
 		file.Close()
 	}

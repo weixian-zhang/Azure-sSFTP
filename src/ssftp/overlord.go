@@ -10,7 +10,7 @@ type Overlord struct {
 	confsvc      *ConfigService
 	clamav      ClamAv
 	fileWatcher FileWatcher
-	//sftpservice *SftpService
+	sftpservice *SFTPService
 	usergov 	*user.UserGov
 	httpClient HttpClient
 }
@@ -23,13 +23,17 @@ func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord, error
 	proceed := make(chan bool)
 	go proceedOnClamdConnect(clamav, proceed)
 
-	<- proceed //block until ssftp able to connect to Clamd on tcp://localhost:3310
+	//<- proceed //block until ssftp able to connect to Clamd on tcp://localhost:3310
 
 	httpClient := NewHttpClient(confsvc)
 
 	scanDone := make(chan bool)
 
-	fw := NewFileWatcher(confsvc, usergov, scanDone)
+	sftpsvc := NewSFTPService(confsvc, usergov)
+
+	fw := NewFileWatcher(&sftpsvc, confsvc, usergov, scanDone)
+
+	
 
 	return Overlord{
 		confsvc: confsvc,
@@ -37,20 +41,18 @@ func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord, error
 		fileWatcher: fw,
 		httpClient: httpClient,
 		usergov: usergov,
-		//sftpservice: sftpsvc,
+		sftpservice: &sftpsvc,
 		//usergov: ug,
 	}, nil
 }
 
 func (ol *Overlord) Start(exit chan bool) {
 
-	//overlord.sftpservice.Start()
+	
 
 	go ol.fileWatcher.startWatchConfigFileChange()
 
-	go ol.fileWatcher.StartPickupUploadedFiles()
-
-	//go ol.fileWatcher.startStagingDirWatch(ol.confsvc.config.StagingPath)
+	go ol.fileWatcher.ScavengeUploadedFiles()
 
 	go func() {
 
@@ -58,38 +60,35 @@ func (ol *Overlord) Start(exit chan bool) {
 
 			select {
 
-			case fileCreateChange := <- ol.fileWatcher.fileCreateChangeEvent:
+			case scavengedFile := <- ol.fileWatcher.fileCreateChangeEvent:
 
-				logclient.Infof("sending file %s for scanning", fileCreateChange.Path)
+				logclient.Infof("Overlord - sending file %s for scanning from client %s", scavengedFile.Path, scavengedFile.User.Name)
 
 				if !ol.confsvc.config.EnableVirusScan {
 
-					logclient.Infof("Virus scan is disabled")
+					logclient.Infof("Overlord - Virus scan is disabled")
 
 					ol.fileWatcher.ScanDone <- true
 
 				} else {
-					go ol.clamav.ScanFile(fileCreateChange.Path)
+					go ol.clamav.ScanFile(scavengedFile.Path, scavengedFile.User)
 				}
 
 			//happens when clamd container is terminated or tcp connection can't be established
 			case fileOnScan := <-ol.clamav.clamdError:
 
-				//ol.fileWatcher.ScanDone <- true
-
-				logclient.Infof("Overlord detects connectivity error to Clamd during scan for %s", fileOnScan)
+				logclient.Infof("Overlord - detects connectivity error to Clamd while scanning %s", fileOnScan)
 
 			case scanR := <-ol.clamav.scanEvent:
 
-				//ol.fileWatcher.ScanDone <- true
-
-				logclient.Infof("Scanning done for file %s and virus found is %v", scanR.filePath, scanR.VirusFound)
+				logclient.Infof("Overlord - scanning done for file %s from client %s and virus = %v", scanR.filePath, scanR.User.Name, scanR.VirusFound)
 
 				destPath := ol.fileWatcher.moveFileByStatus(scanR)
 
 				if scanR.VirusFound {
 
 					ol.httpClient.callVirusFoundWebhook(VirusDetectedWebhookData{
+						Username: scanR.User.Name,
 						FileName: scanR.fileName,
 						FilePath: destPath,
 						ScanMessage: scanR.Message,
@@ -100,12 +99,14 @@ func (ol *Overlord) Start(exit chan bool) {
 			case <- exit:
 
 					ol.fileWatcher.watcher.Close()
-					logclient.Info("Overlord exiting due to exit signal")
+					logclient.Info("Overlord - exiting due to exit signal")
 					
 			}
 		}
 		
 	}()
+
+	ol.sftpservice.Start()
 }
 
 func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {
@@ -113,11 +114,11 @@ func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {
 		_, err := clamav.PingClamd()
 
 			if err != nil {
-				logclient.Info("sSFTP waiting for Clamd to be ready, connecting at tcp://localhost:3310")
+				logclient.Info("Overlord - sSFTP waiting for Clamd to be ready, connecting at tcp://localhost:3310")
 				time.Sleep(3 * time.Second)
 				continue
 			} else {
-				logclient.Info("sSFTP connected to Clamd on tcp://localhost:3310")
+				logclient.Info("Overlord - sSFTP connected to Clamd on tcp://localhost:3310")
 				proceed <- true
 				break
 		}

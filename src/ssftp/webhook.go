@@ -13,9 +13,10 @@ type HttpClient struct {
 }
 
 type VirusDetectedWebhookData struct {
+	Username string			`json:"username"`
 	FileName string			`json:"fileName"`
 	ScanMessage  string		`json:"scanMessage"`
-	FilePath string	`json:"mountFilePath"`
+	FilePath string			`json:"mountFilePath"`
 	TimeGenerated string	`json:"timeGenerated"`
 }
 

@@ -1,11 +1,11 @@
-
 package main
 
 import (
-	"os"
-	"github.com/dutchcoders/go-clamd"
-	"fmt"
 	"bufio"
+	"fmt"
+	"os"
+	"github.com/weixian-zhang/ssftp/user"
+	"github.com/dutchcoders/go-clamd"
 )
 
 const clamdAddr string = "tcp://localhost:%s"
@@ -30,6 +30,7 @@ type ClamdError struct {
 }
 
 type ClamAvScanResult struct {
+	User user.User
 	filePath string
 	fileName string
 	Message string
@@ -64,39 +65,47 @@ func (cav ClamAv) PingClamd() (bool, error) {
 	}
 }
 
-func (cav ClamAv) ScanFile(filePath string) ()  {
+func (cav ClamAv) ScanFile(filePath string, user user.User) ()  {
 
 	//TODO: scan file
 	logclient.Infof("Virus scanning file: %s", filePath)
 
 	file, err := os.Open(filePath)
 	if logclient.ErrIf(err) {
-		status, vf := convertClamdStatusToLocalEnum("ERROR")
-		cav.scanEvent <- ClamAvScanResult{
-			filePath: filePath,
-			fileName: "",
-			Message: "error reading file",
-			Size: 0,
-			Status: status,
-			VirusFound: vf,
+		// status, vf := convertClamdStatusToLocalEnum("ERROR")
+		// cav.scanEvent <- ClamAvScanResult{
+		// 	User: user,
+		// 	filePath: filePath,
+		// 	fileName: "",
+		// 	Message: "error reading file",
+		// 	Size: 0,
+		// 	Status: status,
+		// 	VirusFound: vf,
+		// }
+
+		cav.clamdError <- ClamdError{
+			file: filePath,
 		}
+		
 		return
 	}
+	defer file.Close()
 
 	fileinfo, ferr := file.Stat()
 	logclient.ErrIf(ferr)
 
 	resp, err :=  cav.clamClient.ScanStream(bufio.NewReader(file), nil)
 	if err != nil {
-		status, vf := convertClamdStatusToLocalEnum("ERROR")
-		cav.scanEvent <- ClamAvScanResult{
-			filePath: filePath,
-			fileName: fileinfo.Name(),
-			Message: err.Error(),
-			Size: 0,
-			Status: status,
-			VirusFound: vf,
-		}
+		// status, vf := convertClamdStatusToLocalEnum("ERROR")
+		// cav.scanEvent <- ClamAvScanResult{
+		// 	User: user,
+		// 	filePath: filePath,
+		// 	fileName: fileinfo.Name(),
+		// 	Message: err.Error(),
+		// 	Size: 0,
+		// 	Status: status,
+		// 	VirusFound: vf,
+		// }
 
 		cav.clamdError <- ClamdError{
 			file: filePath,
@@ -109,6 +118,7 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 
 	status, vf := convertClamdStatusToLocalEnum(result.Status)
 	scanResult := ClamAvScanResult{
+		User: user,
 		filePath: filePath,
 		fileName: fileinfo.Name(),
 		Message: result.Raw,
@@ -117,17 +127,9 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 		VirusFound: vf,
 	}
 	
-	logclient.InfoStruct(scanResult)
-	
-	fcerr := file.Close()
+	logclient.Infof("Virus scan completed for %s, file stream closed", scanResult.filePath)
 
-	if fcerr != nil {
-		logclient.ErrIf(fcerr)
-	} else {
-		logclient.Infof("Virus scan completed for %s, file stream closed", scanResult.filePath)
-
-		cav.scanEvent <- scanResult
-	}
+	cav.scanEvent <- scanResult		
 }
 
 //convertClamdStatusToLocalEnum also returns virusFound = true/false
