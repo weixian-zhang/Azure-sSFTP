@@ -74,7 +74,11 @@ func (ss *SFTPService) Start() {
 
 				ss.loginUser = usr
 
-				ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser.JailDirectory)
+				if ss.loginUser.IsCleanDirUser {
+					ss.usrgov.CreateUserDir(ss.configsvc.config.CleanPath, ss.loginUser.JailDirectory)
+				} else {
+					ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser.JailDirectory)
+				}
 
 				return nil, nil
 			} else {
@@ -92,7 +96,7 @@ func (ss *SFTPService) Start() {
 	if err != nil {
 		logclient.ErrIfm("failed to listen for connection", err)
 	}
-	logclient.Infof("SFTP server listening on %v\n", listener.Addr())
+	logclient.Infof("SFTP server listening on %v", listener.Addr())
 
 	ss.netListener = listener
 
@@ -191,10 +195,18 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 		// 	fmt.Fprintf(debugStream, "Read write server\n")
 		// }
 
+		var jailPath string
+		
+		if ss.loginUser.IsCleanDirUser {
+			jailPath = ss.configsvc.config.CleanPath
+		} else {
+			jailPath = ss.configsvc.config.StagingPath
+		}
+
 		server, err := sftp.NewServer(
 			channel,
 			ss.loginUser,
-			ss.configsvc.config.StagingPath,
+			jailPath,
 			serverOptions...,
 		)
 

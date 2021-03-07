@@ -4,8 +4,8 @@ package sftp
 
 import (
 	"encoding"
-	"runtime"
-	"strings"
+	// "runtime"
+	// "strings"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,26 +38,37 @@ type Server struct {
 	openFilesLock sync.RWMutex
 	handleCount   int
 	User	  	  user.User
-	stagingPath   string
+	jailPath   string
 }
 
 func (svr *Server) getUserJailPath(filePath string) string {
 
-	jailPath := filepath.Join(svr.stagingPath, svr.User.JailDirectory)
+	// var jailPath string
+	
+	// if svr.User.IsCleanDirUser {
+	// 	jailPath = filepath.Join(svr.jailPath, svr.User.JailDirectory)
+	// } else {
+	// 	jailPath = filepath.Join(svr.stagingPath, svr.User.JailDirectory)
+	// }
+	
+	jailPath := filepath.Join(svr.jailPath, svr.User.JailDirectory)
 
-	if runtime.GOOS == "windows" {
-		if filePath[:1] == "/" {
-			filePath = strings.Replace(filePath, "/", "", 1)
-		}
-	}
-
-	if svr.stagingPath == "" {
+	if svr.jailPath == "" {
 		return filePath
 	}
-	chroot := svr.stagingPath
-	if svr.User.JailDirectory != "" {
+
+	chroot := svr.jailPath
+
+	if svr.User.IsCleanDirUser && svr.User.JailDirectory == "*" {
+		chroot = svr.jailPath
+
+	}  else if svr.User.IsCleanDirUser && svr.User.JailDirectory != "*" {
 		chroot = filepath.Join(chroot, svr.User.JailDirectory)
-	} else if filePath == jailPath { //if filePath is already == stagingPath
+
+	} else if svr.User.JailDirectory != "" {
+		chroot = filepath.Join(chroot, svr.User.JailDirectory)
+
+	} else if filePath == jailPath { //if filePath is already == jailPath
 		chroot = filePath
 	}
 	
@@ -106,7 +117,7 @@ type serverRespondablePacket interface {
 // functions may be specified to further configure the Server.
 //
 // A subsequent call to Serve() is required to begin serving files over SFTP.
-func NewServer(rwc io.ReadWriteCloser, user user.User, stagingPath string, options ...ServerOption) (*Server, error) {
+func NewServer(rwc io.ReadWriteCloser, user user.User, jailPath string, options ...ServerOption) (*Server, error) {
 	svrConn := &serverConn{
 		conn: conn{
 			Reader:      rwc,
@@ -119,7 +130,7 @@ func NewServer(rwc io.ReadWriteCloser, user user.User, stagingPath string, optio
 		pktMgr:      newPktMgr(svrConn),
 		OpenFiles:   make(map[string]*os.File),
 		User: user,
-		stagingPath: stagingPath,
+		jailPath: jailPath,
 	}
 
 	for _, o := range options {

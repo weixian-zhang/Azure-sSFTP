@@ -1,5 +1,5 @@
  #sSFTP re-inits without restarting on any canges to this config file
-sftpPort: 2002              #port needs to be exposed at ACI yaml
+sftpPort: 2002
 enableVirusScan: true       #if disabled, files in Staging will remain and not moved
 webhooks:
   - name: virusFound
@@ -8,15 +8,19 @@ logDests:
   - kind: file
     props:
       path: "/mnt/ssftp/log"
-
-internalUsers:              
-- name: "testuser1"       # user/service accounts to access Clean (scanned) directory for internal processing
-  directory: "agency-z"
-  auth:
-    password: "pass"
-    publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
-
-users:            # user/service accounts for file upload to Staging directory
+users:                    # SFTP Server user/service accounts
+  cleanDir:               # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
+    - name: "cleanuser1"
+      directory: "*"        # "*"" = rooted to clean dir able to access  all sub dirs. or "/sub-dir" matching Staging sub-dirs uploaded by external systems
+      auth:
+        password: "pass"
+        publicKey: ""
+    - name: "cleanuser2"
+      directory: "agency-z"        # "*"" = rooted to clean dir able to access  all sub dirs. or "sub-dir" matching Staging sub-dirs uploaded by external systems
+      auth:
+        password: ""
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAl7udzUT32LhLqc4ekMBaY/Yag6+j8BAg7cbr09IMLi7jA9w4Vi6/MU0u1Jzzt99oUaLjoi+741APIY/BEVn5kllrxgaHkKGqMYD7WKM8uLkmw+p3/4c9cw/Owqo5NoaqFrpoLQdPOx8j669TH2fxPtNfsBa5jV6TDgozKx1TTJfp23OetaX+g8y3s0TBjNKhFJYOB9+XMSvlrFzufB2ZozmF3wgM+Fo5ot0riWhMJlOo0bPl1Rd1gABhx8YsPtqKelI2aOFTDUhr5o3Lx0IXEhIwJYUY6FkLz4fAr/o1umCDnhEWKOCt/J/HtFmmJH34ZTBVe5oJB+ldFtaOWiMW0Q== rsa-key-20210307"
+  stagingDir:
   - name: "testuser1"
     directory: "agency-z"
     auth:

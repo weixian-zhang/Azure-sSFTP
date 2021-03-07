@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	//"os"
-	"runtime"
-	//"path/filepath"
+	"os"
 	"github.com/goccy/go-yaml"
 	"github.com/weixian-zhang/ssftp/user"
 )
@@ -25,6 +23,19 @@ const (
 
 type ConfigService struct {
 	config *Config
+}
+
+type SSFTPYaml struct {
+	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
+	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
+	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
+	Users SSFTPYamlUsers			`json:"users", yaml:"users"`
+	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
+}
+
+type  SSFTPYamlUsers struct {
+	StagingDirUsers []user.User		`json:"stagingDir", yaml:"stagingDir"`
+	CleanDirUsers []user.User		`json:"cleanDir", yaml:"cleanDir"`
 }
 
 type Config struct {
@@ -60,26 +71,6 @@ const (
 	}
  }
 
-// 	return &Config{}
-// 	// conf := Config{
-// 	// 	StagingPath: os.Getenv("stagingPath"),
-// 	// 	CleanPath: os.Getenv("cleanPath"),
-// 	// 	QuarantinePath: os.Getenv("quarantinePath"),
-// 	// 	ErrorPath: os.Getenv("errorPath"),
-// 	// 	LogPath: os.Getenv("logPath"),
-// 	// 	SystemPath: os.Getenv("systemPath"),
-// 	// 	// VirusFoundWebhookUrl: os.Getenv("virusFoundWebhookUrl"),
-// 	// }
-
-// 	// if conf.StagingPath == "" || conf.CleanPath == "" || conf.QuarantinePath == "" || conf.ErrorPath == "" {
-// 	// 	err := errors.New("Environment variables missing for stagingPath, cleanPath, quarantinePath or errorPath")
-// 	// 	log.Fatalln(err)
-// 	// 	return conf, err
-// 	// }
-
-// 	// return conf, nil
-// }
-
 func (c ConfigService) LoadYamlConfig() chan Config {
 
 	loaded := make(chan Config)
@@ -93,8 +84,10 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 					time.Sleep(3 * time.Second)
 					continue
 				}
+
+				yamlSchema := SSFTPYaml{}
 				
-				yerr := yaml.Unmarshal(b, c.config)
+				yerr := yaml.Unmarshal(b, &yamlSchema)
 				if logclient.ErrIf(yerr) {
 					time.Sleep(3 * time.Second)
 					continue
@@ -113,6 +106,12 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 					c.config.ErrorPath = ErrorPath
 				}
 
+				c.config.SftpPort = yamlSchema.SftpPort
+				c.config.Webhooks = yamlSchema.Webhooks
+				c.config.LogDests = yamlSchema.LogDests
+				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
+				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
+
 				configJStr := ToJsonString(c.config)
 				log.Println(fmt.Sprintf("sSFTP loaded config from /mnt/ssftp/system/ssftp.yaml: %s", configJStr))
 
@@ -126,11 +125,27 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 	return loaded
 }
 
+func (c *ConfigService) mergeStagingCleanDirUsers(ssftpyaml SSFTPYaml) []user.User {
+
+	users := make([]user.User, 0)
+
+	for _, v := range ssftpyaml.Users.StagingDirUsers {
+		users = append(users, v)
+	}
+
+	for _, v := range ssftpyaml.Users.CleanDirUsers {
+		v.IsCleanDirUser = true
+		users = append(users, v)
+	}
+
+	return users
+}
+
 func (c *ConfigService) getYamlConfgPath() string {
-	if runtime.GOOS != "windows" {
-		return SystemConfigPath
+	if os.Getenv("env") != "" && os.Getenv("env") == "dev" {
+		return "/mnt/c/weixian/projects/Azure-Scanned-File-Transfer/src/ssftp/ssftp.yaml"
 	} else {
-		return "ssftp.yaml"
+		return SystemConfigPath
 	}
 }
 
