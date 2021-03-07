@@ -33,8 +33,6 @@ func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord, error
 
 	fw := NewFileWatcher(&sftpsvc, confsvc, usergov, scanDone)
 
-	
-
 	return Overlord{
 		confsvc: confsvc,
 		clamav: clamav,
@@ -60,46 +58,46 @@ func (ol *Overlord) Start(exit chan bool) {
 
 			select {
 
-			case scavengedFile := <- ol.fileWatcher.fileCreateChangeEvent:
+				case scavengedFile := <- ol.fileWatcher.fileCreateChangeEvent:
 
-				logclient.Infof("Overlord - sending file %s for scanning from client %s", scavengedFile.Path, scavengedFile.User.Name)
+					logclient.Infof("Overlord - sending file %s for scanning", scavengedFile.Path)
 
-				if !ol.confsvc.config.EnableVirusScan {
+					if !ol.confsvc.config.EnableVirusScan {
 
-					logclient.Infof("Overlord - Virus scan is disabled")
+						logclient.Infof("Overlord - Virus scan is disabled")
+
+						ol.fileWatcher.ScanDone <- true
+
+					} else {
+						go ol.clamav.ScanFile(scavengedFile.Path)
+					}
+
+				case scanR := <-ol.clamav.scanEvent:
 
 					ol.fileWatcher.ScanDone <- true
 
-				} else {
-					go ol.clamav.ScanFile(scavengedFile.Path, scavengedFile.User)
-				}
+					if scanR.Error {
+						logclient.Infof("Overlord - error while Clamd scans file %s, Error: %s",scanR.filePath, scanR.Message)
+						break
+					}
 
-			//happens when clamd container is terminated or tcp connection can't be established
-			case fileOnScan := <-ol.clamav.clamdError:
+					logclient.Infof("Overlord - scanning done for file %s and virus = %v", scanR.filePath, scanR.VirusFound)
 
-				logclient.Infof("Overlord - detects connectivity error to Clamd while scanning %s", fileOnScan)
+					destPath := ol.fileWatcher.moveFileByStatus(scanR)
 
-			case scanR := <-ol.clamav.scanEvent:
+					if scanR.VirusFound {
 
-				logclient.Infof("Overlord - scanning done for file %s from client %s and virus = %v", scanR.filePath, scanR.User.Name, scanR.VirusFound)
+						ol.httpClient.callVirusFoundWebhook(VirusDetectedWebhookData{
+							FilePath: destPath,
+							ScanMessage: scanR.Message,
+							TimeGenerated: (time.Now()).Format(time.ANSIC),
+						})
+					}				
 
-				destPath := ol.fileWatcher.moveFileByStatus(scanR)
+				case <- exit:
 
-				if scanR.VirusFound {
-
-					ol.httpClient.callVirusFoundWebhook(VirusDetectedWebhookData{
-						Username: scanR.User.Name,
-						FileName: scanR.fileName,
-						FilePath: destPath,
-						ScanMessage: scanR.Message,
-						TimeGenerated: (time.Now()).Format(time.ANSIC),
-					})
-				}				
-
-			case <- exit:
-
-					ol.fileWatcher.watcher.Close()
-					logclient.Info("Overlord - exiting due to exit signal")
+						ol.fileWatcher.watcher.Close()
+						logclient.Info("Overlord - exiting due to exit signal")
 					
 			}
 		}

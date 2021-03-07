@@ -14,7 +14,6 @@ type ScavengedFileProcessContext struct {
 	Name string
 	Path string
 	Size int64
-	User user.User
 	TimeCreated string
 }
 
@@ -27,7 +26,7 @@ type FileWatcher struct {
 	sftpService *SFTPService
 
 	ScanDone		chan bool
-	OverlordProcessedUploadedFile chan string
+	//OverlordProcessedUploadedFile chan string
 	BatchedScavengedFilesProcessDone chan bool
 
 	fileCreateChangeEvent chan ScavengedFileProcessContext
@@ -36,7 +35,6 @@ type FileWatcher struct {
 
 type FileUploadContext struct {
 	Path string
-	User user.User
 }
 
 type FileMoveChanContext struct {
@@ -67,11 +65,13 @@ func NewFileWatcher(sftpService *SFTPService, confsvc *ConfigService, usrgov  *u
 		fileCreateChangeEvent:  make(chan ScavengedFileProcessContext),
 		fileMovedEvent: make(chan FileMoveChanContext),
 		ScanDone: scanDone,
-		OverlordProcessedUploadedFile: make(chan string),
+		//OverlordProcessedUploadedFile: make(chan string),
 		BatchedScavengedFilesProcessDone: make(chan bool),
 	}
 }
 
+//ScavengeUploadedFiles might scavenge files that are still uploading, especially large files which take time.
+//Addition checks in-place to detect and leave uploading files alone
 func (fw *FileWatcher) ScavengeUploadedFiles() {
 
 	for {
@@ -97,12 +97,12 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 
 		if len(files) > 0 {
 
-			logclient.Infof("FileWatcher - detects %d files, batching uploaded files for processing", len(files))
+			logclient.Infof("FileWatcher - detects %d files", len(files))
 
 			closedFiles, ok := fw.checkScavengedFilesUploadState(files)
 
 			if !ok {
-				logclient.Info("FileWatcher - detected open files, waiting for files to complete uploading")
+				logclient.Info("FileWatcher - detected open files, waiting for files to complete upload")
 				time.Sleep(500 * time.Millisecond)
 				continue
 			}
@@ -111,38 +111,33 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 
 			go fw.notifyOverlordProcessScavengedFiles(closedFiles)
 
-			//<- fw.BatchedScavengedFilesProcessDone
-
+			<- fw.BatchedScavengedFilesProcessDone
 		}
 
-		logclient.Info("FileWatcher - no file uploaded")
 		time.Sleep(3 * time.Second)
 	}
 }
 
 func (fw *FileWatcher) checkScavengedFilesUploadState(files []FileUploadContext) ([]FileUploadContext, bool) {
-
-	logclient.Info("Checking for files in upload state from SFTP clients")
+	logclient.Info("Checking file upload state")
 
 	closeds := make([]FileUploadContext, 0)
 
 	opens := fw.getAllOpenFilesFromAllServers()
 
 	if len(opens) == 0 {
-		logclient.Info("No SFTP open file found")
+		logclient.Info("No on-going file upload detected")
 		return files, true
 	}
 
-	for _, o := range opens {
-		
-		for _, f := range files {
+	for _, f := range files {
 
-			if o.Path != f.Path {
-				closeds = append(closeds, f)
-				logclient.Infof("File: %s upload completed by client %s", o.Path, o.User.Name)
-			} else {
-				logclient.Infof("File %s is in upload state from client %s", o.Path, o.User.Name)
-			}
+		if fw.isScavengedFileInOpenFileList(f.Path, opens) {
+			logclient.Infof("File %s is in upload state, size %d", f.Path, fw.fileSizeMb(f.Path))
+			time.Sleep(300 * time.Millisecond)
+			continue
+		} else {
+			closeds = append(closeds, f)
 		}
 	}
 	
@@ -151,9 +146,38 @@ func (fw *FileWatcher) checkScavengedFilesUploadState(files []FileUploadContext)
 	} else {
 		return closeds, false
 	}
-
-	
 }
+
+func (fw *FileWatcher) isScavengedFileInOpenFileList(sfile string, opens []FileUploadContext) bool {
+	for _, a := range opens {
+        if a.Path == sfile {
+            return true
+        }
+    }
+    return false
+}
+
+// func (fw *FileWatcher) doubleCheckUploadStateByFileSize(files []FileUploadContext) (bool) {
+
+// 	var size int64
+
+// 	for 
+
+// 	//check for 6 secs
+// 	for start := time.Now(); time.Since(start) < 6 * time.Second; {
+// 		f, _ := os.Stat(file)
+
+// 		if size != f.Size() {
+// 			logclient.Infof("Filewatcher - check upload state by file size, prev:%d, current:%d. File %s still uploading", size, f.Size(), file)
+// 			size = f.Size()
+// 			time.Sleep(100 * time.Millisecond)
+// 		} else {
+// 			return true
+// 		}
+// 	}
+
+// 	return false
+// }
 
 func (fw *FileWatcher) getAllOpenFilesFromAllServers() ([]FileUploadContext) {
 
@@ -161,10 +185,13 @@ func (fw *FileWatcher) getAllOpenFilesFromAllServers() ([]FileUploadContext) {
 
 	for _, v := range fw.sftpService.servers {
 		for _, f := range v.OpenFiles {	
+
+			if isDir(f.Name()) {
+				continue
+			}
 			
 			opens = append(opens, FileUploadContext{
 				Path: f.Name(),
-				User: v.User,
 			})
 		}
 	}
@@ -178,111 +205,34 @@ func (fw *FileWatcher) notifyOverlordProcessScavengedFiles(files []FileUploadCon
 
 		logclient.Infof("FileWatcher notifies Overlord to pick up file %s", f.Path)
 
-		fileOnWatch := ScavengedFileProcessContext{
+		//notifies overlord to scan file
+		sFile := ScavengedFileProcessContext{
 			Path: filepath.FromSlash(f.Path),
 			Name:f.Path,
-			User: f.User,
 			TimeCreated: (time.Now()).Format(time.ANSIC),
 		}
 
-		logclient.Infof("FileWatcher blocks scavenging for Overlord to process file %s", f.Path)
+		fw.fileCreateChangeEvent <- sFile
+
+		logclient.Infof("FileWatcher blocks for Overlord to scan file %s", f.Path)
 	
-		fw.fileCreateChangeEvent <-fileOnWatch //notifies overlord to scan file
+		 <- fw.ScanDone //wait for scan done
 
-		logclient.Infof("FileWatcher unblocks for file %s", f.Path)
-
-		//<- fw.OverlordProcessedUploadedFile
+		logclient.Infof("FileWatcher - scan done, unblocks from scanning file %s", f.Path)
 	}
 
-	//logclient.Infof("FileWatcher completed processing for batch uploaded files: %s", ToJsonString(files))
-
-	//fw.BatchedScavengedFilesProcessDone <- true
+	fw.BatchedScavengedFilesProcessDone <- true
 }
 
+func (fw *FileWatcher) fileSizeMb(file string) (newSize int) {
+	info, _ := os.Stat(file)
 
-//IsFileStillUploading is blocking until file completes upload
-// func (fw *FileWatcher) blocksCheckFileUploadComplete(file string) {
+	mb := info.Size() / (1024 * 1024)
 
-// 	logclient.Infof("FileWatcher checking if file %s still uploading", file)
+	newSize = int(mb)
 
-// 	f, err :=  os.Open(file)
-
-// 	if err != nil {
-// 		logclient.ErrIffmsg("Error opening file %s", err, file)
-// 		return
-// 	}
-
-// 	defer f.Close()
-
-// 	logclient.Infof("FileWatcher starts checking file uploading for %s", file)
-
-// 	var totalSize int64
-
-// 	for {
-
-// 		i, serr := os.Stat(file)
-		
-// 		// // if time.Now().After(i.ModTime()) {
-// 		// // 	break
-// 		// // }
-
-// 		// b, rerr := 
-// 		if serr != nil {
-// 			logclient.ErrIffmsg("Filewatcher - checks uploading Stat error for file %s", serr, file)
-// 			continue
-// 		}
-
-// 		logclient.Infof("modtime: %s, Stat: %d", i.ModTime().String(), i.Size())
-// 		logclient.Infof("now: %s, totalSize: %d", time.Now().String(), totalSize)
-
-// 		if i.Size() == totalSize {
-// 			break
-// 		} else {
-// 			totalSize = i.Size()
-// 			time.Sleep(600 * time.Millisecond)
-// 		}
-
-// 		//https://stackoverflow.com/questions/41208359/how-to-test-eof-on-io-reader-in-go
-
-// 		// dataBuf := make([]byte, 1024)
-
-// 		// n, ferr :=  f.Read(dataBuf)
-
-// 		// if ferr != nil {
-// 		// 	if ferr == io.EOF {
-// 		// 		logclient.Infof("FileWatcher - file %s upload completed", file)
-// 		// 		break
-// 		// 	} else {
-// 		// 		logclient.ErrIffmsg("FileWatcher - Read error for file %s", ferr, file)
-// 		// 		continue
-// 		// 	}
-// 		// }
-
-// 		// logclient.Infof("length of file read: %d", n)
-
-// 		// if n > 0 {
-			
-// 		// 	logclient.Infof("FileWatcher - file %s upload in progess, %d Mb", file, fw.fileSizeMb(file))
-
-// 		// 	time.Sleep(200 * time.Millisecond)
-			
-// 		// 	continue
-// 		// }
-
-// 		// logclient.Infof("FileWatcher - file %s upload completed", file)
-// 		// break
-// 	}
-// }
-
-// func (fw *FileWatcher) fileSizeMb(file string) (newSize int) {
-// 	info, _ := os.Stat(file)
-
-// 	mb := info.Size() / (1024 * 1024)
-
-// 	newSize = int(mb)
-
-// 	return newSize
-// }
+	return newSize
+}
 
 func (fw *FileWatcher) startWatchConfigFileChange() {
 
@@ -323,10 +273,17 @@ func (fw *FileWatcher) registerConfigFileChangeEvent() {
 	}
 }
 
+func (fw *FileWatcher) moveFileToErrorFileshare(file string) {
+	errorPath := fw.confsvc.config.ErrorPath
+
+	err := fw.moveFileBetweenDrives(file, errorPath)
+	logclient.ErrIfm("Error moving file to Error fileshare", err)
+}
+
 //moveFileByStatus returns destination path where file is moved. Either /mnt/ssftp/clean|quaratine|error
 func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 
-	logclient.Infof("FileWatcher starts moving file %s by scan status", scanR.fileName)
+	logclient.Infof("FileWatcher starts moving file %s by scan status", scanR.filePath)
 
 	//replace "staging" folder path with new Clean and Quarantine path so when file is moved to either
 	//clean/quarantine, the sub-folder structure remains the same as staging.
@@ -341,7 +298,7 @@ func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 		err := fw.moveFileBetweenDrives(scanR.filePath,cleanPath)
 		logclient.ErrIfm("Error moving file between drives when virus is not found", err)
 
-		logclient.Infof("Moving clean file %q to %q", scanR.fileName, cleanPath)
+		logclient.Infof("Moving clean file %q to %q", scanR.filePath, cleanPath)
 
 	} else {
 
@@ -350,12 +307,10 @@ func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 		err := fw.moveFileBetweenDrives(scanR.filePath, quarantinePath)
 		logclient.ErrIfm("Error moving file between drives when virus is found", err)
 		
-		logclient.Infof("Virus found in file %q, moving to quarantine %q", scanR.fileName, quarantinePath)
+		logclient.Infof("Virus found in file %q, moving to quarantine %q", scanR.filePath, quarantinePath)
 	}
 
 	logclient.Infof("FileWatcher move file completed, new destication: %s", destPath)
-
-	fw.OverlordProcessedUploadedFile <- destPath //unblocks filepath.Walk to start pickup n
 
 	return destPath
 }
