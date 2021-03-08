@@ -33,10 +33,15 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall  
 
-### Azure File, Folder Structure & Conventions  
+### Azure File Share Structure, Directory Structure & Conventions  
+
+The following file shares are required by convention (file share name can be changed),  
+except for "ssftp-log" where sSFTP writes log files to which is optional.  
+
 
 <img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
 <br />
+An example depicting folder structure in Staging and Clean file share are identical
 <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="300" />
 <br />
       
