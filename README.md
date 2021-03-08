@@ -2,12 +2,11 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
-* [How things Work](#how-thing-works)
-* [AzFile, Folder Structure & Conventions](#azure-file-share-structure,-directory-structure-&-conventions)
+* [How things Work](#how-things-work)
+* [AzFile, Folder Structure & Conventions](#azure-file-share-structure-directory-structure-&-conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Networking](#networking) 
-* [sSFTP Architecture](#ssftp-architecture)
 
 ### What is sSFTP
 Azure sSFTP (Scanned SFTP) is a container-based solution leverages Azure Container Instance to provide SFTP server with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as the file storage.  
@@ -32,7 +31,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 * For whatever reason if sSFTP's Container Instance is restarted or removed, files are still retained in Azure File
 
 
-### How Things Work  
+### How Things Work
 
 SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp),  
 sSFTP picks up the uploaded file and sends a command to ClamD (ClamAV scan daemon) running in ClamAV container in the same Azure Container Instance Container Group.  
@@ -41,7 +40,7 @@ If ClamaV detects virus, sSFTP then moves file into Quarantine directory /mnt/ss
 
 Azure File Share ssftp-staging is mounted to both sSFTP and ClamAV containers so that clients can upload to same share that ClamAV can reach for scanning.
 
-<img src="./doc/ssftp-azure-architecture.png" width="600" height="750" />
+<img src="./doc/ssftp-azure-architecture.png" width="850" height="750" />
 
 ### Azure File Share Structure, Directory Structure & Conventions  
 
@@ -53,7 +52,6 @@ except for "ssftp-log" where sSFTP writes log files to which is optional.
 <br />
 An example depicting folder structure in Staging and Clean file share are identical  
 <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="300" />
-<br />
       
 ### Configuring sSFTP  
 
