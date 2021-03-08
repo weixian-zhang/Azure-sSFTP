@@ -18,13 +18,14 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 * Container-based solution that runs on Azure Container Instance (PaaS), no infrastructure maintainence needed
 * sSFTP's runs securely in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
-* SFTP server integrated, no separate product license needed
+* Built-in SFTP server
 * ClamAV virus scan integrated
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
 * Supports Webhook invocation when virus is detected per file
 * Each SFTP user/service login account is rooted to its configured directory only
-* Supports multi-user/service accounts per each root directory
+* Supports multi-SFTP accounts per configured directory for file upload ("staging" directories, see [How Things Work](#how-things-work))
+* Supports multi-SFTP accounts per configured directory or "root" directory for file download/processing ("clean" directories, [How Things Work](#how-things-work)))
 * Add or remove user/service accounts without restarting SFTP server
 * Easy configuration using a single Yaml file
 * Yaml config changes is recognized on-the-fly with no restart needed
