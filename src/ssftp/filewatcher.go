@@ -76,7 +76,7 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 
 	for {
 
-		logclient.Infof("FileWatcher scavenging directory %s", fw.confsvc.config.StagingPath)
+		logclient.Infof("FileWatcher - scavenging new files in directory %s", fw.confsvc.config.StagingPath)
 
 		var files []FileUploadContext
 
@@ -91,7 +91,7 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 			return nil
 		})
 
-		if logclient.ErrIffmsg("FileWatcher error occured while walking staging dir %s", err, fw.confsvc.config.StagingPath) {
+		if logclient.ErrIffmsg("FileWatcher error occured while scavenging %s", err, fw.confsvc.config.StagingPath) {
 			continue
 		}
 
@@ -119,21 +119,21 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 }
 
 func (fw *FileWatcher) checkScavengedFilesUploadState(files []FileUploadContext) ([]FileUploadContext, bool) {
-	logclient.Info("Checking file upload state")
+	logclient.Info("FileWatcher - Checking file upload state")
 
 	closeds := make([]FileUploadContext, 0)
 
 	opens := fw.getAllOpenFilesFromAllServers()
 
 	if len(opens) == 0 {
-		logclient.Info("No on-going file upload detected")
+		logclient.Info("FileWatcher - No on-going file upload detected")
 		return files, true
 	}
 
 	for _, f := range files {
 
 		if fw.isScavengedFileInOpenFileList(f.Path, opens) {
-			logclient.Infof("File %s is in upload state, size %d", f.Path, fw.fileSizeMb(f.Path))
+			logclient.Infof("FileWatcher - File %s is in upload state, current size %dMB", f.Path, fw.fileSizeMb(f.Path))
 			time.Sleep(300 * time.Millisecond)
 			continue
 		} else {
@@ -156,28 +156,6 @@ func (fw *FileWatcher) isScavengedFileInOpenFileList(sfile string, opens []FileU
     }
     return false
 }
-
-// func (fw *FileWatcher) doubleCheckUploadStateByFileSize(files []FileUploadContext) (bool) {
-
-// 	var size int64
-
-// 	for 
-
-// 	//check for 6 secs
-// 	for start := time.Now(); time.Since(start) < 6 * time.Second; {
-// 		f, _ := os.Stat(file)
-
-// 		if size != f.Size() {
-// 			logclient.Infof("Filewatcher - check upload state by file size, prev:%d, current:%d. File %s still uploading", size, f.Size(), file)
-// 			size = f.Size()
-// 			time.Sleep(100 * time.Millisecond)
-// 		} else {
-// 			return true
-// 		}
-// 	}
-
-// 	return false
-// }
 
 func (fw *FileWatcher) getAllOpenFilesFromAllServers() ([]FileUploadContext) {
 
@@ -225,7 +203,12 @@ func (fw *FileWatcher) notifyOverlordProcessScavengedFiles(files []FileUploadCon
 }
 
 func (fw *FileWatcher) fileSizeMb(file string) (newSize int) {
-	info, _ := os.Stat(file)
+	info, err := os.Stat(file)
+
+	if err != nil {
+		logclient.ErrIfm("Filewatcher - error while checking fize size on upload", err)
+		return 0
+	}
 
 	mb := info.Size() / (1024 * 1024)
 
@@ -258,13 +241,13 @@ func (fw *FileWatcher) registerConfigFileChangeEvent() {
 
 					if SystemConfigFileName ==  event.Name() {
 
-						logclient.Infof("Config file %s change detected", SystemConfigPath)
+						logclient.Infof("FileWatcher - Config file %s change detected", SystemConfigPath)
 	
 						loaded := fw.confsvc.LoadYamlConfig()
 
 						config := <- loaded
 
-						logclient.Infof("Config file loaded successfully")
+						logclient.Infof("FileWatcher - Config file loaded successfully")
 
 						fw.usergov.SetUsers(config.Users)
 					}
@@ -277,13 +260,13 @@ func (fw *FileWatcher) moveFileToErrorFileshare(file string) {
 	errorPath := fw.confsvc.config.ErrorPath
 
 	err := fw.moveFileBetweenDrives(file, errorPath)
-	logclient.ErrIfm("Error moving file to Error fileshare", err)
+	logclient.ErrIfm("FileWatcher - Error moving file to Error fileshare", err)
 }
 
 //moveFileByStatus returns destination path where file is moved. Either /mnt/ssftp/clean|quaratine|error
 func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 
-	logclient.Infof("FileWatcher starts moving file %s by scan status", scanR.filePath)
+	logclient.Infof("FileWatcher - starts moving file %s by scan status", scanR.filePath)
 
 	//replace "staging" folder path with new Clean and Quarantine path so when file is moved to either
 	//clean/quarantine, the sub-folder structure remains the same as staging.
@@ -296,21 +279,21 @@ func (fw *FileWatcher) moveFileByStatus(scanR ClamAvScanResult) (string) {
 	if !scanR.VirusFound {
 
 		err := fw.moveFileBetweenDrives(scanR.filePath,cleanPath)
-		logclient.ErrIfm("Error moving file between drives when virus is not found", err)
+		logclient.ErrIfm("FileWatcher - Error moving file between drives when virus is not found", err)
 
-		logclient.Infof("Moving clean file %q to %q", scanR.filePath, cleanPath)
+		logclient.Infof("FileWatcher - Moving clean file %q to %q", scanR.filePath, cleanPath)
 
 	} else {
 
 		destPath = quarantinePath
 
 		err := fw.moveFileBetweenDrives(scanR.filePath, quarantinePath)
-		logclient.ErrIfm("Error moving file between drives when virus is found", err)
+		logclient.ErrIfm("FileWatcher - Error moving file between drives when virus is found", err)
 		
-		logclient.Infof("Virus found in file %q, moving to quarantine %q", scanR.filePath, quarantinePath)
+		logclient.Infof("FileWatcher - Virus found in file %q, moving to quarantine %q", scanR.filePath, quarantinePath)
 	}
 
-	logclient.Infof("FileWatcher move file completed, new destication: %s", destPath)
+	logclient.Infof("FileWatcher - move file completed, new destication: %s", destPath)
 
 	return destPath
 }

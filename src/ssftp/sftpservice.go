@@ -123,9 +123,9 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 	debugStream := os.Stderr
 
 	go func() {
-		time.Sleep(300 * time.Second)
+		time.Sleep(600 * time.Second)
 
-		logclient.Info("Handshake took too long, timing out")
+		logclient.Info("SFTPService - Client handshake took more than 10mins, timing out")
 
 		conn.Close()
 
@@ -135,9 +135,9 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 	// net.Conn.
 	_, chans, reqs, err := ssh.NewServerConn(conn, svrConfig)
 	if err != nil {
-		logclient.ErrIfm("failed to handshake", err)
+		logclient.ErrIfm("SFTPService - failed to handshake", err)
 	}
-	fmt.Fprintf(debugStream, "SSH server established\n")
+	fmt.Fprintf(debugStream, "SFTPService - SSH server established\n")
 
 	// The incoming Request channel must be serviced.
 	go ssh.DiscardRequests(reqs)
@@ -151,12 +151,12 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 
 		if newChannel.ChannelType() != "session" {
 			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
-			fmt.Fprintf(debugStream, "Unknown channel type: %s\n", newChannel.ChannelType())
+			fmt.Fprintf(debugStream, "SFTPService - Unknown channel type: %s\n", newChannel.ChannelType())
 			continue
 		}
 		channel, requests, err := newChannel.Accept()
 		if err != nil {
-			logclient.ErrIfm("could not accept channel.", err)
+			logclient.ErrIfm("SFTPService - could not accept channel.", err)
 		} else {
 			logclient.Info("Channel accepted\n")
 		}
@@ -168,11 +168,11 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 		go func(in <-chan *ssh.Request) {
 			for req := range in {
 				
-				fmt.Fprintf(debugStream, "Request: %v\n", req.Type)
+				fmt.Fprintf(debugStream, "SFTPService - Request: %v\n", req.Type)
 				ok := false
 				switch req.Type {
 				case "subsystem":
-					fmt.Fprintf(debugStream, "Subsystem: %s\n", req.Payload[4:])
+					fmt.Fprintf(debugStream, "SFTPService - Subsystem: %s\n", req.Payload[4:])
 					if string(req.Payload[4:]) == "sftp" {
 						ok = true
 					}
@@ -182,12 +182,12 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 			}
 		}(requests)
 
-		//userRootDir := filepath.Join(ss.configsvc.config.StagingPath,"testuser")
 		
 		serverOptions := []sftp.ServerOption{
 			sftp.WithDebug(debugStream),
 		}
 		
+		//TODO: readonly option
 		// if readOnly {
 		// 	serverOptions = append(serverOptions, sftp.ReadOnly())
 		// 	fmt.Fprintf(debugStream, "Read-only server\n")

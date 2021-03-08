@@ -80,7 +80,7 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 				yamlConfgPath := c.getYamlConfgPath()
 
 				b, err := ioutil.ReadFile(yamlConfgPath)
-				if logclient.ErrIf(err) {
+				if logclient.ErrIfm("Config - error while reading config file", err) {
 					time.Sleep(3 * time.Second)
 					continue
 				}
@@ -88,7 +88,7 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 				yamlSchema := SSFTPYaml{}
 				
 				yerr := yaml.Unmarshal(b, &yamlSchema)
-				if logclient.ErrIf(yerr) {
+				if logclient.ErrIfm("Config - error while loading config changes", yerr) {
 					time.Sleep(3 * time.Second)
 					continue
 				}
@@ -112,8 +112,11 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
 				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
 
-				configJStr := ToJsonString(c.config)
-				log.Println(fmt.Sprintf("sSFTP loaded config from /mnt/ssftp/system/ssftp.yaml: %s", configJStr))
+				y, yerr := yaml.Marshal(c.config)
+				logclient.ErrIfm("Config - error while marshaling to Yaml string for display", yerr)
+
+				configJStr := string(y)
+				log.Println(fmt.Sprintf("Config - loaded config from %s: %s", yamlConfgPath, configJStr))
 
 				loaded <- *c.config
 

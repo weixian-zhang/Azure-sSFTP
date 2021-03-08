@@ -1,6 +1,5 @@
- #sSFTP re-inits without restarting on any canges to this config file
 sftpPort: 2002
-enableVirusScan: true       #if disabled, files in Staging will remain and not moved
+enableVirusScan: true   #if disabled, files in Staging will remain and not moved
 webhooks:
   - name: virusFound
     url: "https://httpbin.org/post"
@@ -8,17 +7,17 @@ logDests:
   - kind: file
     props:
       path: "/mnt/ssftp/log"
-users:                    # SFTP Server user/service accounts
-  cleanDir:               # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
+users:
+  cleanDir: # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
     - name: "cleanuser1"
-      directory: "*"        # "*"" = rooted to clean dir able to access  all sub dirs. or "/sub-dir" matching Staging sub-dirs uploaded by external systems
+      directory: "b2bpartner-z"   # "*"" = rooted to clean dir able to access  all sub dirs. or "/sub-dir" matching Staging sub-dirs uploaded by external systems
       auth:
-        password: "pass"
+        password: "cross"
         publicKey: ""
     - name: "cleanuser2"
-      directory: "agency-z"        # "*"" = rooted to clean dir able to access  all sub dirs. or "sub-dir" matching Staging sub-dirs uploaded by external systems
+      directory: "agency-z"   # "*"" = rooted to clean dir able to access  all sub dirs. or "sub-dir" matching Staging sub-dirs uploaded by external systems
       auth:
-        password: ""
+        password: "clean"
         publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAl7udzUT32LhLqc4ekMBaY/Yag6+j8BAg7cbr09IMLi7jA9w4Vi6/MU0u1Jzzt99oUaLjoi+741APIY/BEVn5kllrxgaHkKGqMYD7WKM8uLkmw+p3/4c9cw/Owqo5NoaqFrpoLQdPOx8j669TH2fxPtNfsBa5jV6TDgozKx1TTJfp23OetaX+g8y3s0TBjNKhFJYOB9+XMSvlrFzufB2ZozmF3wgM+Fo5ot0riWhMJlOo0bPl1Rd1gABhx8YsPtqKelI2aOFTDUhr5o3Lx0IXEhIwJYUY6FkLz4fAr/o1umCDnhEWKOCt/J/HtFmmJH34ZTBVe5oJB+ldFtaOWiMW0Q== rsa-key-20210307"
   stagingDir:
   - name: "testuser1"

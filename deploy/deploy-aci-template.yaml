@@ -4,27 +4,36 @@ name: aci-ssftp
 properties:
   containers:
 
-  - name: clamav-clamd  # ClamAv virus DB & Scan API daemon
+  - name: clamav  # ClamAV virus DB & Clamd Scan API daemon
     properties:
-      image: mkodockx/docker-clamav
+      image: mkodockx/docker-clamav:alpine
+      environmentVariables:
+      - name: CLAMD_CONF_FILE
+        value: /mnt/ssftp/system/clamd.conf
       resources:
         requests:
-          cpu: 1
-          memoryInGb: 2.5
+          cpu: 2
+          memoryInGb: 8
       ports:
       - port: 3310
+      volumeMounts:                                 #Note: mountPath by convention, don't change path
+       - mountPath: /mnt/ssftp/system
+         name: fs-system
+         readOnly: false
+       - mountPath: /mnt/ssftp/staging
+         name: fs-staging
+         readOnly: false
 
   - name: ssftp  # file scanner & quarantine
     properties:
       image: wxzd/ssftp:1.0
       resources:
         requests:
-          cpu: 1
-          memoryInGb: 2.5
+          cpu: 2
+          memoryInGb: 8
       ports:
         - port: 22
-      
-      volumeMounts: # mountPath by convention, don't change path
+      volumeMounts:                                 #Note: mountPath by convention, don't change path
       - mountPath: /mnt/ssftp/staging
         name: fs-staging
         readOnly: false
@@ -37,7 +46,7 @@ properties:
       - mountPath: /mnt/ssftp/error
         name: fs-error
         readOnly: false
-      - mountPath: /mnt/ssftp/log         # optional, if exist to match LogSink.Path in ssftp.yaml
+      - mountPath: /mnt/ssftp/log                   #input - optional, if exist to match LogSink.Path in ssftp.yaml
         name: fs-log
         readOnly: false
       - mountPath: /mnt/ssftp/system
@@ -47,33 +56,33 @@ properties:
   - name: fs-staging
     azureFile:
       sharename: ssftp-staging
-      storageAccountName: <storage name>  # all storage name and keys "commonly" the same due to same AzStorage used
-      storageAccountKey: <storage key>
+      storageAccountName: <storage accountn name>   #input
+      storageAccountKey: <storage account key>      #input
   - name: fs-clean
     azureFile:
       sharename: ssftp-clean
-      storageAccountName: <storage name>
-      storageAccountKey: <storage key>
+      storageAccountName: <storage accountn name>   #input
+      storageAccountKey: <storage account key>      #input
   - name: fs-quarantine
     azureFile:
       sharename: ssftp-quarantine
-      storageAccountName: <storage name>
-      storageAccountKey: <storage key>
+      storageAccountName: <storage accountn name>   #input
+      storageAccountKey: <storage account key>      #input
   - name: fs-error
     azureFile:
       sharename: ssftp-error
-      storageAccountName: <storage name>
-      storageAccountKey: <storage key>
+      storageAccountName: <storage accountn name>   #input
+      storageAccountKey: <storage account key>      #input
   - name: fs-log
     azureFile:
       sharename: ssftp-log
-      storageAccountName: <storage name>
-      storageAccountKey: <storage key>
+      storageAccountName: <storage accountn name>   #input
+      storageAccountKey: <storage account key>      #input
   - name: fs-system
     azureFile:
       sharename: ssftp-system
-      storageAccountName: <storage name>
-      storageAccountKey: <storage key>
+      storageAccountName: <storage accountn name>   #input
+      storageAccountKey: <storage account key>      #input
   
   ipAddress:
     type: Private
@@ -81,7 +90,7 @@ properties:
     - protocol: tcp
       port: 22
   networkProfile:
-    id: < network profile >
+    id: <network profile resource ID>               #input
   restartPolicy: Always
   osType: Linux
 tags: null
