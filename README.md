@@ -16,8 +16,8 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 ### Features  
 
-* Pure PaaS solution, sSFTP runs on Azure Container Instance
-* sSFTP's Container Instance runs in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
+* Container-based solution that runs on Azure Container Instance (PaaS), no infrastructure maintainence needed
+* sSFTP's runs securely in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
 * SFTP server integrated, no separate product license needed
 * ClamAV virus scan integrated
 * Supports certificate and password authentication
@@ -33,8 +33,13 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall  
 
-### Azure File, Folder Structure & Conventions
+### Azure File, Folder Structure & Conventions  
 
+<img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
+<br />
+<img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="300" />
+<br />
+      
 ### Configuring sSFTP  
 
 
