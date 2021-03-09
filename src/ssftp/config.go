@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 	"github.com/goccy/go-yaml"
 	"github.com/weixian-zhang/ssftp/user"
 )
@@ -21,10 +22,6 @@ const (
 	ErrorPath =  "/mnt/ssftp/error"
 )
 
-type ConfigService struct {
-	config *Config
-}
-
 type SSFTPYaml struct {
 	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
 	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
@@ -36,6 +33,11 @@ type SSFTPYaml struct {
 type  SSFTPYamlUsers struct {
 	StagingDirUsers []user.User		`json:"stagingDir", yaml:"stagingDir"`
 	CleanDirUsers []user.User		`json:"cleanDir", yaml:"cleanDir"`
+}
+
+type ConfigService struct {
+	config *Config
+	mux    *sync.RWMutex
 }
 
 type Config struct {
@@ -68,6 +70,7 @@ const (
  func NewConfigService() (ConfigService) {
 	 return ConfigService{
 		 config: &Config{},
+		 mux: &sync.RWMutex{},
 	}
  }
 
@@ -106,11 +109,15 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 					c.config.ErrorPath = ErrorPath
 				}
 
+				c.mux.Lock()
+
 				c.config.SftpPort = yamlSchema.SftpPort
 				c.config.Webhooks = yamlSchema.Webhooks
 				c.config.LogDests = yamlSchema.LogDests
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
 				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
+
+				c.mux.Unlock()
 
 				y, yerr := yaml.Marshal(c.config)
 				logclient.ErrIfm("Config - error while marshaling to Yaml string for display", yerr)

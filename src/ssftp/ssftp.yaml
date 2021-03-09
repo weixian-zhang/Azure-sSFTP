@@ -1,45 +1,46 @@
-sftpPort: 2002
-enableVirusScan: true   #if disabled, files in Staging will remain and not moved
-webhooks:
-  - name: virusFound
-    url: "https://httpbin.org/post"
-logDests:
-  - kind: file
+sftpPort: 2002                      # port of your choice
+enableVirusScan: true               #if disabled, files in Staging will remain and not moved
+webhooks:   
+  - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
+    url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
+logDests:                           # optional, default logging to StdOut.
+  - kind: file                      #conventional do not change
     props:
       path: "/mnt/ssftp/log"
 users:
-  cleanDir: # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
-    - name: "cleanuser1"
-      directory: "b2bpartner-z"   # "*"" = rooted to clean dir able to access  all sub dirs. or "/sub-dir" matching Staging sub-dirs uploaded by external systems
+  cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
+    - name: "cleanfileuser1"
+      directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
       auth:
-        password: "cross"
-        publicKey: ""
-    - name: "cleanuser2"
-      directory: "agency-z"   # "*"" = rooted to clean dir able to access  all sub dirs. or "sub-dir" matching Staging sub-dirs uploaded by external systems
+        password: "cross"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        publicKey: "<ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+    - name: "cleanfileuser2"
+      directory: "agency-z"
       auth:
         password: "clean"
-        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAl7udzUT32LhLqc4ekMBaY/Yag6+j8BAg7cbr09IMLi7jA9w4Vi6/MU0u1Jzzt99oUaLjoi+741APIY/BEVn5kllrxgaHkKGqMYD7WKM8uLkmw+p3/4c9cw/Owqo5NoaqFrpoLQdPOx8j669TH2fxPtNfsBa5jV6TDgozKx1TTJfp23OetaX+g8y3s0TBjNKhFJYOB9+XMSvlrFzufB2ZozmF3wgM+Fo5ot0riWhMJlOo0bPl1Rd1gABhx8YsPtqKelI2aOFTDUhr5o3Lx0IXEhIwJYUY6FkLz4fAr/o1umCDnhEWKOCt/J/HtFmmJH34ZTBVe5oJB+ldFtaOWiMW0Q== rsa-key-20210307"
-  stagingDir:
-  - name: "testuser1"
-    directory: "agency-z"
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+
+  stagingDir:                       # user/service accounts access to Staging directory only. Accounts typically for clients file upload only
+  - name: "staginguploaderuser1"
+    directory: "agency-z"           # Staging accounts do not support "*" for directory or sub dirs supported.
     auth:
       password: "pass"
       publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
 
-  - name: "testuser2"
+  - name: "staginguploaderuser2"
     directory: "b2bpartner-z"
     auth:
       password: "tiger"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAo+ZCuxuvbrRZEApzR9IQkqLSKRQ8Q3MlEPqxzBm0DZjN3DGOpesq9z0mJ7oSyQozhutxhce4zYQFB5aRV9aUk+Cbn/pjFVyR9xlAyOV7kg7ThC/HAGeB/GpwdOaiHQ2IubyNmH3jxIEHUV7ZFtfgfocncBUvEO5ayiZUEOJYPCUxQ0zW7RKvg6osmXQ40yJdOh1JmKGFeaVxe72Sqzw26cGxaCoNadTvdAqY9MCn/H+QVadrkbpB7RRrIG++uS6QFaNrOVlK+vO8YCAnrOOS9T3XNvf55nVaQXpBMY6VW2GhNwhCLr2Q0h0EaiGqZfmGHeR2UmOLYC9GKhTTGMAyJQ== rsa-key-20210228"
+      publicKey: "<ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
 
-  - name: "testuser3"
+  - name: "staginguploaderuser3"
     directory: "supplier-z"
     auth:
       password: "tooth"
       publicKey: ""
   
-  - name: "testuser4"
-    directory: "testuser4"
+  - name: "staginguploaderuser4"
+    directory: "contoso-z"
     auth:
       password: "111"
       publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr+mqkNyD1EHXLlvdrYVhTQg0PfSPpJ5UT9c8gyQn8xvTGffv4trigu4bbvWG2LcW2XEfa9g489iXCB2LNMtgbZxYjNL8Mh8oSzgV6Met1e9vWshWSn8/oLgRmTnCanCD9UXKGNvq/LIf64ITMxGpCAYXWIE/3hnVC5AGBKt6l0yNXseqqi54wjgMhlAUFDkjE07BBBH0/j9yAb9s1IdO2Z4j7e4T0mYEiuCMMCSvRvpk86DSoainXMG+69jKWG6HRbE8AmIT0kY4CAGEoba4ORv56uZQ2SuF0s2Ii1fO9s5axq4FnkKbexzqaAO6+2NNDu9whsUDItC7IFLQihXNew== rsa-key-20210301"
