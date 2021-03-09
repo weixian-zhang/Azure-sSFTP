@@ -22,24 +22,37 @@ sSFTP consists of 2 containers into a single Container Group namely
 * ClamAV virus scan integrated
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
-* Supports Webhook invocation when virus is detected per file
+* Supports Webhook invocation when virus is detected
+* Future plans to support additional logging destinations like Log Analytics Workspace, Azure SQL, Azure Cosmos and more
 * Each SFTP user/service login account is rooted to its configured directory only
 * Supports multi-SFTP accounts per configured directory for file upload ("staging" directories, see [How Things Work](#how-things-work))
 * Supports multi-SFTP accounts per configured directory or "root" directory for file download/processing ("clean" directories, [How Things Work](#how-things-work)))
 * Add or remove user/service accounts without restarting SFTP server
 * Easy configuration using a single Yaml file
-* Yaml config changes is recognized on-the-fly with no restart needed
+* Yaml config changes are registered on-the-fly with no container restart needed
 * For whatever reason if sSFTP's Container Instance is restarted or removed, files are still retained in Azure File
 
 
 ### How Things Work
 
-SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp),  
-sSFTP picks up the uploaded file and sends a command to ClamD (ClamAV scan daemon) running in ClamAV container in the same Azure Container Instance Container Group.  
-If the scan result is good, sSFTP moves file to the Clean directory /mnt/ssftp/<b>clean</b>/{same name as Staging designated directory}.  
-If ClamaV detects virus, sSFTP then moves file into Quarantine directory /mnt/ssftp/<b>quarantine</b>/{same name as Staging designated directory}  
+* SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp),  
+  sSFTP picks up the uploaded file and sends a command to ClamD (ClamAV scan daemon) running in ClamAV container in the same Azure Container Instance Container Group.  
+  If the scan result is good, sSFTP moves file to the Clean directory /mnt/ssftp/<b>clean</b>/{same name as Staging designated directory}.  
+  If ClamaV detects virus, sSFTP then moves file into Quarantine directory /mnt/ssftp/<b>quarantine</b>/{same name as Staging designated directory}  
 
-Azure File Share ssftp-staging is mounted to both sSFTP and ClamAV containers so that clients can upload to same share that ClamAV can reach for scanning.
+* Azure File Share ssftp-staging is mounted to both sSFTP and ClamAV containers so that clients can upload to same share that ClamAV reaches for scanning.  
+
+* Reading and processing clean files from sSFTP can be in the following ways:
+    * Clean file share can be mounted to Pods in Azure Kubernetes Service and VMs
+    * Other apps hosted in App Service, Function or VMs in the same or peered VNets can connect to sSFTP via ACI Private IP:Port, using "CleanDir SFTP Accounts" to access
+      directories in Clean file share
+    * SFTP Clients from the Internet can connect via Azure Firewall or Firewall of your choice to sSFTP via same ACI Private IP:Port and also using same "CleanDir SFTP Accounts"       to access directories in Clean file share
+
+* ClamAV updates its database through the Internet where traffic can be forward-proxied to Firewall using [Azure User Defined Route](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-networks-udr-overview#user-defined)
+
+* sSFTP supports webhook when any virus is detected, webhook HTTP POST call can also be forward-proxied to Firewall using UDR
+
+* Logging: currently supports logging to StdOut and files in Azure File. More log destinations coming soon
 
 <img src="./doc/ssftp-azure-architecture.png" width="850" height="750" />
 
