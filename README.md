@@ -3,7 +3,7 @@
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
 * [How things Work](#how-things-work)
-* [AzFile, Folder Structure & Conventions](#azure-file-structure-directory-structure-&-conventions)
+* [Azure File Structure, Directory Structure & Conventions](#azure-file-structure-directory-structure--conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Webhook](#webhook)
@@ -38,7 +38,8 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 ### How Things Work
 
-* SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp),  
+* SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp), 
+  configured directory will be auto created when user/client logins.   
   sSFTP picks up the uploaded file and sends a command to ClamD (ClamAV scan daemon) running in ClamAV container in the same Azure Container Instance Container Group.  
   If the scan result is good, sSFTP moves file to the Clean directory /mnt/ssftp/<b>clean</b>/{same name as Staging designated directory}.  
   If ClamaV detects virus, sSFTP then moves file into Quarantine directory /mnt/ssftp/<b>quarantine</b>/{same name as Staging designated directory}  
@@ -63,7 +64,6 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 The following file shares are required by convention (file share name can be changed),  
 except for "ssftp-log" where sSFTP writes log files to which is optional.  
-
 
 <img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
 <br />
