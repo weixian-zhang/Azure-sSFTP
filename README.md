@@ -3,7 +3,7 @@
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
 * [How things Work](#how-things-work)
-* [AzFile, Folder Structure & Conventions](#azure-file-structure,-directory-structure-&-conventions)
+* [AzFile, Folder Structure & Conventions](#azure-file-structure-directory-structure-&-conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Webhook](#webhook)
