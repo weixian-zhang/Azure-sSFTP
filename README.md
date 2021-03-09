@@ -6,6 +6,7 @@
 * [AzFile, Folder Structure & Conventions](#azure-file-share-structure-directory-structure-&-conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
+* [Webhook](#webhook)
 * [Networking](#networking) 
 
 ### What is sSFTP
@@ -22,8 +23,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 * ClamAV virus scan integrated
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
-* Supports Webhook invocation when virus is detected
-* Future plans to support additional logging destinations like Log Analytics Workspace, Azure SQL, Azure Cosmos and more
+* Supports [Webhook invocation](#webhook) when virus is detected
 * Each SFTP user/service login account is rooted to its configured directory only
 * Supports multi-SFTP accounts per configured directory for file upload ("staging" directories, see [How Things Work](#how-things-work))
 * Supports multi-SFTP accounts per configured directory or "root" directory for file download/processing ("clean" directories, [How Things Work](#how-things-work)))
@@ -31,6 +31,9 @@ sSFTP consists of 2 containers into a single Container Group namely
 * Easy configuration using a single Yaml file
 * Yaml config changes are registered on-the-fly with no container restart needed
 * For whatever reason if sSFTP's Container Instance is restarted or removed, files are still retained in Azure File
+* In the roadmap
+    * Additional logging destinations like Log Analytics Workspace, Azure SQL, Azure Cosmos and more
+    * Web portal to configure sSFTP in addition to current Yaml file format. Web Portal will be co-hosted within sSFTP container.
 
 
 ### How Things Work
@@ -69,6 +72,59 @@ An example depicting folder structure in Staging and Clean file share are identi
       
 ### Configuring sSFTP  
 
+Configurable is all done through a single Yaml file and file must be located in mounted fileshare path: /mnt/ssftp/system/ssftp.yaml.
+Update ssftp.yaml by uploading and overwriting Yaml file in ssftp-system fileshare, without restarting containers sSFTP monitors and load file changes from path: /mnt/ssftp/system/ssftp.yaml  
+
+<img src="./doc/ssftp-config-update.png" width="500" height="300" />  
+
+```yaml
+sftpPort: 2002                      # port of your choice
+enableVirusScan: true               #if disabled, files in Staging will remain and not moved
+webhooks:   
+  - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
+    url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
+logDests:                           # optional, default logging to StdOut.
+  - kind: file                      #conventional do not change
+    props:
+      path: "/mnt/ssftp/log"
+users:
+  cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
+    - name: "cleanfileuser1"
+      directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
+      auth:
+        password: "cross"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        publicKey: "<ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+    - name: "cleanfileuser2"
+      directory: "agency-z"
+      auth:
+        password: "clean"
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+
+  stagingDir:                       # user/service accounts access to Staging directory only. Accounts typically for clients file upload only
+  - name: "staginguploaderuser1"
+    directory: "agency-z"           # Staging accounts do not support "*" for directory or sub dirs supported.
+    auth:
+      password: "pass"
+      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+
+  - name: "staginguploaderuser2"
+    directory: "b2bpartner-z"
+    auth:
+      password: "tiger"
+      publicKey: "<ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+
+  - name: "staginguploaderuser3"
+    directory: "supplier-z"
+    auth:
+      password: "tooth"
+      publicKey: ""
+  
+  - name: "staginguploaderuser4"
+    directory: "contoso-z"
+    auth:
+      password: "111"
+      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr+mqkNyD1EHXLlvdrYVhTQg0PfSPpJ5UT9c8gyQn8xvTGffv4trigu4bbvWG2LcW2XEfa9g489iXCB2LNMtgbZxYjNL8Mh8oSzgV6Met1e9vWshWSn8/oLgRmTnCanCD9UXKGNvq/LIf64ITMxGpCAYXWIE/3hnVC5AGBKt6l0yNXseqqi54wjgMhlAUFDkjE07BBBH0/j9yAb9s1IdO2Z4j7e4T0mYEiuCMMCSvRvpk86DSoainXMG+69jKWG6HRbE8AmIT0kY4CAGEoba4ORv56uZQ2SuF0s2Ii1fO9s5axq4FnkKbexzqaAO6+2NNDu9whsUDItC7IFLQihXNew== rsa-key-20210301"
+```
 
 ### Deploy sSFTP  
 1. Prerequisites  
@@ -85,34 +141,132 @@ An example depicting folder structure in Staging and Clean file share are identi
        <br />
        Wait a moment for  "aci-temp-test-np" container to complete creation, then copy the <b>network profile id</b>  
    
-     <img src="./doc/azcli-networkprofile.png" width="750" height="450" />
+     <img src="./doc/azcli-networkprofile.png" width="650" height="350" />
      <br />
      <br />
-    2.3 Delete container "aci-temp-test-np"
+    2.3 Delete container "aci-temp-test-np" (we only need this container to get the network profile ID)
     <code> az container delete -g <resource group> -n aci-temp-test-np -y </code>  
    
 3. Deploy sSFTP using Container Instance Yaml
 
     3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/deploy-aci-template.yaml) as "deploy-aci.yaml".  
-        Replace all < values > in this file and save the file. Refer to the following screenshots.  
+        Replace all < values > with comment "input"  and save the file. Refer to the following ACI Yaml template.  
         
-      <img src="./doc/aci-template-1.png" width="650" height="450" />  
-      <br />
-      <img src="./doc/aci-template-2.png" width="550" height="400" />
-      <br />
-      <br />
-      Webhook Url is optional.  
-      Once sSFTP detects virus in a file, this Wwebhook Url is invoked which allows sSFTP to integrate with Azure Logic App, Function and custom apps for many other possibilities.
-      <br />
-      <br />
-      <img src="./doc/aci-template-3.png" width="550" height="400" />  
-      <br />
-      <img src="./doc/aci-template-4.png" width="550" height="400" />  
-      <br />
+     ```yaml
+      apiVersion: 2019-12-01
+      location: southeastasia                         #input: Azure resource location
+      name: aci-ssftp                                 #input: ACI name or just leave this default
+      properties:
+        containers:
+
+        - name: clamav
+          properties:
+            image: mkodockx/docker-clamav:alpine
+            environmentVariables:
+            - name: CLAMD_CONF_FILE
+              value: /mnt/ssftp/system/clamd.conf     #Note: path by convention, do not change path
+            resources:
+              requests:
+                cpu: 2
+                memoryInGb: 8
+            ports:
+            - port: 3310
+            volumeMounts:                             #Note: path by convention, do not change path
+             - mountPath: /mnt/ssftp/system
+               name: fs-system
+               readOnly: false
+             - mountPath: /mnt/ssftp/staging
+               name: fs-staging
+               readOnly: false
+
+        - name: ssftp
+          properties:
+            image: wxzd/ssftp:1.0
+            resources:
+              requests:
+                cpu: 2
+                memoryInGb: 8
+            ports:
+              - port: 2002                             #input: port must match ipAddress.ports.port below & "sftpPort" in ssftp.yaml
+            volumeMounts:                              #Note: all mountPaths by convention, do not change path
+            - mountPath: /mnt/ssftp/staging
+              name: fs-staging
+              readOnly: false
+            - mountPath: /mnt/ssftp/clean
+              name: fs-clean
+              readOnly: false
+            - mountPath: /mnt/ssftp/quarantine
+              name: fs-quarantine
+              readOnly: false
+            - mountPath: /mnt/ssftp/error
+              name: fs-error
+              readOnly: false
+            - mountPath: /mnt/ssftp/log                 #input - optional, if exist to match LogSink.Path in ssftp.yaml
+              name: fs-log
+              readOnly: false
+            - mountPath: /mnt/ssftp/system
+              name: fs-system
+              readOnly: false
+        volumes:
+        - name: fs-staging
+          azureFile:
+            sharename: ssftp-staging                    #Note: file share name can be different
+            storageAccountName: <storage accountn name> #input
+            storageAccountKey: <storage account key>    #input
+        - name: fs-clean
+          azureFile:
+            sharename: ssftp-clean                      #Note: file share name can be different
+            storageAccountName: <storage accountn name> #input
+            storageAccountKey: <storage account key>    #input
+        - name: fs-quarantine
+          azureFile:
+            sharename: ssftp-quarantine                 #Note: file share name can be different
+            storageAccountName: <storage accountn name> #input
+            storageAccountKey: <storage account key>    #input
+        - name: fs-error
+          azureFile:
+            sharename: ssftp-error                      #Note: file share name can be different
+            storageAccountName: <storage accountn name> #input
+            storageAccountKey: <storage account key>    #input
+        - name: fs-log
+          azureFile:
+            sharename: ssftp-log                        #Note: file share name can be different
+            storageAccountName: <storage accountn name> #input
+            storageAccountKey: <storage account key>    #input
+        - name: fs-system
+          azureFile:
+            sharename: ssftp-system                     #Note: file share name can be different
+            storageAccountName: <storage accountn name> #input
+            storageAccountKey: <storage account key>    #input
+
+        ipAddress:
+          type: Private
+          ports:
+          - protocol: tcp
+            port: 2002                                  #input: port must match container port above & "sftpPort" in ssftp.yaml
+        networkProfile:
+          id: <network profile resource ID>             #input
+        restartPolicy: Always
+        osType: Linux
+      tags: null
+      type: Microsoft.ContainerInstance/containerGroups
+     ```
         
         
     3.2 Deploy yaml file by running the following command  
         <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
+
+### Webhook  
+
+sSFTP supports webhook when a virus is found, HTTP POST schema below:
+```json
+  {
+    "username": "user1",
+    "scanMessage": "Win.Test.EICAR_HDB-1 FOUND",
+    "filePath": "/mnt/ssftp/quarantine/v.exe",
+    "timeGenerated": "Tue Mar  9 05:50:06 2021"
+  }
+```
 
 ### Networking  
 As ACI is deployed in a Subnet, you can choose to assign a User-Defined Route (UDR) to route all outbound traffic from sSFTP to an Azure Firewall or any NextGen Firewall.  
