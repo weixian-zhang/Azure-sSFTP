@@ -2,11 +2,11 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
-* [AzFile, Folder Structure & Conventions](#azure-file,-folder-structure-&-cConventions)
+* [How things Work](#how-things-work)
+* [AzFile, Folder Structure & Conventions](#azure-file-share-structure-directory-structure-&-conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Networking](#networking) 
-* [How it works](#how-ssftp-works)
 
 ### What is sSFTP
 Azure sSFTP (Scanned SFTP) is a container-based solution leverages Azure Container Instance to provide SFTP server with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as the file storage.  
@@ -18,20 +18,43 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 * Container-based solution that runs on Azure Container Instance (PaaS), no infrastructure maintainence needed
 * sSFTP's runs securely in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
-* SFTP server integrated, no separate product license needed
+* Built-in SFTP server
 * ClamAV virus scan integrated
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
-* Supports Webhook invocation when virus is detected per file
+* Supports Webhook invocation when virus is detected
+* Future plans to support additional logging destinations like Log Analytics Workspace, Azure SQL, Azure Cosmos and more
 * Each SFTP user/service login account is rooted to its configured directory only
-* Supports multi-user/service accounts per each root directory
+* Supports multi-SFTP accounts per configured directory for file upload ("staging" directories, see [How Things Work](#how-things-work))
+* Supports multi-SFTP accounts per configured directory or "root" directory for file download/processing ("clean" directories, [How Things Work](#how-things-work)))
 * Add or remove user/service accounts without restarting SFTP server
 * Easy configuration using a single Yaml file
-* Yaml config changes is recognized on-the-fly with no restart needed
+* Yaml config changes are registered on-the-fly with no container restart needed
 * For whatever reason if sSFTP's Container Instance is restarted or removed, files are still retained in Azure File
 
 
-This solution favors deploying Container Instance into VNet-Subnet, SFTP server can be exposed to the public Internet through Azure Firewall or any NextGen Firewall  
+### How Things Work
+
+* SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp),  
+  sSFTP picks up the uploaded file and sends a command to ClamD (ClamAV scan daemon) running in ClamAV container in the same Azure Container Instance Container Group.  
+  If the scan result is good, sSFTP moves file to the Clean directory /mnt/ssftp/<b>clean</b>/{same name as Staging designated directory}.  
+  If ClamaV detects virus, sSFTP then moves file into Quarantine directory /mnt/ssftp/<b>quarantine</b>/{same name as Staging designated directory}  
+
+* Azure File Share ssftp-staging is mounted to both sSFTP and ClamAV containers so that clients can upload to same share that ClamAV reaches for scanning.  
+
+* Reading and processing clean files from sSFTP can be in the following ways:
+    * Clean file share can be mounted to Pods in Azure Kubernetes Service and VMs
+    * Other apps hosted in App Service, Function or VMs in the same or peered VNets can connect to sSFTP via ACI Private IP:Port, using "CleanDir SFTP Accounts" to access
+      directories in Clean file share
+    * SFTP Clients from the Internet can connect via Azure Firewall or Firewall of your choice to sSFTP via same ACI Private IP:Port and also using same "CleanDir SFTP Accounts"       to access directories in Clean file share
+
+* ClamAV updates its database through the Internet where traffic can be forward-proxied to Firewall using [Azure User Defined Route](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-networks-udr-overview#user-defined)
+
+* sSFTP supports webhook when any virus is detected, webhook HTTP POST call can also be forward-proxied to Firewall using UDR
+
+* Logging: currently supports logging to StdOut and files in Azure File. More log destinations coming soon
+
+<img src="./doc/ssftp-azure-architecture.png" width="850" height="750" />
 
 ### Azure File Share Structure, Directory Structure & Conventions  
 
@@ -41,9 +64,8 @@ except for "ssftp-log" where sSFTP writes log files to which is optional.
 
 <img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
 <br />
-An example depicting folder structure in Staging and Clean file share are identical
+An example depicting folder structure in Staging and Clean file share are identical  
 <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="300" />
-<br />
       
 ### Configuring sSFTP  
 
@@ -100,8 +122,3 @@ Also refer to [How it works](#behind-the-scenes-how-ssftp-works) for more detail
 <img src="./doc/azfw-app-rules.png" width="850" height="150" />  
 <br />
 <br />
-
-
-### How sSFTP Works
-
-<img src="./doc/ssftp-azure-architecture.png" width="600" height="750" />
