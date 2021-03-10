@@ -74,10 +74,9 @@ func (ol *Overlord) Start(exit chan bool) {
 
 				case scanR := <-ol.clamav.scanEvent:
 
-					ol.fileWatcher.ScanDone <- true
-
 					if scanR.Error {
 						logclient.Infof("Overlord - error while Clamd scans file %s, Error: %s",scanR.filePath, scanR.Message)
+						ol.fileWatcher.ScanDone <- true
 						break
 					}
 
@@ -92,13 +91,9 @@ func (ol *Overlord) Start(exit chan bool) {
 							ScanMessage: scanR.Message,
 							TimeGenerated: (time.Now()).Format(time.ANSIC),
 						})
-					}				
-
-				case <- exit:
-
-						ol.fileWatcher.watcher.Close()
-						logclient.Info("Overlord - exiting due to exit signal")
+					}
 					
+					ol.fileWatcher.ScanDone <- true					
 			}
 		}
 		

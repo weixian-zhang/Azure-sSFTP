@@ -26,15 +26,20 @@ type FileWatcher struct {
 	sftpService *SFTPService
 
 	ScanDone		chan bool
-	//OverlordProcessedUploadedFile chan string
+	UploadTimeup chan FileUploadContext
 	BatchedScavengedFilesProcessDone chan bool
 
 	fileCreateChangeEvent chan ScavengedFileProcessContext
 	fileMovedEvent chan FileMoveChanContext
 }
 
+//time limit for upload file. If file in idling upload and mod time duration from now >= limit, trigger upload time out
+const uploadTimeLimitMin int = 30
+//var uploadingFileTracker []FileUploadContext
+
 type FileUploadContext struct {
 	Path string
+	detectedUploadTime time.Time
 }
 
 type FileMoveChanContext struct {
@@ -56,6 +61,8 @@ func NewFileWatcher(sftpService *SFTPService, confsvc *ConfigService, usrgov  *u
 	conferr := cw.AddRecursive(confsvc.getYamlConfgPath())
 	logclient.ErrIf(conferr)
 
+	//uploadingFileTracker = make([]FileUploadContext, 0)
+
 	return FileWatcher{
 		watcher: w,
 		configWatcher: cw,
@@ -65,7 +72,7 @@ func NewFileWatcher(sftpService *SFTPService, confsvc *ConfigService, usrgov  *u
 		fileCreateChangeEvent:  make(chan ScavengedFileProcessContext),
 		fileMovedEvent: make(chan FileMoveChanContext),
 		ScanDone: scanDone,
-		//OverlordProcessedUploadedFile: make(chan string),
+		//UploadTimeup: make(chan FileMoveChanContext) ,
 		BatchedScavengedFilesProcessDone: make(chan bool),
 	}
 }
@@ -118,25 +125,44 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 	}
 }
 
-func (fw *FileWatcher) checkScavengedFilesUploadState(files []FileUploadContext) ([]FileUploadContext, bool) {
+func (fw *FileWatcher) checkScavengedFilesUploadState(scanvengedFiles []FileUploadContext) ([]FileUploadContext, bool) {
 	logclient.Info("FileWatcher - Checking file upload state")
 
 	closeds := make([]FileUploadContext, 0)
 
-	opens := fw.getAllOpenFilesFromAllServers()
+	opens := fw.getSFTPOpenFiles() //sync open files with tracker slice
 
 	if len(opens) == 0 {
 		logclient.Info("FileWatcher - No on-going file upload detected")
-		return files, true
+		return scanvengedFiles, true
 	}
 
-	for _, f := range files {
+	for _, f := range scanvengedFiles {
 
+		//checking of SFTP.Server.OpenFiles() may at times not accurate due to go.sftp returning positive open file result
+		//while in actual fact client already completed uploading
 		if fw.isScavengedFileInOpenFileList(f.Path, opens) {
-			logclient.Infof("FileWatcher - File %s is in upload state, current size %dMB", f.Path, fw.fileSizeMb(f.Path))
-			time.Sleep(300 * time.Millisecond)
-			continue
+
+			isTimeup, durMins, modtimestr, err := fw.isSFTPOpenFileTimeup(f.Path, opens)
+
+			if err != nil {
+				logclient.ErrIfm("Filewatcher - error while checking open file time limit reach", err)
+				continue
+			}
+
+			//addition check on upload file mod time if idling more than time limit, auto time out
+			if isTimeup {
+
+				//uploadingFileTracker = fw.deleteUploadTrackerContext(f.Path)
+				logclient.Infof("FileWatcher - File %s with size %dMB still in upload state. Last mod time %s, upload duration %d mins. Reached upload idle limit %d mins, timing out now", f.Path, fw.fileSizeMb(f.Path), modtimestr, durMins, uploadTimeLimitMin)
+				closeds = append(closeds, f)
+
+			} else {
+				logclient.Infof("FileWatcher - File %s is in upload state, last mode time %s, upload duration %d/%d mins, size %dMB", f.Path, modtimestr, durMins, uploadTimeLimitMin, fw.fileSizeMb(f.Path))
+				time.Sleep(500 * time.Millisecond)
+			}
 		} else {
+			//uploadingFileTracker = fw.deleteUploadTrackerContext(f.Path)
 			closeds = append(closeds, f)
 		}
 	}
@@ -146,42 +172,156 @@ func (fw *FileWatcher) checkScavengedFilesUploadState(files []FileUploadContext)
 	} else {
 		return closeds, false
 	}
+
+	// if len(opens) == 0 {
+	// 	logclient.Info("FileWatcher - No on-going file upload detected")
+	// 	return files, true
+	// }
+
+	// for _, f := range files {
+
+	// 	if fw.isScavengedFileInOpenFileList(f.Path, opens) {
+	// 		logclient.Infof("FileWatcher - File %s is in upload state, current size %dMB", f.Path, fw.fileSizeMb(f.Path))
+	// 		time.Sleep(300 * time.Millisecond)
+	// 		continue
+	// 	} else {
+	// 		closeds = append(closeds, f)
+	// 	}
+	// }
+	
+	// if len(closeds) > 0 {
+	// 	return closeds, true
+	// } else {
+	// 	return closeds, false
+	// }
 }
 
-func (fw *FileWatcher) isScavengedFileInOpenFileList(sfile string, opens []FileUploadContext) bool {
-	for _, a := range opens {
-        if a.Path == sfile {
+func (fw *FileWatcher) isScavengedFileInOpenFileList(sfile string, opens []*os.File) (bool) {
+	for _, o := range opens {
+        if o.Name() == sfile {
             return true
         }
     }
     return false
 }
 
-func (fw *FileWatcher) getAllOpenFilesFromAllServers() ([]FileUploadContext) {
+//isSFTPOpenFileTimeup returns:
+//upload time up,
+//upload duration since last mod time in minutes string
+//last mod time in string
+func (fw *FileWatcher) isSFTPOpenFileTimeup(scavengedFile string, opens []*os.File) (bool, int, string, error) {
+	for _, o := range opens {
+		if scavengedFile == o.Name() {
 
-	var opens []FileUploadContext
+			modTime, err := fw.fileModTime(o.Name())
+
+			if err != nil {
+				logclient.ErrIfm("Filewatcher - error while checking uploading file stats", err)
+				return false, 0, "unknown", err
+			}
+
+			durMin := fw.uploadTimeDurationMins(modTime)
+
+			lastmodtimef := modTime.Format(time.ANSIC)
+
+			if durMin >= uploadTimeLimitMin {
+				//logclient.Infof("Filewatcher - file %s is in upload state taking too long LastModTime: %s. Timing out now", scavengedFile, )
+				return true, durMin, lastmodtimef, nil
+			} else {
+				//logclient.Infof("Filewatcher - file %s is in upload state. LastModTime: %s", Upload duration: %dmins scavengedFile, finfo.ModTime().Format(time.ANSIC))
+				return false, durMin, lastmodtimef, nil
+			}
+		}
+	}
+
+	modTime, err := fw.fileModTime(scavengedFile)
+
+	return false, fw.uploadTimeDurationMins(modTime), modTime.Format(time.ANSIC), err
+}
+
+func (fw *FileWatcher) getSFTPOpenFiles() ([]*os.File) {
+
+	var opens []*os.File
 
 	for _, v := range fw.sftpService.servers {
-		for _, f := range v.OpenFiles {	
+		for _, sftpO := range v.OpenFiles {	
 
-			if isDir(f.Name()) {
-				continue
-			}
+			// info, _ := sftpO.Stat()
+
+			// info.ModTime()
 			
-			opens = append(opens, FileUploadContext{
-				Path: f.Name(),
-			})
+
+			// if isDir(sftpO.Name()) {
+			// 	continue
+			// }
+
+			// fw.syncSFTPOpenFileWithTracker(sftpO.Name())
+
+			//if sftpO.Name() == uptrackF.Path 
+			
+			opens = append(opens, sftpO)
 		}
 	}
 
 	return opens
 }
 
+// func (fw *FileWatcher) syncSFTPOpenFileWithTracker(openfile string) {
+
+// 	addTrackerContext := func(openfile string) []FileUploadContext {
+// 		return append(uploadingFileTracker, FileUploadContext{
+// 			detectedUploadTime: time.Now(),
+// 			Path: openfile,
+// 		})
+// 	}
+	
+// 	exist := fw.isSFTPOpenFileExistInUploadTracker(openfile)
+
+// 	if !exist {
+// 		uploadingFileTracker = addTrackerContext(openfile)
+// 	} else {
+// 		uploadingFileTracker = fw.deleteUploadTrackerContext(openfile)
+// 	}
+
+// }
+
+// func (fw *FileWatcher) deleteUploadTrackerContext(file string) []FileUploadContext {
+
+// 	index := 0
+// 	for _, uptrackF := range uploadingFileTracker {
+		
+// 		if uptrackF.Path == file {
+// 			//shift items
+// 			return append(uploadingFileTracker[:index], uploadingFileTracker[index+1:]...)
+// 		}
+
+// 		index++
+// 	}
+
+// 	return uploadingFileTracker
+// }
+
+//isSFTPOpenFileExistInUploadTracker returns true/false determine if SFTP open file exist in tarcker slice
+//and the index of the tracker slice
+// func (fw *FileWatcher) isSFTPOpenFileExistInUploadTracker(file string) (bool) {
+
+// 	for _, uptrackF := range uploadingFileTracker {
+
+// 		if file != uptrackF.Path {
+// 			continue
+// 		} else {
+// 			return true
+// 		}
+// 	}
+
+// 	return false
+// }
+
 func (fw *FileWatcher) notifyOverlordProcessScavengedFiles(files []FileUploadContext) {
 
 	for _, f := range files {
 
-		logclient.Infof("FileWatcher notifies Overlord to pick up file %s", f.Path)
+		logclient.Infof("FileWatcher - notify Overlord to pick up file %s", f.Path)
 
 		//notifies overlord to scan file
 		sFile := ScavengedFileProcessContext{
@@ -200,6 +340,24 @@ func (fw *FileWatcher) notifyOverlordProcessScavengedFiles(files []FileUploadCon
 	}
 
 	fw.BatchedScavengedFilesProcessDone <- true
+}
+
+func (fw *FileWatcher) uploadTimeDurationMins(fmodTime time.Time) (int) {
+
+	uploadtimeDur := time.Since(fmodTime)
+	
+	return int(uploadtimeDur.Minutes())
+}
+
+func (fw *FileWatcher) fileModTime(file string) (time.Time, error) {
+	info, err := os.Stat(file)
+
+	if err != nil {
+		logclient.ErrIfm("Filewatcher - error while checking file mod time on upload", err)
+		return time.Now(), err
+	}
+
+	return info.ModTime(), nil
 }
 
 func (fw *FileWatcher) fileSizeMb(file string) (newSize int) {

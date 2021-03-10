@@ -48,7 +48,14 @@ func (ss *SFTPService) Start() {
 			if usr, ok := ss.usrgov.AuthPass(conn.User(), string(pass)); ok {
 
 				ss.loginUser = usr
-				ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser.JailDirectory)
+				
+				if ss.loginUser.IsCleanDirUser {
+					if ss.loginUser.JailDirectory != "*" {
+						ss.usrgov.CreateUserDir(ss.configsvc.config.CleanPath, ss.loginUser.JailDirectory)
+					}
+				} else {
+					ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser.JailDirectory)
+				}
 			
 				return nil, nil
 			}
@@ -75,7 +82,9 @@ func (ss *SFTPService) Start() {
 				ss.loginUser = usr
 
 				if ss.loginUser.IsCleanDirUser {
-					ss.usrgov.CreateUserDir(ss.configsvc.config.CleanPath, ss.loginUser.JailDirectory)
+					if ss.loginUser.JailDirectory != "*" {
+						ss.usrgov.CreateUserDir(ss.configsvc.config.CleanPath, ss.loginUser.JailDirectory)
+					}
 				} else {
 					ss.usrgov.CreateUserDir(ss.configsvc.config.StagingPath, ss.loginUser.JailDirectory)
 				}
