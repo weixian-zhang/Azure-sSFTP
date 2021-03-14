@@ -20,3 +20,4 @@ private.pem
 # vendor/
 src/ssftp/ssftp
 src/sftpclient/__debug_bin
+src/sftpclient/sftpclient
