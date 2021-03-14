@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"io"
-	//"math/rand"
 	"path/filepath"
 	"sync"
 )
@@ -18,10 +17,8 @@ var files map[int]string
 
 const host string = "40.65.169.72"
 const port int = 2002
-// const username string = "staginguploaderuser2"
-// const pass string = "tiger"
 const remotefile string = "/mnt/ssftp/staging/staginguploaderuser2/20GB.zip"
-const localfile string = "C:\\ssftp\\20GB.zip"
+const localfile string = "/mnt/c/ssftp"
 
 
 type User struct {
@@ -40,62 +37,62 @@ func main() {
 		Name: "staginguploaderuser1",
 		Password: "pass",
 		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser1",
-		LocaleDir: "/mnt/c/ssftp",
+		LocaleDir: localfile,
 	}
 	user2 := User{
 		Name: "staginguploaderuser2",
 		Password: "tiger",
 		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser2",
-		LocaleDir: "/mnt/c/ssftp",
+	LocaleDir: localfile,
 	}
 	user3 := User{
 		Name: "staginguploaderuser3",
 		Password: "tooth",
 		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser3",
-		LocaleDir: "/mnt/c/ssftp",
+	LocaleDir: localfile,
 	}
 	user4 := User{
 		Name: "staginguploaderuser4",
 		Password: "111",
 		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser4",
-		LocaleDir: "/mnt/c/ssftp",
+	LocaleDir: localfile,
 	}
 	user5 := User{
 		Name: "staginguploaderuser5",
 		Password: "55555",
 		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser5",
-		LocaleDir: "/mnt/c/ssftp",
+	LocaleDir: localfile,
 	}
 	user6 := User{
 		Name: "staginguploaderuser6",
 		Password: "666666",
 		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser6",
-		LocaleDir: "/mnt/c/ssftp",
+	LocaleDir: localfile,
 	}
 	user7 := User{
 		Name: "staginguploaderuser7",
 		Password: "7777777",
 		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser7",
-		LocaleDir: "/mnt/c/ssftp",
+	LocaleDir: localfile,
 	}
-	user8 := User{
-		Name: "staginguploaderuser8",
-		Password: "88888888",
-		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser8",
-		LocaleDir: "/mnt/c/ssftp",
-	}
-	user9 := User{
-		Name: "staginguploaderuser9",
-		Password: "999999999",
-		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser9",
-		LocaleDir: "/mnt/c/ssftp",
-	}
-	user10 := User{
-		Name: "staginguploaderuser10",
-		Password: "1000000000",
-		RemoteDir: "/mnt/ssftp/staging/staginguploaderuser10",
-		LocaleDir: "/mnt/c/ssftp",
-	}
+	// user8 := User{
+	// 	Name: "staginguploaderuser8",
+	// 	Password: "88888888",
+	// 	RemoteDir: "/mnt/ssftp/staging/staginguploaderuser8",
+	// LocaleDir: localfile,
+	// }
+	// user9 := User{
+	// 	Name: "staginguploaderuser9",
+	// 	Password: "999999999",
+	// 	RemoteDir: "/mnt/ssftp/staging/staginguploaderuser9",
+	// LocaleDir: localfile,
+	// }
+	// user10 := User{
+	// 	Name: "staginguploaderuser10",
+	// 	Password: "1000000000",
+	// 	RemoteDir: "/mnt/ssftp/staging/staginguploaderuser10",
+	// LocaleDir: localfile,
+	// }
 
 	users = make([]User, 0)
 	users = append(users, user1)
@@ -105,9 +102,9 @@ func main() {
 	users = append(users, user5)
 	users = append(users, user6)
 	users = append(users, user7)
-	users = append(users, user8)
-	users = append(users, user9)
-	users = append(users, user10)
+	// users = append(users, user8)
+	// users = append(users, user9)
+	// users = append(users, user10)
 
 	files = make(map[int]string)
 	files[0] = "1GB.zip"
@@ -131,16 +128,13 @@ func main() {
 	}
 
 	wg.Wait()
-
-	//upload(client, localfile, remotefile)
-
 }
 
 func NewClient(username string, pass string) *sftp.Client {
 	config := &ssh.ClientConfig{
 		User:            username,
 		Auth:            []ssh.AuthMethod{ssh.Password(pass)},
-		Timeout:         8 * time.Second,
+		Timeout:         10 * time.Second,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	config.Ciphers = append(config.Config.Ciphers, "aes128-gcm@openssh.com")
@@ -156,6 +150,8 @@ func NewClient(username string, pass string) *sftp.Client {
 	if err != nil {
 		log.Panicf("Error while creating new sftp client, Error: %s", err.Error())
 	}
+
+	time.Sleep(3 * time.Second)
 
 	return client
 }
