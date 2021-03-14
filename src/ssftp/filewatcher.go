@@ -33,10 +33,6 @@ type FileWatcher struct {
 	fileMovedEvent chan FileMoveChanContext
 }
 
-//time limit for upload file. If file in idling upload and mod time duration from now >= limit, trigger upload time out
-const uploadTimeLimitMin int = 30
-//var uploadingFileTracker []FileUploadContext
-
 type FileUploadContext struct {
 	Path string
 	detectedUploadTime time.Time
@@ -60,8 +56,6 @@ func NewFileWatcher(sftpService *SFTPService, confsvc *ConfigService, usrgov  *u
 	cw.FilterOps(watcher.Write)
 	conferr := cw.AddRecursive(confsvc.getYamlConfgPath())
 	logclient.ErrIf(conferr)
-
-	//uploadingFileTracker = make([]FileUploadContext, 0)
 
 	return FileWatcher{
 		watcher: w,
@@ -154,11 +148,11 @@ func (fw *FileWatcher) checkScavengedFilesUploadState(scanvengedFiles []FileUplo
 			if isTimeup {
 
 				//uploadingFileTracker = fw.deleteUploadTrackerContext(f.Path)
-				logclient.Infof("FileWatcher - File %s with size %dMB still in upload state. Last mod time %s, upload duration %d mins. Reached upload idle limit %d mins, timing out now", f.Path, fw.fileSizeMb(f.Path), modtimestr, durMins, uploadTimeLimitMin)
+				logclient.Infof("FileWatcher - File %s with size %dMB still in upload state. Last mod time %s, upload duration %d mins. Reached upload idle limit %d mins, timing out now", f.Path, fw.fileSizeMb(f.Path), modtimestr, durMins, UploadTimeLimitMin)
 				closeds = append(closeds, f)
 
 			} else {
-				logclient.Infof("FileWatcher - File %s is in upload state, last mode time %s, upload duration %d/%d mins, size %dMB", f.Path, modtimestr, durMins, uploadTimeLimitMin, fw.fileSizeMb(f.Path))
+				logclient.Infof("FileWatcher - File %s is in upload state, last mode time %s, upload duration %d/%d mins, size %dMB", f.Path, modtimestr, durMins, UploadTimeLimitMin, fw.fileSizeMb(f.Path))
 				time.Sleep(500 * time.Millisecond)
 			}
 		} else {
@@ -172,28 +166,6 @@ func (fw *FileWatcher) checkScavengedFilesUploadState(scanvengedFiles []FileUplo
 	} else {
 		return closeds, false
 	}
-
-	// if len(opens) == 0 {
-	// 	logclient.Info("FileWatcher - No on-going file upload detected")
-	// 	return files, true
-	// }
-
-	// for _, f := range files {
-
-	// 	if fw.isScavengedFileInOpenFileList(f.Path, opens) {
-	// 		logclient.Infof("FileWatcher - File %s is in upload state, current size %dMB", f.Path, fw.fileSizeMb(f.Path))
-	// 		time.Sleep(300 * time.Millisecond)
-	// 		continue
-	// 	} else {
-	// 		closeds = append(closeds, f)
-	// 	}
-	// }
-	
-	// if len(closeds) > 0 {
-	// 	return closeds, true
-	// } else {
-	// 	return closeds, false
-	// }
 }
 
 func (fw *FileWatcher) isScavengedFileInOpenFileList(sfile string, opens []*os.File) (bool) {
@@ -224,11 +196,9 @@ func (fw *FileWatcher) isSFTPOpenFileTimeup(scavengedFile string, opens []*os.Fi
 
 			lastmodtimef := modTime.Format(time.ANSIC)
 
-			if durMin >= uploadTimeLimitMin {
-				//logclient.Infof("Filewatcher - file %s is in upload state taking too long LastModTime: %s. Timing out now", scavengedFile, )
+			if durMin >= UploadTimeLimitMin {
 				return true, durMin, lastmodtimef, nil
 			} else {
-				//logclient.Infof("Filewatcher - file %s is in upload state. LastModTime: %s", Upload duration: %dmins scavengedFile, finfo.ModTime().Format(time.ANSIC))
 				return false, durMin, lastmodtimef, nil
 			}
 		}

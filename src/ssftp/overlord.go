@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+//time limit for upload file.
+//If file in idling upload and mod time duration from now >= limit, trigger upload time out
+//Also used by net.Conn on read write deadlines
+const UploadTimeLimitMin int = 120
+
 type Overlord struct {
 	confsvc      *ConfigService
 	clamav      ClamAv

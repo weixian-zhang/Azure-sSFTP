@@ -15,6 +15,17 @@
             "problemMatcher": []
         },
         {
+            "label": "go build SFTP Client",
+            "command": "go build",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/src/sftpclient",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Docker Build sSFTP",
             "command": "docker-build.cmd",
             "type": "shell",

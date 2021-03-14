@@ -22,25 +22,55 @@ users:
 
   stagingDir:                       # user/service accounts access to Staging directory only. Accounts typically for clients file upload only
   - name: "staginguploaderuser1"
-    directory: "agency-z"           # Staging accounts do not support "*" for directory or sub dirs supported.
+    directory: "staginguploaderuser1"           # Staging accounts do not support "*" for directory or sub dirs supported.
     auth:
       password: "pass"
       publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
 
   - name: "staginguploaderuser2"
-    directory: "b2bpartner-z"
+    directory: "staginguploaderuser2"
     auth:
       password: "tiger"
       publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
 
   - name: "staginguploaderuser3"
-    directory: "supplier-z"
+    directory: "staginguploaderuser3"
     auth:
       password: "tooth"
       publicKey: ""
   
   - name: "staginguploaderuser4"
-    directory: "contoso-z"
+    directory: "staginguploaderuser4"
     auth:
       password: "111"
       publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr+mqkNyD1EHXLlvdrYVhTQg0PfSPpJ5UT9c8gyQn8xvTGffv4trigu4bbvWG2LcW2XEfa9g489iXCB2LNMtgbZxYjNL8Mh8oSzgV6Met1e9vWshWSn8/oLgRmTnCanCD9UXKGNvq/LIf64ITMxGpCAYXWIE/3hnVC5AGBKt6l0yNXseqqi54wjgMhlAUFDkjE07BBBH0/j9yAb9s1IdO2Z4j7e4T0mYEiuCMMCSvRvpk86DSoainXMG+69jKWG6HRbE8AmIT0kY4CAGEoba4ORv56uZQ2SuF0s2Ii1fO9s5axq4FnkKbexzqaAO6+2NNDu9whsUDItC7IFLQihXNew== rsa-key-20210301"
+  - name: "staginguploaderuser5"
+    directory: "staginguploaderuser5"
+    auth:
+      password: "55555"
+      publicKey: ""
+  - name: "staginguploaderuser6"
+    directory: "staginguploaderuser6"
+    auth:
+      password: "666666"
+      publicKey: ""
+  - name: "staginguploaderuser7"
+    directory: "staginguploaderuser7"
+    auth:
+      password: "7777777"
+      publicKey: ""
+  - name: "staginguploaderuser8"
+    directory: "staginguploaderuser8"
+    auth:
+      password: "88888888"
+      publicKey: ""
+  - name: "staginguploaderuser9"
+    directory: "staginguploaderuser9"
+    auth:
+      password: "999999999"
+      publicKey: ""
+  - name: "staginguploaderuser10"
+    directory: "staginguploaderuser10"
+    auth:
+      password: "1000000000"
+      publicKey: ""

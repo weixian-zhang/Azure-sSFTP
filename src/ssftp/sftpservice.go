@@ -63,9 +63,6 @@ func (ss *SFTPService) Start() {
 			return nil, fmt.Errorf("password rejected for %q", conn.User())
 		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
-			//https://blog.gopheracademy.com/advent-2015/ssh-server-in-go/
-			//https://security.stackexchange.com/questions/9366/ssh-public-private-key-pair/9389#9389
-			//https://github.com/bored-engineer/ssh/commit/1b71c35864fb15ae4623d2f63ddb0a508e7038ec
 			
 			logclient.Infof("User %s attempting certificate authentication", conn.User())
 
@@ -117,6 +114,9 @@ func (ss *SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
 		
 		newConn, err := ss.netListener.Accept()
 
+		newConn.SetReadDeadline(time.Now().Add(time.Duration(UploadTimeLimitMin) * time.Minute))
+		newConn.SetWriteDeadline(time.Now().Add(time.Duration(UploadTimeLimitMin) * time.Minute))
+
 		if err != nil {
 			logclient.ErrIfm("Failed to accept incoming SSH connection", err)
 
@@ -131,14 +131,14 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 
 	debugStream := os.Stderr
 
-	go func() {
-		time.Sleep(600 * time.Second)
+	// go func() {
+	// 	time.Sleep(2 * time.Second)
 
-		logclient.Info("SFTPService - Client handshake took more than 10mins, timing out")
+	// 	logclient.Info("SFTPService - Client handshake took more than 10mins, timing out")
 
-		conn.Close()
+	// 	conn.Close()
 
-	}()
+	// }()
 
 	// Before use, a handshake must be performed on the incoming
 	// net.Conn.
