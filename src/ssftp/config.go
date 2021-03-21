@@ -28,6 +28,7 @@ type SSFTPYaml struct {
 	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
 	Users SSFTPYamlUsers			`json:"users", yaml:"users"`
 	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
+	SFTPClientConnectors []SFTPClientConnector			`json:"sftpClientConnectors", yaml:"sftpClientConnectors"`
 }
 
 type  SSFTPYamlUsers struct {
@@ -40,16 +41,30 @@ type ConfigService struct {
 	mux    *sync.RWMutex
 }
 
+type SFTPClientConnector struct {
+	Name string							`json:"name, yaml:"name"`
+    Host string							`json:"host, yaml:"host"`
+    Port int 							`json:"port, yaml:"port"`
+	Username string						`json:"username, yaml:"username"`
+    Password string						`json:"password, yaml:"password"`
+    PrivatekeyPath string				`json:"privatekeyPath, yaml:"privatekeyPath"`
+    LocalStagingDirectory string		`json:"localStagingDirectory, yaml:"localStagingDirectory"`
+    RemoteDirectory string				`json:"remoteDirectory, yaml:"remoteDirectory"`
+	DeleteRemoteFileAfterDownload bool	`json:"deleteRemoteFileAfterDownload, yaml:"deleteRemoteFileAfterDownload"`
+    OverrideExistingFile bool			`json:"overrideExistingFile, yaml:"overrideExistingFile"`
+}
+
 type Config struct {
 	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
 	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
-	StagingPath string				//`json:"stagingPath, yaml:"stagingPath"`
-	CleanPath string				//`json:"cleanPath, yaml:"cleanPath"`
-	QuarantinePath string			//`json:"quarantinePath, yaml:"quarantinePath"`
-	ErrorPath string				//`json:"errorPath", yaml:"errorPath"`
+	StagingPath string				`yaml:"stagingPath"`
+	CleanPath string				`yaml:"cleanPath"`
+	QuarantinePath string			`yaml:"quarantinePath"`
+	ErrorPath string				`yaml:"errorPath"`
 	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
 	Users []user.User				`json:"users", yaml:"users"`
 	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
+	SFTPClientConnectors []SFTPClientConnector			`json:"sftpClientConnectors", yaml:"sftpClientConnectors"`
 }
 
 type Webhook struct {
@@ -116,6 +131,7 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 				c.config.LogDests = yamlSchema.LogDests
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
 				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
+				c.config.SFTPClientConnectors = yamlSchema.SFTPClientConnectors
 
 				c.mux.Unlock()
 
@@ -159,16 +175,16 @@ func (c *ConfigService) getYamlConfgPath() string {
 	}
 }
 
-func (c *ConfigService) isLogDestConfigured(kind string) (bool) {
-	for _, v := range c.config.LogDests {
-		if v.Kind == kind {
-			return true
-		}
-	}
-	return false
-}
+// func (c *ConfigService) isLogDestConfigured(kind string) (bool) {
+// 	for _, v := range c.config.LogDests {
+// 		if v.Kind == kind {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
-func (c *ConfigService) getLogDestProp(kind string, prop string) (string) {
+func (c *ConfigService) GetLogDestProp(kind string, prop string) (string) {
 	for _, v := range c.config.LogDests {
 		if v.Kind == kind {
 			propVal := v.Properties[prop]

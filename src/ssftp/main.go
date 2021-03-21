@@ -3,25 +3,29 @@ package main
 
 import (
 	"github.com/weixian-zhang/ssftp/user"
+	"github.com/weixian-zhang/ssftp/logc"
 )
 
-var logclient LogClient
+var logclient logc.LogClient
 
 func main() {
 
-	logclient = NewBasicLogClient()
+	logclient = logc.NewBasicStdoutLogClient()
 
 	confsvc := NewConfigService()
 	configLoaded := confsvc.LoadYamlConfig()
 
 	<- configLoaded
 
-	logclient.InitLogDests(&confsvc)
+	logPath := confsvc.GetLogDestProp("file", "path")
+
+	logclient.InitLogDests(&logc.LogConfig{
+		FlatFileLogPath: logPath,
+	})
 
 	ug := user.NewUserGov(confsvc.config.Users)
 	
-	ol, err := NewOverlord(&confsvc, &ug)
-	logclient.ErrIf(err)
+	ol := NewOverlord(&confsvc, &ug)
 
 	exit := make(chan bool)
 

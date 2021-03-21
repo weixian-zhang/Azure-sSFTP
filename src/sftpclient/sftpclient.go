@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
+	"github.com/weixian-zhang/ssftp/logc"
 )
 
 type SFTPClient struct {
@@ -22,10 +22,12 @@ type SFTPClient struct {
 	PrivateKeyPath string
 	LocalStagingDirectory string
 	RemoteDirectory string
+	IsConnectedToServer bool
 	sftpClient *sftp.Client
+	logclient *logc.LogClient
 }
 
-func (sftpc *SFTPClient) NewClient(host string, port int, username string, pass string, privatekeyPath string, localStagingDir string, remoteDir string, deleteRemoteFileAfterDownload bool, overrideExistingFile bool) *SFTPClient {
+func NewSftpClient(host string, port int, username string, pass string, privatekeyPath string, localStagingDir string, remoteDir string, deleteRemoteFileAfterDownload bool, overrideExistingFile bool, logclient *logc.LogClient) *SFTPClient {
 	return &SFTPClient{
 		Host: host,
 		Port: port,
@@ -36,10 +38,13 @@ func (sftpc *SFTPClient) NewClient(host string, port int, username string, pass 
 		PrivateKeyPath: privatekeyPath,
 		LocalStagingDirectory: localStagingDir,
 		RemoteDirectory: remoteDir,
+		IsConnectedToServer: false,
+		logclient: logclient,
 	}
 }
 
 func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
+
 	walker :=  sftpc.sftpClient.Walk(sftpc.RemoteDirectory)
 
 	for walker.Step() {
@@ -61,31 +66,15 @@ func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
 			return err
 		}
 
-		sftpc.copyBytesFromRemoteToLocalFile(rmtFilePath, localFilePath)
+		byteCopied, err := sftpc.copyBytesFromRemoteToLocalFile(rmtFilePath, localFilePath)
 
-		// files, err := sftpc.sftpClient.ReadDir(walker.Path())
-		// if err != nil {
-		// 	return err
-		// }
-		
-		// for _, f := range files {
-		// 	rmtFile, err := sftpc.sftpClient.Open(f.Name())
-		// 	if err != nil {
-		// 		return err
-		// 	}
+		if err != nil {
+			sftpc.logclient.ErrIffmsg("SFTPClient - error while downloading file from %s", err, rmtFilePath)
+			return err
+		}
 
-			
-
-		// 	if !sftpc.isDirFileExist(rmtFile.Name()) {
-
-		// 		if sftpc.OverrideExistingFile {
-
-		// 		}
-
-		// 	} else {
-				
-		// 	}
-		// }
+		sftpc.logclient.Infof("SFTPClient - file %s downloaded successfully, size: %d", rmtFilePath, byteCopied)
+	
 	}
 
 	return nil
@@ -122,6 +111,8 @@ func (sftpc *SFTPClient) Connect() (error) {
 	}
 
 	sftpc.sftpClient = client
+	
+	sftpc.IsConnectedToServer = true
 
 	return nil
 }

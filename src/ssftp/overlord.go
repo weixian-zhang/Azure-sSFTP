@@ -3,6 +3,7 @@ package main
 
 import (
 	"github.com/weixian-zhang/ssftp/user"
+	"github.com/weixian-zhang/ssftp/sftpclient"
 	"time"
 )
 
@@ -18,10 +19,11 @@ type Overlord struct {
 	sftpservice *SFTPService
 	usergov 	*user.UserGov
 	httpClient HttpClient
+	sftpclients []*sftpclient.SFTPClient
 }
 
 
-func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord, error) {
+func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord) {
 
 	clamav := NewClamAvClient()
 
@@ -38,20 +40,23 @@ func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord, error
 
 	fw := NewFileWatcher(&sftpsvc, confsvc, usergov, scanDone)
 
-	return Overlord{
+	ol := Overlord{
 		confsvc: confsvc,
 		clamav: clamav,
 		fileWatcher: fw,
 		httpClient: httpClient,
 		usergov: usergov,
 		sftpservice: &sftpsvc,
-		//usergov: ug,
-	}, nil
+	}
+
+	ol.NewSFTPClients()
+
+	return ol
 }
 
 func (ol *Overlord) Start(exit chan bool) {
 
-	
+	go ol.StartSftpClientsDownloadFiles()
 
 	go ol.fileWatcher.startWatchConfigFileChange()
 
@@ -105,6 +110,52 @@ func (ol *Overlord) Start(exit chan bool) {
 	}()
 
 	ol.sftpservice.Start()
+}
+
+func (ol *Overlord) NewSFTPClients() {
+	if len(ol.confsvc.config.SFTPClientConnectors) == 0 {
+		return
+	}
+
+	sftpcs := make([]*sftpclient.SFTPClient, 0)
+
+	for _, v := range ol.confsvc.config.SFTPClientConnectors {
+		sftpc := sftpclient.NewSftpClient(v.Host, v.Port, v.Name, v.Username, v.PrivatekeyPath, v.LocalStagingDirectory, v.RemoteDirectory, v.DeleteRemoteFileAfterDownload, v.OverrideExistingFile, &logclient)
+
+		sftpcs = append(sftpcs, sftpc)
+	}
+
+	ol.sftpclients = sftpcs
+}
+
+func (ol *Overlord) StartSftpClientsDownloadFiles() {
+	
+	logclient.Infof("Overlord - SFTP clients start connecting to SFTP servers")
+
+	go func() {
+
+		for {
+
+			//TODO:
+				//continuously connect/reconnect/ignore when connected
+				//once connected, start downloading file for each sftp client
+
+			for _, v := range ol.sftpclients {
+				err := v.Connect()
+				if err != nil {
+					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.Host, v.Port)
+					continue
+				}
+			}
+
+			time.Sleep(5 * time.Second)
+
+		}
+	}()
+
+	
+
+	
 }
 
 func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {
