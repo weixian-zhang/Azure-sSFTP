@@ -9,12 +9,12 @@ logDests:                           # optional, default logging to StdOut.
       path: "/mnt/ssftp/log"
 sftpClientConnectors:               
   - name: "ext-system-1"
-    host: ""
+    host: "40.65.169.72"
     port: 2002
-    username: ""
-    password: ""
-    privatekeyPath: "/mnt/ssftp/system/sftpclient/ext-system-1.pem"
-    localStagingDirectory: "ext-system-1"
+    username: "cleanfileuser1"
+    password: "cross"
+    privatekeyPath: "" #/mnt/ssftp/system/sftpclient/ext-system-1.pem
+    localStagingDirectory: "sftpc-cleanfileuser1"
     remoteDirectory: ""             #leave it empty if the remote directory is already "jailed" to a specific user dir
     deleteRemoteFileAfterDownload: true
     overrideExistingFile: false

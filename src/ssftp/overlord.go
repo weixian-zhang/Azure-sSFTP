@@ -5,6 +5,7 @@ import (
 	"github.com/weixian-zhang/ssftp/user"
 	"github.com/weixian-zhang/ssftp/sftpclient"
 	"time"
+	"sync"
 )
 
 //time limit for upload file.
@@ -120,7 +121,7 @@ func (ol *Overlord) NewSFTPClients() {
 	sftpcs := make([]*sftpclient.SFTPClient, 0)
 
 	for _, v := range ol.confsvc.config.SFTPClientConnectors {
-		sftpc := sftpclient.NewSftpClient(v.Host, v.Port, v.Name, v.Username, v.PrivatekeyPath, v.LocalStagingDirectory, v.RemoteDirectory, v.DeleteRemoteFileAfterDownload, v.OverrideExistingFile, &logclient)
+		sftpc := sftpclient.NewSftpClient(v.Host, v.Port, v.Username, v.Password, v.PrivatekeyPath, v.LocalStagingDirectory, v.RemoteDirectory, v.DeleteRemoteFileAfterDownload, v.OverrideExistingFile, &logclient)
 
 		sftpcs = append(sftpcs, sftpc)
 	}
@@ -134,6 +135,8 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 
 	go func() {
 
+		wg := sync.WaitGroup{}
+
 		for {
 
 			//TODO:
@@ -146,16 +149,27 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.Host, v.Port)
 					continue
 				}
+
+				go ol.DownloadFilesFromSFTPServer(v, &wg)
+				wg.Add(1)
 			}
+
+			wg.Wait()
 
 			time.Sleep(5 * time.Second)
 
 		}
 	}()
-
 	
+}
 
-	
+func (ol *Overlord) DownloadFilesFromSFTPServer(sftpc *sftpclient.SFTPClient, wg *sync.WaitGroup) {
+	err := sftpc.DownloadFilesRecursive()
+	if err != nil {
+		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download host: %s, port: %d",err, sftpc.Host, sftpc.Port )
+	}
+
+	wg.Done()
 }
 
 func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {

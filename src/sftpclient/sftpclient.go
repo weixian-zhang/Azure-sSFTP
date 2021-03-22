@@ -45,10 +45,11 @@ func NewSftpClient(host string, port int, username string, pass string, privatek
 
 func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
 
-	walker :=  sftpc.sftpClient.Walk(sftpc.RemoteDirectory)
+	walker :=  sftpc.sftpClient.Walk("")
 
 	for walker.Step() {
 		if walker.Err() != nil {
+			sftpc.logclient.ErrIfm("Sftpclient - error while directory walking", walker.Err())
 			continue
 		}
 
@@ -82,13 +83,16 @@ func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
 
 func (sftpc *SFTPClient) Connect() (error) {
 
+	authMs := make([]ssh.AuthMethod, 0)
+
 	pkAuthMethod, err := sftpc.newPublicKeyAuthMethod()
 	if err != nil {
-		return err
+		sftpc.logclient.ErrIfm("SFTPClient - error occur while reading private key file. Ignoring Private Key authn.", err)
+		//return err
+	} else {
+		authMs = append(authMs, pkAuthMethod)
 	}
 	
-	authMs := make([]ssh.AuthMethod, 0)
-	authMs = append(authMs, pkAuthMethod)
 	authMs = append(authMs, ssh.Password(sftpc.Password))
 
 	config := &ssh.ClientConfig{
