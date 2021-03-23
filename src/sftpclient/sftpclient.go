@@ -8,11 +8,17 @@ import (
 	"path/filepath"
 	"time"
 	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 	"github.com/weixian-zhang/ssftp/logc"
+	"golang.org/x/crypto/ssh"
 )
 
 type SFTPClient struct {
+	DownloaderConfig *DownloaderConfig
+	sftpClient *sftp.Client
+	logclient *logc.LogClient
+}
+
+type DownloaderConfig struct {
 	Host string
 	Port int
 	DeleteRemoteFileAfterDownload bool
@@ -20,32 +26,30 @@ type SFTPClient struct {
 	Username string
 	Password string
 	PrivateKeyPath string
+	LocalStagingBaseDirectory string
 	LocalStagingDirectory string
 	RemoteDirectory string
 	IsConnectedToServer bool
-	sftpClient *sftp.Client
-	logclient *logc.LogClient
+	fullLocalStagingDir string
+	fullRemoteDir string
 }
 
-func NewSftpClient(host string, port int, username string, pass string, privatekeyPath string, localStagingDir string, remoteDir string, deleteRemoteFileAfterDownload bool, overrideExistingFile bool, logclient *logc.LogClient) *SFTPClient {
+func NewSftpClient(config *DownloaderConfig, logclient *logc.LogClient) *SFTPClient {
 	return &SFTPClient{
-		Host: host,
-		Port: port,
-		DeleteRemoteFileAfterDownload: deleteRemoteFileAfterDownload,
-		OverrideExistingFile: overrideExistingFile,
-		Username: username,
-		Password: pass,
-		PrivateKeyPath: privatekeyPath,
-		LocalStagingDirectory: localStagingDir,
-		RemoteDirectory: remoteDir,
-		IsConnectedToServer: false,
+		DownloaderConfig: config,
+		sftpClient: nil,
 		logclient: logclient,
 	}
 }
 
+
 func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
 
-	walker :=  sftpc.sftpClient.Walk("")
+	sftpc.setFullLocalStagingAndRemotePath()
+
+	sftpc.createLocalDir(sftpc.DownloaderConfig.fullLocalStagingDir)
+	
+	walker :=  sftpc.sftpClient.Walk(sftpc.DownloaderConfig.fullRemoteDir)
 
 	for walker.Step() {
 		if walker.Err() != nil {
@@ -60,7 +64,7 @@ func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
 
 		rmtFilePath := walker.Path()
 		 
-		localFilePath := filepath.Join(sftpc.LocalStagingDirectory, filepath.Base(rmtFilePath))
+		localFilePath := filepath.Join(sftpc.DownloaderConfig.LocalStagingDirectory, filepath.Base(rmtFilePath))
 
 		err := sftpc.createLocalFile(localFilePath)
 		if err != nil {
@@ -93,17 +97,17 @@ func (sftpc *SFTPClient) Connect() (error) {
 		authMs = append(authMs, pkAuthMethod)
 	}
 	
-	authMs = append(authMs, ssh.Password(sftpc.Password))
+	authMs = append(authMs, ssh.Password(sftpc.DownloaderConfig.Password))
 
 	config := &ssh.ClientConfig{
-		User:            sftpc.Username,
+		User:            sftpc.DownloaderConfig.Username,
 		Auth:           authMs,
 		Timeout:         10 * time.Second,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	config.Ciphers = append(config.Config.Ciphers, "aes128-gcm@openssh.com")
 
-	addr := fmt.Sprintf("%s:%d", sftpc.Host, sftpc.Port)
+	addr := fmt.Sprintf("%s:%d", sftpc.DownloaderConfig.Host, sftpc.DownloaderConfig.Port)
 	conn, err := ssh.Dial("tcp", addr, config)
 	if err != nil {
 		return err
@@ -116,7 +120,7 @@ func (sftpc *SFTPClient) Connect() (error) {
 
 	sftpc.sftpClient = client
 	
-	sftpc.IsConnectedToServer = true
+	sftpc.DownloaderConfig.IsConnectedToServer = true
 
 	return nil
 }
@@ -164,8 +168,22 @@ func (sftpc *SFTPClient) copyBytesFromRemoteToLocalFile(destFile string, localFi
 	return bc, nil
 }
 
+func (sftpc *SFTPClient) setFullLocalStagingAndRemotePath() {
+	//set configured remote jailed directory + actual working directory
+	wd, err := sftpc.sftpClient.Getwd()
+	if err != nil {
+		sftpc.DownloaderConfig.fullRemoteDir = sftpc.DownloaderConfig.RemoteDirectory
+	} else {
+		if sftpc.DownloaderConfig.RemoteDirectory != "" {
+			sftpc.DownloaderConfig.fullRemoteDir = filepath.Join(wd, sftpc.DownloaderConfig.RemoteDirectory )
+		}
+	}
+
+	sftpc.DownloaderConfig.fullLocalStagingDir = filepath.Join(sftpc.DownloaderConfig.LocalStagingBaseDirectory, sftpc.DownloaderConfig.LocalStagingDirectory)
+}
+
 func (sftpc *SFTPClient) newPublicKeyAuthMethod() (ssh.AuthMethod, error) {
-	pemBytes, err := ioutil.ReadFile(sftpc.PrivateKeyPath)
+	pemBytes, err := ioutil.ReadFile(sftpc.DownloaderConfig.PrivateKeyPath)
     if err != nil {
         return nil, err
     }

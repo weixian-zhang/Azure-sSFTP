@@ -43,6 +43,7 @@ type ConfigService struct {
 
 type SFTPClientConnector struct {
 	Name string							`json:"name, yaml:"name"`
+	ClientType string					`json:"name, yaml:"name"`
     Host string							`json:"host, yaml:"host"`
     Port int 							`json:"port, yaml:"port"`
 	Username string						`json:"username, yaml:"username"`

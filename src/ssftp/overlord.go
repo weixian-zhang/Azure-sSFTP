@@ -121,7 +121,22 @@ func (ol *Overlord) NewSFTPClients() {
 	sftpcs := make([]*sftpclient.SFTPClient, 0)
 
 	for _, v := range ol.confsvc.config.SFTPClientConnectors {
-		sftpc := sftpclient.NewSftpClient(v.Host, v.Port, v.Username, v.Password, v.PrivatekeyPath, v.LocalStagingDirectory, v.RemoteDirectory, v.DeleteRemoteFileAfterDownload, v.OverrideExistingFile, &logclient)
+
+		sftpcConf := &sftpclient.DownloaderConfig{
+					Host: v.Host,
+					Port: v.Port,
+					Username: v.Username,
+					Password: v.Password,
+					PrivateKeyPath: v.PrivatekeyPath,
+					LocalStagingBaseDirectory: ol.confsvc.config.StagingPath,
+					LocalStagingDirectory: v.LocalStagingDirectory,
+					RemoteDirectory: v.RemoteDirectory,
+					IsConnectedToServer: false,
+					DeleteRemoteFileAfterDownload: v.DeleteRemoteFileAfterDownload,
+					OverrideExistingFile: v.OverrideExistingFile,
+				}
+
+		sftpc := sftpclient.NewSftpClient(sftpcConf, &logclient)
 
 		sftpcs = append(sftpcs, sftpc)
 	}
@@ -144,9 +159,10 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 				//once connected, start downloading file for each sftp client
 
 			for _, v := range ol.sftpclients {
+
 				err := v.Connect()
 				if err != nil {
-					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.Host, v.Port)
+					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.DownloaderConfig.Host, v.DownloaderConfig.Port)
 					continue
 				}
 
@@ -166,7 +182,7 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 func (ol *Overlord) DownloadFilesFromSFTPServer(sftpc *sftpclient.SFTPClient, wg *sync.WaitGroup) {
 	err := sftpc.DownloadFilesRecursive()
 	if err != nil {
-		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download host: %s, port: %d",err, sftpc.Host, sftpc.Port )
+		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download host: %s, port: %d",err, sftpc.DownloaderConfig.Host, sftpc.DownloaderConfig.Port )
 	}
 
 	wg.Done()
