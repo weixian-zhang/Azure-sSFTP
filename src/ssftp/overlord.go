@@ -20,7 +20,7 @@ type Overlord struct {
 	sftpservice *SFTPService
 	usergov 	*user.UserGov
 	httpClient HttpClient
-	sftpclients []*sftpclient.SFTPClient
+	sftpclients []*sftpclient.SftpClient
 }
 
 
@@ -114,13 +114,13 @@ func (ol *Overlord) Start(exit chan bool) {
 }
 
 func (ol *Overlord) NewSFTPClients() {
-	if len(ol.confsvc.config.SFTPClientConnectors) == 0 {
+	if len(ol.confsvc.config.ClientDownloaders) == 0 {
 		return
 	}
 
-	sftpcs := make([]*sftpclient.SFTPClient, 0)
+	sftpcs := make([]*sftpclient.SftpClient, 0)
 
-	for _, v := range ol.confsvc.config.SFTPClientConnectors {
+	for _, v := range ol.confsvc.config.ClientDownloaders {
 
 		sftpcConf := &sftpclient.DownloaderConfig{
 					Host: v.Host,
@@ -179,7 +179,7 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 	
 }
 
-func (ol *Overlord) DownloadFilesFromSFTPServer(sftpc *sftpclient.SFTPClient, wg *sync.WaitGroup) {
+func (ol *Overlord) DownloadFilesFromSFTPServer(sftpc *sftpclient.SftpClient, wg *sync.WaitGroup) {
 	err := sftpc.DownloadFilesRecursive()
 	if err != nil {
 		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download host: %s, port: %d",err, sftpc.DownloaderConfig.Host, sftpc.DownloaderConfig.Port )

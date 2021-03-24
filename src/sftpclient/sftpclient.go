@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type SFTPClient struct {
+type SftpClient struct {
 	DownloaderConfig *DownloaderConfig
 	sftpClient *sftp.Client
 	logclient *logc.LogClient
@@ -34,8 +34,8 @@ type DownloaderConfig struct {
 	fullRemoteDir string
 }
 
-func NewSftpClient(config *DownloaderConfig, logclient *logc.LogClient) *SFTPClient {
-	return &SFTPClient{
+func NewSftpClient(config *DownloaderConfig, logclient *logc.LogClient) *SftpClient {
+	return &SftpClient{
 		DownloaderConfig: config,
 		sftpClient: nil,
 		logclient: logclient,
@@ -43,7 +43,9 @@ func NewSftpClient(config *DownloaderConfig, logclient *logc.LogClient) *SFTPCli
 }
 
 
-func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
+func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
+
+	defer sftpc.sftpClient.Close()
 
 	sftpc.setFullLocalStagingAndRemotePath()
 
@@ -58,34 +60,45 @@ func (sftpc *SFTPClient) DownloadFilesRecursive() (error) {
 		}
 
 		if walker.Stat().IsDir() { //sync remote and local dir structure
-			sftpc.createLocalDir(walker.Path())
+			//sftpc.createLocalDir(walker.Path())
 			continue
 		}
 
 		rmtFilePath := walker.Path()
-		 
-		localFilePath := filepath.Join(sftpc.DownloaderConfig.LocalStagingDirectory, filepath.Base(rmtFilePath))
+		sftpc.logclient.Infof("SftpClient Downloader - detected remote file %s", rmtFilePath)
+		
+		//open remote file for reading
+		remoteFile, err := sftpc.sftpClient.OpenFile(rmtFilePath, (os.O_RDONLY))
+		defer remoteFile.Close()
 
-		err := sftpc.createLocalFile(localFilePath)
+		//create local file same name as remote file
+		localFullFilePath := filepath.Join(sftpc.DownloaderConfig.fullLocalStagingDir, filepath.Base(rmtFilePath))
+		localFile, err := sftpc.createLocalFile(localFullFilePath)
 		if err != nil {
 			return err
 		}
+		defer localFile.Close()
 
-		byteCopied, err := sftpc.copyBytesFromRemoteToLocalFile(rmtFilePath, localFilePath)
+		sftpc.logclient.Infof("SftpClient Downloader - downloading remote file %s", rmtFilePath)
+
+		b, err := io.Copy(localFile, remoteFile)
+		
+		
+		//byteCopied, err := sftpc.copyBytesFromRemoteToLocalFile(rmtFilePath, localFullFilePath)
 
 		if err != nil {
 			sftpc.logclient.ErrIffmsg("SFTPClient - error while downloading file from %s", err, rmtFilePath)
 			return err
 		}
 
-		sftpc.logclient.Infof("SFTPClient - file %s downloaded successfully, size: %d", rmtFilePath, byteCopied)
+		sftpc.logclient.Infof("SftpClient Downloader - downloaded successfully, size %d,local path: %s",b, localFullFilePath)
 	
 	}
 
 	return nil
 }
 
-func (sftpc *SFTPClient) Connect() (error) {
+func (sftpc *SftpClient) Connect() (error) {
 
 	authMs := make([]ssh.AuthMethod, 0)
 
@@ -125,23 +138,46 @@ func (sftpc *SFTPClient) Connect() (error) {
 	return nil
 }
 
-func (sftpc *SFTPClient) createLocalDir(dir string) {
-	if sftpc.isDirFileExist(dir) {
+func (sftpc *SftpClient) createLocalDir(dir string) {
+	if !sftpc.isDirFileExist(dir) {
 		os.Mkdir(dir, 0755)
 	}
 }
 
-func (sftpc *SFTPClient) createLocalFile(file string) (error) {
-	if sftpc.isDirFileExist(file) {
-		_, err := os.Create(file)
+func (sftpc *SftpClient) createLocalFile(file string) (*os.File, error) {
+
+	if !sftpc.isDirFileExist(file) {
+		f, err := os.Create(file)
 		if err != nil {
-			return err
+			return nil, err
+		} else {
+			return f, nil
 		}
 	}
-	return nil
+
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
 }
 
-func (sftpc *SFTPClient) isDirFileExist(path string) (bool) {
+func (sftpc *SftpClient) fileSizeMb(file string) (newSize int) {
+	info, err := os.Stat(file)
+
+	if err != nil {
+		sftpc.logclient.ErrIfm("SftpClient - error while checking fize size", err)
+		return 0
+	}
+
+	mb := info.Size() / (1024 * 1024)
+
+	newSize = int(mb)
+
+	return newSize
+}
+
+func (sftpc *SftpClient) isDirFileExist(path string) (bool) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
 	} else {
@@ -149,7 +185,7 @@ func (sftpc *SFTPClient) isDirFileExist(path string) (bool) {
 	}
 }
 
-func (sftpc *SFTPClient) copyBytesFromRemoteToLocalFile(destFile string, localFile string) (int64, error) {
+func (sftpc *SftpClient) copyBytesFromRemoteToLocalFile(destFile string, localFile string) (int64, error) {
 	destF, err := os.Open(destFile)
 	if err != nil {
 		return 0, err
@@ -168,7 +204,7 @@ func (sftpc *SFTPClient) copyBytesFromRemoteToLocalFile(destFile string, localFi
 	return bc, nil
 }
 
-func (sftpc *SFTPClient) setFullLocalStagingAndRemotePath() {
+func (sftpc *SftpClient) setFullLocalStagingAndRemotePath() {
 	//set configured remote jailed directory + actual working directory
 	wd, err := sftpc.sftpClient.Getwd()
 	if err != nil {
@@ -176,13 +212,15 @@ func (sftpc *SFTPClient) setFullLocalStagingAndRemotePath() {
 	} else {
 		if sftpc.DownloaderConfig.RemoteDirectory != "" {
 			sftpc.DownloaderConfig.fullRemoteDir = filepath.Join(wd, sftpc.DownloaderConfig.RemoteDirectory )
+		} else {
+			sftpc.DownloaderConfig.fullRemoteDir = wd
 		}
 	}
 
 	sftpc.DownloaderConfig.fullLocalStagingDir = filepath.Join(sftpc.DownloaderConfig.LocalStagingBaseDirectory, sftpc.DownloaderConfig.LocalStagingDirectory)
 }
 
-func (sftpc *SFTPClient) newPublicKeyAuthMethod() (ssh.AuthMethod, error) {
+func (sftpc *SftpClient) newPublicKeyAuthMethod() (ssh.AuthMethod, error) {
 	pemBytes, err := ioutil.ReadFile(sftpc.DownloaderConfig.PrivateKeyPath)
     if err != nil {
         return nil, err

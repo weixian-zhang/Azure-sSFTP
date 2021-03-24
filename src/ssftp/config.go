@@ -17,6 +17,7 @@ const (
 	SystemConfigPath = "/mnt/ssftp/system/ssftp.yaml"
 	SystemConfigFileName = "ssftp.yaml"
 	StagingPath = "/mnt/ssftp/staging"
+	RemoteUploadPath =  "/mnt/ssftp/remoteupload"
 	CleanPath = "/mnt/ssftp/clean"
 	QuarantinePath = "/mnt/ssftp/quarantine"
 	ErrorPath =  "/mnt/ssftp/error"
@@ -28,7 +29,7 @@ type SSFTPYaml struct {
 	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
 	Users SSFTPYamlUsers			`json:"users", yaml:"users"`
 	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
-	SFTPClientConnectors []SFTPClientConnector			`json:"sftpClientConnectors", yaml:"sftpClientConnectors"`
+	ClientDownloaders []ClientDownloader	`json:"sftpClientDownloaders", yaml:"sftpClientDownloaders"`
 }
 
 type  SSFTPYamlUsers struct {
@@ -41,9 +42,8 @@ type ConfigService struct {
 	mux    *sync.RWMutex
 }
 
-type SFTPClientConnector struct {
+type ClientDownloader struct {
 	Name string							`json:"name, yaml:"name"`
-	ClientType string					`json:"name, yaml:"name"`
     Host string							`json:"host, yaml:"host"`
     Port int 							`json:"port, yaml:"port"`
 	Username string						`json:"username, yaml:"username"`
@@ -59,13 +59,14 @@ type Config struct {
 	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
 	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
 	StagingPath string				`yaml:"stagingPath"`
+	RemoteUploadPath string			`yaml:"remoteUploadPath"`
 	CleanPath string				`yaml:"cleanPath"`
 	QuarantinePath string			`yaml:"quarantinePath"`
 	ErrorPath string				`yaml:"errorPath"`
 	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
 	Users []user.User				`json:"users", yaml:"users"`
 	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
-	SFTPClientConnectors []SFTPClientConnector			`json:"sftpClientConnectors", yaml:"sftpClientConnectors"`
+	ClientDownloaders []ClientDownloader			`json:"sftpClientConnectors", yaml:"sftpClientConnectors"`
 }
 
 type Webhook struct {
@@ -112,14 +113,16 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 					continue
 				}
 
-				if isWindows() { //local dev only
-					c.config.StagingPath = "C:\\ssftp\\staging"
-					c.config.CleanPath =  "C:\\ssftp\\clean"
-					c.config.QuarantinePath =  "C:\\ssftp\\quarantine"
-					c.config.ErrorPath =  "C:\\ssftp\\error"
+				if os.Getenv("env") == "dev" { //local dev only
+					c.config.StagingPath = "/mnt/c/ssftp/staging"
+					c.config.RemoteUploadPath = "/mnt/c/ssftp/remoteupload"
+					c.config.CleanPath =  "/mnt/c/ssftp/clean"
+					c.config.QuarantinePath =  "/mnt/c/ssftp/quarantine"
+					c.config.ErrorPath =  "/mnt/c/ssftp/error"
 					
 				} else {
 					c.config.StagingPath = StagingPath
+					c.config.RemoteUploadPath = RemoteUploadPath
 					c.config.CleanPath = CleanPath
 					c.config.QuarantinePath = QuarantinePath
 					c.config.ErrorPath = ErrorPath
@@ -132,7 +135,7 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 				c.config.LogDests = yamlSchema.LogDests
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
 				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
-				c.config.SFTPClientConnectors = yamlSchema.SFTPClientConnectors
+				c.config.ClientDownloaders = yamlSchema.ClientDownloaders
 
 				c.mux.Unlock()
 

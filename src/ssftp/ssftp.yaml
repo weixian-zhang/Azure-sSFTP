@@ -15,7 +15,7 @@ sftpClientDownloaders:
     password: "cross"
     privatekeyPath: ""              #example: /mnt/ssftp/system/sftpclient/client-dl-system1.pem
     localStagingDirectory: "sftpclient-cleanfileuser1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
-    remoteDirectory: ""             #leave it empty if the remote directory is already "jailed" to a specific user dir
+    remoteDirectory: "clientdownload"             #leave it empty if no remote sub dir
     deleteRemoteFileAfterDownload: true
     overrideExistingFile: false
 sftpClientUploaders:
@@ -26,7 +26,7 @@ sftpClientUploaders:
     password: "cross"
     privatekeyPath: ""              #example: /mnt/ssftp/system/sftpclient/client-upl-system1
     localRemoteUploadDirectory: "client-dl-system1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
-    remoteDirectory: ""             #leave it empty if the remote directory is already "jailed" to a specific user dir
+    remoteDirectory: ""            #leave it empty if no remote sub dir
     overrideExistingFile: false
 users:
   cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
