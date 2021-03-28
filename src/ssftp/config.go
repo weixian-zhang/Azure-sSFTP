@@ -23,9 +23,16 @@ const (
 	ErrorPath =  "/mnt/ssftp/error"
 )
 
+const (
+	VirusFoundWebook = "virusFound"
+	VirusScanCompleteWebook = "virusScanComplete"
+)
+
 type SSFTPYaml struct {
 	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
 	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
+	EnableSftpClientDownloader bool `json:"enableSftpClientDownloader, yaml:"enableSftpClientDownloader"`
+	EnableSftpClientUploader bool	`json:"enableSftpClientUploader, yaml:"enableSftpClientUploader"`
 	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
 	Users SSFTPYamlUsers			`json:"users", yaml:"users"`
 	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
@@ -48,7 +55,8 @@ type ClientDownloader struct {
     Port int 							`json:"port, yaml:"port"`
 	Username string						`json:"username, yaml:"username"`
     Password string						`json:"password, yaml:"password"`
-    PrivatekeyPath string				`json:"privatekeyPath, yaml:"privatekeyPath"`
+    PrivatekeyPath string				`json:"privateKeyPath, yaml:"privateKeyPath"`
+	PrivatekeyPassphrase string			`json:"privatekeyPassphrase, yaml:"privatekeyPassphrase"`
     LocalStagingDirectory string		`json:"localStagingDirectory, yaml:"localStagingDirectory"`
     RemoteDirectory string				`json:"remoteDirectory, yaml:"remoteDirectory"`
 	DeleteRemoteFileAfterDownload bool	`json:"deleteRemoteFileAfterDownload, yaml:"deleteRemoteFileAfterDownload"`
@@ -56,17 +64,19 @@ type ClientDownloader struct {
 }
 
 type Config struct {
-	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
-	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
-	StagingPath string				`yaml:"stagingPath"`
-	RemoteUploadPath string			`yaml:"remoteUploadPath"`
-	CleanPath string				`yaml:"cleanPath"`
-	QuarantinePath string			`yaml:"quarantinePath"`
-	ErrorPath string				`yaml:"errorPath"`
-	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
-	Users []user.User				`json:"users", yaml:"users"`
-	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
-	ClientDownloaders []ClientDownloader			`json:"sftpClientConnectors", yaml:"sftpClientConnectors"`
+	SftpPort    int						`yaml:"sftpPort"`
+	EnableVirusScan bool				`yaml:"enableVirusScan"`
+	EnableSftpClientDownloader bool 	`yaml:"enableSftpClientDownloader"`
+	EnableSftpClientUploader bool		`yaml:"enableSftpClientUploader"`
+	StagingPath string					`yaml:"stagingPath"`
+	RemoteUploadBasePath string         `yaml:"remoteUploadPath"`
+	CleanPath string					`yaml:"cleanPath"`
+	QuarantinePath string				`yaml:"quarantinePath"`
+	ErrorPath string					`yaml:"errorPath"`
+	LogDests []LogDest					`yaml:"logDests"`
+	Users []user.User					`yaml:"users"`
+	Webhooks []Webhook					`yaml:"webhooks"`
+	ClientDownloaders []ClientDownloader `yaml:"sftpClientDownloaders"`
 }
 
 type Webhook struct {
@@ -115,14 +125,14 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 
 				if os.Getenv("env") == "dev" { //local dev only
 					c.config.StagingPath = "/mnt/c/ssftp/staging"
-					c.config.RemoteUploadPath = "/mnt/c/ssftp/remoteupload"
+					c.config.RemoteUploadBasePath = "/mnt/c/ssftp/remoteupload"
 					c.config.CleanPath =  "/mnt/c/ssftp/clean"
 					c.config.QuarantinePath =  "/mnt/c/ssftp/quarantine"
 					c.config.ErrorPath =  "/mnt/c/ssftp/error"
 					
 				} else {
 					c.config.StagingPath = StagingPath
-					c.config.RemoteUploadPath = RemoteUploadPath
+					c.config.RemoteUploadBasePath = RemoteUploadPath
 					c.config.CleanPath = CleanPath
 					c.config.QuarantinePath = QuarantinePath
 					c.config.ErrorPath = ErrorPath
@@ -133,6 +143,9 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 				c.config.SftpPort = yamlSchema.SftpPort
 				c.config.Webhooks = yamlSchema.Webhooks
 				c.config.LogDests = yamlSchema.LogDests
+				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
+				c.config.EnableSftpClientDownloader = yamlSchema.EnableSftpClientDownloader
+				c.config.EnableSftpClientUploader = yamlSchema.EnableSftpClientUploader
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
 				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
 				c.config.ClientDownloaders = yamlSchema.ClientDownloaders

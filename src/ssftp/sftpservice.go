@@ -37,7 +37,6 @@ func NewSFTPService(configsvc *ConfigService, usrgov *user.UserGov) (SFTPService
 
 func (ss *SFTPService) Start() {
 
-	
 	// An SSH server is represented by a ServerConfig, which holds
 	// certificate details and handles authentication of ServerConns.
 	config := &ssh.ServerConfig{
@@ -110,9 +109,14 @@ func (ss *SFTPService) Start() {
 }
 
 func (ss *SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
+
 	for {
 		
+		logclient.Infof("SftpService - awaiting client connection")
+
 		newConn, err := ss.netListener.Accept()
+		
+		logclient.Infof("SftpService - accepted Sftp client from %s, proceeding to authentication", newConn.RemoteAddr())
 
 		rerr := newConn.SetReadDeadline(time.Now().Add(time.Duration(UploadTimeLimitMin) * time.Minute))
 		logclient.ErrIfm("SFTPService - Error while setting read deadline", rerr)
@@ -122,7 +126,6 @@ func (ss *SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
 
 		if err != nil {
 			logclient.ErrIfm("Failed to accept incoming SSH connection", err)
-
 			continue
 		}
 
@@ -144,7 +147,6 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 	// }()
 
 	// Before use, a handshake must be performed on the incoming
-	// net.Conn.
 	_, chans, reqs, err := ssh.NewServerConn(conn, svrConfig)
 	if err != nil {
 		logclient.ErrIfm("SFTPService - failed to handshake", err)
@@ -166,11 +168,13 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 			fmt.Fprintf(debugStream, "SFTPService - Unknown channel type: %s\n", newChannel.ChannelType())
 			continue
 		}
+
 		channel, requests, err := newChannel.Accept()
+		
 		if err != nil {
 			logclient.ErrIfm("SFTPService - could not accept channel.", err)
 		} else {
-			logclient.Info("Channel accepted\n")
+			logclient.Info("SftpService - Channel accepted")
 		}
 		
 

@@ -1,23 +1,30 @@
 sftpPort: 2002                      # port of your choice
 enableVirusScan: true               #if disabled, files in Staging will remain and not moved
+enableSftpClientDownloader: false
+enableSftpClientUploader: false
 webhooks:   
   - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
     url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
+  - name: onFileMoveToCleanDir            
+    url: "https://httpbin.org/post"
+
 logDests:                           # optional, default logging to StdOut.
-  - kind: file                      #conventional do not change
+  - kind: file                      # conventional do not change
     props:
       path: "/mnt/ssftp/log"
-sftpClientDownloaders:               
+sftpClientDownloaders:        
   - name: "client-dl-system1"
     host: "40.65.169.72"
     port: 2002
     username: "cleanfileuser1"
     password: "cross"
-    privatekeyPath: ""              #example: /mnt/ssftp/system/sftpclient/client-dl-system1.pem
-    localStagingDirectory: "sftpclient-cleanfileuser1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
+    privateKeyPath: "/mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/cleanuser1.pem"
+    privatekeyPassphrase: "p1"
+    localStagingDirectory: "40.65.169.72-cleanfileuser1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
     remoteDirectory: "clientdownload"             #leave it empty if no remote sub dir
     deleteRemoteFileAfterDownload: true
-    overrideExistingFile: false
+    overrideExistingFile: true
+
 sftpClientUploaders:
   - name: "client-upl-system1"
     host: "40.65.169.72"
@@ -25,6 +32,7 @@ sftpClientUploaders:
     username: "cleanfileuser1"
     password: "cross"
     privatekeyPath: ""              #example: /mnt/ssftp/system/sftpclient/client-upl-system1
+    privatekeyPassphrase: "p1"
     localRemoteUploadDirectory: "client-dl-system1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
     remoteDirectory: ""            #leave it empty if no remote sub dir
     overrideExistingFile: false
@@ -34,7 +42,7 @@ users:
       directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
       auth:
         password: "cross"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
-        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEA7INcu1Lds/InRbJfsyAchNqsvJnenepJh11d9PdpJL2PDKNKCNCgxqkP1lQfxFhfciQpxEZMZq4CJEGLKFdNMN2JfisbdB/EBByMEVBE6vmrYCY0iNEVuOP/xAQh4soMKJ/36PbBsd6aF5ZKdnysLZaxGqZKMFErU2M0zcSFB20tBhvWpFRtH4nN0Xw1/0iS2IBYazk6jwJfiBCTkdjRjkOOO10RTnTdLOo/1iaFHnIVWnxBjAPbtMEPcg5H2CamFh8TvLNE7wbivZCtUdOJqqOfclFnYwokHJ2H4Q9LK+x5jZ6tJx0oLOnVUFaroDALMcD+46OpXSxph0Fjy9Ub7Q== rsa-key-20210309"
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAnc3KYh0yvUw1ZxXy7qv3K65thZYzOIgxVuMoT9m2SRn0ap7QYR8Ox8GNQBeVcwyJxxgsOVzcZI9A3hKRNdLCipEWYckR6EHh0o4RD45ll4v2Svau/7qGgyAb4stLwzSip+dt2q/OzvtSWuux8HhRGjdWSIRFyxGdEUnjEFuU42yNLMCCcNswD4cnClK5s9XyTGvxPGQEIlC/Xle9XSQh05LSDLZt1tZWwCpUdOiKxqKjZBBsFIGhKHL71H+q2Zxm679QLjr5RLpN+0XwfGhYyl8H3gtpPdC0kcEthBef4RF/hf04tOqd3G1zduiEA1McsoZwFv4Bz8j/4Nd7DCRrDw== rsa-key-20210327"
     - name: "cleanfileuser2"
       directory: "agency-z"
       auth:

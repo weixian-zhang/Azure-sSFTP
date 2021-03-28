@@ -1,1 +1,1 @@
-docker push wxzd/ssftp:1.0
+docker push wxzd/ssftp:sftpc

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"os"
-	"net/url"
 	"runtime"
 )
 
@@ -48,16 +47,6 @@ func isErr(err error) bool {
 		return true
 	} else {
 		return false
-	}
-}
-
-func isValidUrl(urlp string) (bool) {
-	_, err := url.Parse(urlp)
-
-	if logclient.ErrIf(err) {
-		return false
-	} else {
-		return true
 	}
 }
 

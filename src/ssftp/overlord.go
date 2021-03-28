@@ -4,6 +4,7 @@ package main
 import (
 	"github.com/weixian-zhang/ssftp/user"
 	"github.com/weixian-zhang/ssftp/sftpclient"
+	"github.com/weixian-zhang/ssftp/webhook"
 	"time"
 	"sync"
 )
@@ -19,7 +20,7 @@ type Overlord struct {
 	fileWatcher FileWatcher
 	sftpservice *SFTPService
 	usergov 	*user.UserGov
-	httpClient HttpClient
+	httpClient webhook.HttpClient
 	sftpclients []*sftpclient.SftpClient
 }
 
@@ -33,7 +34,7 @@ func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord) {
 
 	//<- proceed //block until ssftp able to connect to Clamd on tcp://localhost:3310
 
-	httpClient := NewHttpClient(confsvc)
+	httpClient := webhook.NewHttpClient(&logclient)
 
 	scanDone := make(chan bool)
 
@@ -56,12 +57,6 @@ func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord) {
 }
 
 func (ol *Overlord) Start(exit chan bool) {
-
-	go ol.StartSftpClientsDownloadFiles()
-
-	go ol.fileWatcher.startWatchConfigFileChange()
-
-	go ol.fileWatcher.ScavengeUploadedFiles()
 
 	go func() {
 
@@ -97,7 +92,8 @@ func (ol *Overlord) Start(exit chan bool) {
 
 					if scanR.VirusFound {
 
-						ol.httpClient.callVirusFoundWebhook(VirusDetectedWebhookData{
+						url := ol.confsvc.getWebHook(VirusFoundWebook)
+						ol.httpClient.CallVirusFoundWebhook(url, webhook.VirusDetectedWebhookData{
 							FilePath: destPath,
 							ScanMessage: scanR.Message,
 							TimeGenerated: (time.Now()).Format(time.ANSIC),
@@ -109,6 +105,12 @@ func (ol *Overlord) Start(exit chan bool) {
 		}
 		
 	}()
+
+	go ol.StartSftpClientsDownloadFiles()
+
+	go ol.fileWatcher.startWatchConfigFileChange()
+
+	go ol.fileWatcher.ScavengeUploadedFiles()
 
 	ol.sftpservice.Start()
 }
@@ -123,15 +125,16 @@ func (ol *Overlord) NewSFTPClients() {
 	for _, v := range ol.confsvc.config.ClientDownloaders {
 
 		sftpcConf := &sftpclient.DownloaderConfig{
+					DLName: v.Name,
 					Host: v.Host,
 					Port: v.Port,
 					Username: v.Username,
 					Password: v.Password,
 					PrivateKeyPath: v.PrivatekeyPath,
+					PrivatekeyPassphrase: v.PrivatekeyPassphrase,
 					LocalStagingBaseDirectory: ol.confsvc.config.StagingPath,
 					LocalStagingDirectory: v.LocalStagingDirectory,
 					RemoteDirectory: v.RemoteDirectory,
-					IsConnectedToServer: false,
 					DeleteRemoteFileAfterDownload: v.DeleteRemoteFileAfterDownload,
 					OverrideExistingFile: v.OverrideExistingFile,
 				}
@@ -154,6 +157,12 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 
 		for {
 
+			if !ol.confsvc.config.EnableSftpClientDownloader {
+				logclient.Infof("Overlord - EnableSftpClientDownloader is false, downloaders are disabled")
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
 			//TODO:
 				//continuously connect/reconnect/ignore when connected
 				//once connected, start downloading file for each sftp client
@@ -162,7 +171,7 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 
 				err := v.Connect()
 				if err != nil {
-					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.DownloaderConfig.Host, v.DownloaderConfig.Port)
+					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.DLConfig.Host, v.DLConfig.Port)
 					continue
 				}
 
@@ -173,16 +182,15 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 			wg.Wait()
 
 			time.Sleep(5 * time.Second)
-
 		}
 	}()
-	
 }
 
 func (ol *Overlord) DownloadFilesFromSFTPServer(sftpc *sftpclient.SftpClient, wg *sync.WaitGroup) {
+
 	err := sftpc.DownloadFilesRecursive()
 	if err != nil {
-		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download host: %s, port: %d",err, sftpc.DownloaderConfig.Host, sftpc.DownloaderConfig.Port )
+		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download host: %s, port: %d",err, sftpc.DLConfig.Host, sftpc.DLConfig.Port )
 	}
 
 	wg.Done()
