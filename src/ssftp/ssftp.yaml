@@ -14,17 +14,16 @@ logDests:                           # optional, default logging to StdOut.
       path: "/mnt/ssftp/log"
 sftpClientDownloaders:        
   - name: "client-dl-system1"
-    host: "40.65.169.72"
+    host: "192.169.2.4"
     port: 2002
     username: "cleanfileuser1"
-    password: "cross"
-    privateKeyPath: "/mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/cleanuser1.pem"
+    password: ""
+    privateKeyPath: "/mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/ssftp-internetzone-cleanfileuser1.ppk"
     privatekeyPassphrase: "p1"
-    localStagingDirectory: "40.65.169.72-cleanfileuser1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
+    localStagingDirectory: "ssftp-internetzone-cleanfileuser1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
     remoteDirectory: "clientdownload"             #leave it empty if no remote sub dir
     deleteRemoteFileAfterDownload: true
     overrideExistingFile: true
-
 sftpClientUploaders:
   - name: "client-upl-system1"
     host: "40.65.169.72"
@@ -35,14 +34,14 @@ sftpClientUploaders:
     privatekeyPassphrase: "p1"
     localRemoteUploadDirectory: "client-dl-system1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
     remoteDirectory: ""            #leave it empty if no remote sub dir
-    overrideExistingFile: false
+    overrideRemoteExistingFile: false
 users:
   cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
     - name: "cleanfileuser1"
       directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
       auth:
         password: "cross"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
-        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAnc3KYh0yvUw1ZxXy7qv3K65thZYzOIgxVuMoT9m2SRn0ap7QYR8Ox8GNQBeVcwyJxxgsOVzcZI9A3hKRNdLCipEWYckR6EHh0o4RD45ll4v2Svau/7qGgyAb4stLwzSip+dt2q/OzvtSWuux8HhRGjdWSIRFyxGdEUnjEFuU42yNLMCCcNswD4cnClK5s9XyTGvxPGQEIlC/Xle9XSQh05LSDLZt1tZWwCpUdOiKxqKjZBBsFIGhKHL71H+q2Zxm679QLjr5RLpN+0XwfGhYyl8H3gtpPdC0kcEthBef4RF/hf04tOqd3G1zduiEA1McsoZwFv4Bz8j/4Nd7DCRrDw== rsa-key-20210327"
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAkgdv/+1a45V1borXmscpQir6qz+eo+JG5CvvMWa5B5xL8dvycuiZXuOqsw9t6euP5gCaJkBu0yat6kMU/STCgIehfhH7DjmapHwU8lu9zocIJ0dXE8WVySzxVM5Ri91Oy6fKQgaved1gojL87m2TL9MYN5u4lfm+l8Pb+LFdj27JIF/WN8ni9+UJBiVPbs/BrxlYDT2r6vXvr1pBLnivHF/vrhK6cmgOCE0g6KVLhZTX/lSFTeVj6pz3YOeN/zCQ3YcTCxMhu9mZ/EQNcFGZBm7RR5m7q5dJvxTVKLc+PIdPww2WTKOYoezfeDr6wKMqhvPX9cMmbjfl54enH8MBvQ== rsa-key-20210329"
     - name: "cleanfileuser2"
       directory: "agency-z"
       auth:
@@ -54,52 +53,10 @@ users:
     directory: "staginguploaderuser1"           # Staging accounts do not support "*" for directory or sub dirs supported.
     auth:
       password: "pass"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+      publicKey: ""
 
   - name: "staginguploaderuser2"
     directory: "staginguploaderuser2"
     auth:
       password: "tiger"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
-
-  - name: "staginguploaderuser3"
-    directory: "staginguploaderuser3"
-    auth:
-      password: "tooth"
-      publicKey: ""
-  
-  - name: "staginguploaderuser4"
-    directory: "staginguploaderuser4"
-    auth:
-      password: "111"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr+mqkNyD1EHXLlvdrYVhTQg0PfSPpJ5UT9c8gyQn8xvTGffv4trigu4bbvWG2LcW2XEfa9g489iXCB2LNMtgbZxYjNL8Mh8oSzgV6Met1e9vWshWSn8/oLgRmTnCanCD9UXKGNvq/LIf64ITMxGpCAYXWIE/3hnVC5AGBKt6l0yNXseqqi54wjgMhlAUFDkjE07BBBH0/j9yAb9s1IdO2Z4j7e4T0mYEiuCMMCSvRvpk86DSoainXMG+69jKWG6HRbE8AmIT0kY4CAGEoba4ORv56uZQ2SuF0s2Ii1fO9s5axq4FnkKbexzqaAO6+2NNDu9whsUDItC7IFLQihXNew== rsa-key-20210301"
-  - name: "staginguploaderuser5"
-    directory: "staginguploaderuser5"
-    auth:
-      password: "55555"
-      publicKey: ""
-  - name: "staginguploaderuser6"
-    directory: "staginguploaderuser6"
-    auth:
-      password: "666666"
-      publicKey: ""
-  - name: "staginguploaderuser7"
-    directory: "staginguploaderuser7"
-    auth:
-      password: "7777777"
-      publicKey: ""
-  - name: "staginguploaderuser8"
-    directory: "staginguploaderuser8"
-    auth:
-      password: "88888888"
-      publicKey: ""
-  - name: "staginguploaderuser9"
-    directory: "staginguploaderuser9"
-    auth:
-      password: "999999999"
-      publicKey: ""
-  - name: "staginguploaderuser10"
-    directory: "staginguploaderuser10"
-    auth:
-      password: "1000000000"
       publicKey: ""

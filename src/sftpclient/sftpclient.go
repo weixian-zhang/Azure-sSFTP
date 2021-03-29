@@ -71,6 +71,7 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 		sftpc.logclient.Infof("SftpClient Downloader %s - walking remote directory %s", sftpc.DLConfig.DLName, walker.Path())
 
 		if walker.Stat().IsDir() { //sync remote and local dir structure
+			sftpc.logclient.Infof("SftpClient Downloader %s - No file detected at %s, continue walking", sftpc.DLConfig.DLName, walker.Path())
 			continue
 		}
 
@@ -113,15 +114,20 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 		sftpc.logclient.Infof("SftpClient Downloader %s - file downloaded successfully from %s@%s:%d-%s to local: %s", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, rmtFilePath, localFullFilePath)
 
 		if sftpc.DLConfig.DeleteRemoteFileAfterDownload {
+
+			sftpc.logclient.Infof("SftpClient Downloader %s - DeleteRemoteFileAfterDownload is true, deleting remote file %s from %s@%s:%d", sftpc.DLConfig.DLName, rmtFilePath, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
+
 			err := sftpc.sftpClient.Remove(rmtFilePath)
 				if err != nil {
 				sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error deleting remote file %s@%s:%d-%s", err, sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, rmtFilePath)
 				return err
 			}
+		} else {
+			sftpc.logclient.Infof("SftpClient Downloader %s - DeleteRemoteFileAfterDownload is false, skip deleting remote file %s from %s@%s:%d", sftpc.DLConfig.DLName, rmtFilePath, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
 		}
 	}
 
-	sftpc.logclient.Infof("SftpClient Downloader %s - disconnect from server %s@%s:%d", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
+	sftpc.logclient.Infof("SftpClient Downloader %s - completed directory walking, disconnecting from server %s@%s:%d", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
 
 	return nil
 }

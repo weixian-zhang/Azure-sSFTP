@@ -29,19 +29,19 @@ const (
 )
 
 type SSFTPYaml struct {
-	SftpPort    int					`json:"sftpPort, yaml:"sftpPort"`
-	EnableVirusScan bool			`json:"enableVirusScan, yaml:"enableVirusScan"`
-	EnableSftpClientDownloader bool `json:"enableSftpClientDownloader, yaml:"enableSftpClientDownloader"`
-	EnableSftpClientUploader bool	`json:"enableSftpClientUploader, yaml:"enableSftpClientUploader"`
-	LogDests []LogDest				`json:"logDests", yaml:"logDests"`
-	Users SSFTPYamlUsers			`json:"users", yaml:"users"`
-	Webhooks []Webhook				`json:"webhooks", yaml:"webhooks"`
-	ClientDownloaders []ClientDownloader	`json:"sftpClientDownloaders", yaml:"sftpClientDownloaders"`
+	SftpPort    int					`yaml:"sftpPort"`
+	EnableVirusScan bool			`yaml:"enableVirusScan"`
+	EnableSftpClientDownloader bool `yaml:"enableSftpClientDownloader"`
+	EnableSftpClientUploader bool	`yaml:"enableSftpClientUploader"`
+	LogDests []LogDest				`yaml:"logDests"`
+	Users SSFTPYamlUsers			`yaml:"users"`
+	Webhooks []Webhook				`yaml:"webhooks"`
+	ClientDownloaders []ClientDownloader	`yaml:"sftpClientDownloaders"`
 }
 
 type  SSFTPYamlUsers struct {
-	StagingDirUsers []user.User		`json:"stagingDir", yaml:"stagingDir"`
-	CleanDirUsers []user.User		`json:"cleanDir", yaml:"cleanDir"`
+	StagingDirUsers []user.User		`yaml:"stagingDir"`
+	CleanDirUsers []user.User		`yaml:"cleanDir"`
 }
 
 type ConfigService struct {
@@ -50,17 +50,31 @@ type ConfigService struct {
 }
 
 type ClientDownloader struct {
-	Name string							`json:"name, yaml:"name"`
-    Host string							`json:"host, yaml:"host"`
-    Port int 							`json:"port, yaml:"port"`
-	Username string						`json:"username, yaml:"username"`
-    Password string						`json:"password, yaml:"password"`
-    PrivatekeyPath string				`json:"privateKeyPath, yaml:"privateKeyPath"`
-	PrivatekeyPassphrase string			`json:"privatekeyPassphrase, yaml:"privatekeyPassphrase"`
-    LocalStagingDirectory string		`json:"localStagingDirectory, yaml:"localStagingDirectory"`
-    RemoteDirectory string				`json:"remoteDirectory, yaml:"remoteDirectory"`
-	DeleteRemoteFileAfterDownload bool	`json:"deleteRemoteFileAfterDownload, yaml:"deleteRemoteFileAfterDownload"`
-    OverrideExistingFile bool			`json:"overrideExistingFile, yaml:"overrideExistingFile"`
+	Name string							`yaml:"name"`
+    Host string							`yaml:"host"`
+    Port int 							`yaml:"port"`
+	Username string						`yaml:"username"`
+    Password string						`yaml:"password"`
+    PrivatekeyPath string				`yaml:"privateKeyPath"`
+	PrivatekeyPassphrase string			`yaml:"privatekeyPassphrase"`
+    LocalStagingDirectory string		`yaml:"localStagingDirectory"`
+    RemoteDirectory string				`yaml:"remoteDirectory"`
+	DeleteRemoteFileAfterDownload bool	`yaml:"deleteRemoteFileAfterDownload"`
+    OverrideExistingFile bool			`yaml:"overrideExistingFile"`
+}
+
+type ClientUploader struct {
+	Name string							`yaml:"name"`
+    Host string							`yaml:"host"`
+    Port int 							`yaml:"port"`
+	Username string						`yaml:"username"`
+    Password string						`yaml:"password"`
+    PrivatekeyPath string				`yaml:"privateKeyPath"`
+	PrivatekeyPassphrase string			`yaml:"privatekeyPassphrase"`
+    LocalStagingDirectory string		`yaml:"localStagingDirectory"`
+    RemoteDirectory string				`yaml:"remoteDirectory"`
+	DeleteRemoteFileAfterDownload bool	`yaml:"deleteRemoteFileAfterDownload"`
+    OverrideRemoteExistingFile bool		`yaml:"overrideRemoteExistingFile"`
 }
 
 type Config struct {

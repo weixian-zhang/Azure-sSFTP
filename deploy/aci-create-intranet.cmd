@@ -1,0 +1,1 @@
+ az container create -g rgGCCSHOL --file .\aci\intranet\deploy-aci-intranetzone.yaml

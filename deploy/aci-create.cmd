@@ -1,1 +1,0 @@
- az container create -g rgGCCSHOL --file .\aci\deploy-aci.yaml

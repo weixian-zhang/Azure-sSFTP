@@ -1,0 +1,1 @@
+az container delete -g rgGCCSHOL -n aci-ssftp-intranetzone -y

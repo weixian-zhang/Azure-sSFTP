@@ -1,7 +1,9 @@
 # Binaries for programs and plugins
 launch.json
-deploy-aci.yaml
-deploy/deploy-aci.yaml
+
+src/ssftp/ssftp.yaml
+deploy/aci/internet
+deploy/aci/intranet
 private.pem
 
 *.exe

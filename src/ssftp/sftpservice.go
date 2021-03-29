@@ -105,7 +105,7 @@ func (ss *SFTPService) Start() {
 
 	ss.netListener = listener
 
-	ss.acceptConns(config)
+	go ss.acceptConns(config)
 }
 
 func (ss *SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
@@ -115,36 +115,26 @@ func (ss *SFTPService) acceptConns(svrConfig *ssh.ServerConfig) {
 		logclient.Infof("SftpService - awaiting client connection")
 
 		newConn, err := ss.netListener.Accept()
+		if err != nil {
+			logclient.ErrIfm("SftpService - error whike Listener accepting connection", err)
+		}
 		
 		logclient.Infof("SftpService - accepted Sftp client from %s, proceeding to authentication", newConn.RemoteAddr())
-
-		rerr := newConn.SetReadDeadline(time.Now().Add(time.Duration(UploadTimeLimitMin) * time.Minute))
-		logclient.ErrIfm("SFTPService - Error while setting read deadline", rerr)
-
-		werr := newConn.SetWriteDeadline(time.Now().Add(time.Duration(UploadTimeLimitMin) * time.Minute))
-		logclient.ErrIfm("SFTPService - Error while setting write deadline", werr)
-
-		if err != nil {
-			logclient.ErrIfm("Failed to accept incoming SSH connection", err)
-			continue
-		}
 
 		go ss.handleConnectingClients(newConn, svrConfig)
 	}
 }
 
 func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.ServerConfig) {
+	//defer conn.Close()
 
 	debugStream := os.Stderr
 
-	// go func() {
-	// 	time.Sleep(2 * time.Second)
+	rerr := conn.SetReadDeadline(time.Now().Add(time.Duration(UploadTimeLimitMin) * time.Minute))
+	logclient.ErrIfm("SFTPService - Error while setting read deadline", rerr)
 
-	// 	logclient.Info("SFTPService - Client handshake took more than 10mins, timing out")
-
-	// 	conn.Close()
-
-	// }()
+	werr := conn.SetWriteDeadline(time.Now().Add(time.Duration(UploadTimeLimitMin) * time.Minute))
+	logclient.ErrIfm("SFTPService - Error while setting write deadline", werr)
 
 	// Before use, a handshake must be performed on the incoming
 	_, chans, reqs, err := ssh.NewServerConn(conn, svrConfig)

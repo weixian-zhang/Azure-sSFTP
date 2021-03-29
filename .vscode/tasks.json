@@ -70,8 +70,8 @@
             "problemMatcher": []
         },
         {
-            "label": "ACI Delete",
-            "command": "aci-remove.cmd",
+            "label": "sSFTP ACI Delete Internet",
+            "command": "aci-remove-internet.cmd",
             "type": "shell",
             "args": [],
             "options": {
@@ -81,8 +81,30 @@
             "problemMatcher": []
         },
         {
-            "label": "ACI Create",
-            "command": "aci-create.cmd",
+            "label": "sSFTP ACI Create Internet",
+            "command": "aci-create-internet.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "sSFTP ACI Delete Intranet",
+            "command": "aci-remove-intranet.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "sSFTP ACI Create Intranet",
+            "command": "aci-create-intranet.cmd",
             "type": "shell",
             "args": [],
             "options": {
