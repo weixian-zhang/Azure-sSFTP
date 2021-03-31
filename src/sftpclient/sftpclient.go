@@ -1,25 +1,29 @@
 package sftpclient
 
 import (
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
 	"github.com/pkg/sftp"
 	"github.com/weixian-zhang/ssftp/logc"
-	"golang.org/x/crypto/ssh"
 	"github.com/weixian-zhang/ssftp/putty"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
+	"golang.org/x/crypto/ssh"
 )
 
 type SftpClient struct {
 	DLConfig *DownloaderConfig
+	UplConfig *UploaderConfig
 	sftpClient *sftp.Client
 	logclient *logc.LogClient
+	uploadpaths UploadPaths
 }
 
 type DownloaderConfig struct {
@@ -40,26 +44,54 @@ type DownloaderConfig struct {
 	
 }
 
-func NewSftpClient(config *DownloaderConfig, logclient *logc.LogClient) *SftpClient {
+type UploaderConfig struct {
+	UplName string
+	Host string
+	Port int
+	Username string
+	Password string
+	PrivateKeyPath string
+	PrivatekeyPassphrase string
+	LocalCleanBaseDirectory string
+	LocalRemoteUploadArchiveBasePath string
+	LocalDirectoryToUpload string
+	RemoteDirectory string
+	OverrideRemoteExistingFile bool
+}
+
+type UploadPaths struct {
+	fullLocalCleanUploadDir string				//clean dir path + configured local dir
+	fullLocalFilePath string					//fullLocalCleanUploadDir + file name
+	fullArchiveDir string						//RemoteUploadArchivePath + local clean dir
+	fullArchiveWithSubDirsOnly string			//RemoteUploadArchivePath + local clean dir + sub dir difference
+	fullArchiveFilePath string					//RemoteUploadArchivePath + local clean sub dirs + uploaded file name
+	fullRemoteDir string						//remote jailed dir + configured remote dir
+	fullRemoteFilePath string					//remote jailed dir + configured remote dir + file name to upload
+	subDirsDifferenceOnly string				//sub dirs difference between local clean and archive
+}
+
+type StringArray []string
+
+func NewSftpClient(downloaderConfig *DownloaderConfig, uploaderConf *UploaderConfig, logclient *logc.LogClient) *SftpClient {
 	return &SftpClient{
-		DLConfig: config,
+		DLConfig: downloaderConfig,
+		UplConfig: uploaderConf,
 		sftpClient: nil,
 		logclient: logclient,
+		uploadpaths: UploadPaths{},
 	}
 }
 
 func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 
-	//https://sftptogo.com/blog/go-sftp/
-
 	sftpc.logclient.Infof("SftpClient Downloader %s - start seeking files in Sftp server %s@%s:%d", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
 	
 	defer sftpc.sftpClient.Close()
 
-	sftpc.setFullLocalStagingAndRemotePath()
+	sftpc.setDownloaderFullLocalStagingAndRemotePath()
 
 	sftpc.createLocalDir(sftpc.DLConfig.fullLocalStagingDir)
-	
+
 	walker :=  sftpc.sftpClient.Walk(sftpc.DLConfig.fullRemoteDir)
 
 	for walker.Step() {
@@ -132,45 +164,130 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 	return nil
 }
 
-func (sftpc *SftpClient) Connect() (error) {
+func (sftpc *SftpClient) UploadFilesRecursive() (error) {
+	
+	sftpc.logclient.Infof("SftpClient Uploader %s - start seeking local files to upload %s@%s:%d", sftpc.UplConfig.UplName, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+	
+	defer sftpc.sftpClient.Close()
+
+	sftpc.setUploaderFullLocalCleanAndRemotePath()
+
+	//create remote dir if not exist
+	err := sftpc.sftpClient.MkdirAll(sftpc.uploadpaths.fullRemoteDir)
+	if err != nil {
+		sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error creating remote directory %s at %s@%s:%s", err, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullRemoteDir, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+		return err
+	}
+
+	sftpc.logclient.Infof("SftpClient Uploader %s - walking directory %s seeking files to upload", sftpc.UplConfig.UplName, sftpc.uploadpaths.fullLocalCleanUploadDir)
+
+	var filesToUpload = make(StringArray, 0)
+
+	werr := filepath.Walk(sftpc.uploadpaths.fullLocalCleanUploadDir, func(path string, info os.FileInfo, err error) error {
+
+		if !info.IsDir() {
+
+			sftpc.logclient.Infof("SftpClient Uploader %s - detected file %s", sftpc.UplConfig.UplName, path)
+
+			filesToUpload = append(filesToUpload, path)
+		}
+
+		return nil
+	})
+
+ 	if werr != nil {
+		sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error walking local directory %s at %s@%s:%s", werr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullLocalCleanUploadDir, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+		return err
+	}
+
+	if len(filesToUpload) == 0 {
+		sftpc.logclient.Infof("SftpClient Uploader %s - no files detected for upload", sftpc.UplConfig.UplName)
+		return nil
+	}
+
+	sftpc.logclient.Infof("SftpClient Uploader %s - gathered files %s for upload", sftpc.UplConfig.UplName, filesToUpload.toMultiline())
+
+	for _, v := range filesToUpload {
+
+		localFile, err := os.Open(v)
+
+		if err != nil {
+			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error opening local file %s at %s@%s:%s", err, sftpc.UplConfig.UplName, v, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+			continue
+		}
+
+		defer localFile.Close()
+
+		sftpc.setUploaderFilePaths(localFile.Name())
+
+		_, cerr := sftpc.sftpClient.Create(sftpc.uploadpaths.fullRemoteFilePath)
+		if cerr != nil {
+			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error creating remote file %s at %s@%s:%s", cerr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullRemoteFilePath, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+			continue
+		}
+
+		rmtFile, oerr := sftpc.sftpClient.OpenFile(sftpc.uploadpaths.fullRemoteFilePath, (os.O_WRONLY|os.O_CREATE|os.O_TRUNC))
+		if oerr != nil {
+			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error opening remote file %s at %s@%s:%s", oerr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullRemoteFilePath, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+			continue
+		}
+
+		_, coerr := io.Copy(rmtFile, localFile)
+		if coerr != nil {
+			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error uploading local %s to server %s at %s@%s:%s", coerr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullLocalFilePath, sftpc.uploadpaths.fullRemoteFilePath, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+			continue
+		}
+
+		merr := sftpc.moveUploadedFileFromCleanToArchive()
+		if merr != nil {
+			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error moving file %s to archive %s at %s@%s:%s", merr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullLocalFilePath, sftpc.uploadpaths.fullArchiveFilePath, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+			continue
+		}
+	}
+
+	return nil
+}
+
+func (sftpc *SftpClient) Connect(clientName string, host string, port int, username string, password string, privateKeyPath string, privatekeyPassphrase string) (error) {
 
 	authMs := make([]ssh.AuthMethod, 0)
 
-	pkAuthMethod, err := sftpc.newPublicKeyAuthMethod()
-	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error occur while reading private key file. Ignoring Private Key authn.", err, sftpc.DLConfig.DLName)
-	} else {
-		authMs = append(authMs, pkAuthMethod)
+	if privateKeyPath != "" {
+		pkAuthMethod, err := sftpc.newPublicKeyAuthMethod(clientName, privateKeyPath, privatekeyPassphrase)
+		if err != nil {
+			sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error occur while reading private key file. Ignoring Private Key authn.", err, sftpc.DLConfig.DLName)
+		} else {
+			authMs = append(authMs, pkAuthMethod)
+		}
 	}
 	
-	authMs = append(authMs, ssh.Password(sftpc.DLConfig.Password))
+	authMs = append(authMs, ssh.Password(password))
 
 	config := &ssh.ClientConfig{
-		User:           sftpc.DLConfig.Username,
+		User:           username,
 		Auth:           authMs,
 		Timeout:         5 * time.Second,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-	//config.Ciphers = append(config.Config.Ciphers, "aes128-gcm@openssh.com")
 
-	addr := fmt.Sprintf("%s:%d", sftpc.DLConfig.Host, sftpc.DLConfig.Port)
+	addr := fmt.Sprintf("%s:%d", host, port)
 
-	sftpc.logclient.Infof("SftpClient Downloader %s - attempting to login to server %s@%s:%d", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
+	sftpc.logclient.Infof("SftpClient %s - attempting to login to server %s@%s:%d", clientName, username, host, port)
 
 	conn, err := ssh.Dial("tcp", addr, config)
 	
 	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error while logging in server", err, sftpc.DLConfig.DLName)
+		sftpc.logclient.ErrIffmsg("SftpClient %s - error connecting to server at %s@%s:%d", err, clientName,  username, host, port)
 		return err
 	}
 
 	client, err := sftp.NewClient(conn)
 	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error while creating new Sftpclient", err, sftpc.DLConfig.DLName)
+		sftpc.logclient.ErrIffmsg("SftpClient %s - error creating new Sftpclient", err, clientName)
 		return err
 	}
 
-	sftpc.logclient.Infof("SftpClient Downloader %s - successfully login to server %s@%s:%d", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
+	sftpc.logclient.Infof("SftpClient %s - successfully login to server %s@%s:%d", clientName, username, host, port)
 
 	sftpc.sftpClient = client
 
@@ -233,8 +350,8 @@ func (sftpc *SftpClient) isDirFileExist(path string) (bool) {
 	}
 }
 
-func (sftpc *SftpClient) setFullLocalStagingAndRemotePath() {
-	//set configured remote jailed directory + actual working directory
+func (sftpc *SftpClient) setDownloaderFullLocalStagingAndRemotePath() {
+	//set configured remote jailed directory + configured working directory
 	wd, err := sftpc.sftpClient.Getwd()
 	if err != nil {
 		sftpc.DLConfig.fullRemoteDir = sftpc.DLConfig.RemoteDirectory
@@ -249,35 +366,142 @@ func (sftpc *SftpClient) setFullLocalStagingAndRemotePath() {
 	sftpc.DLConfig.fullLocalStagingDir = filepath.Join(sftpc.DLConfig.LocalStagingBaseDirectory, sftpc.DLConfig.LocalStagingDirectory)
 }
 
-func (sftpc *SftpClient) newPublicKeyAuthMethod() (ssh.AuthMethod, error) {
+func (sftpc *SftpClient) setUploaderFullLocalCleanAndRemotePath() {
 
-	bytes, err := ioutil.ReadFile(sftpc.DLConfig.PrivateKeyPath)
+	//set configured remote jailed directory + configured working directory
+	wd, err := sftpc.sftpClient.Getwd()
+
 	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error reading private key from %s", err, sftpc.DLConfig.DLName, sftpc.DLConfig.PrivateKeyPath)
+		sftpc.uploadpaths.fullRemoteDir = sftpc.UplConfig.RemoteDirectory
+	} else {
+		if sftpc.UplConfig.RemoteDirectory != "" {
+			sftpc.uploadpaths.fullRemoteDir = filepath.Join(wd, sftpc.UplConfig.RemoteDirectory)
+		} else {
+			sftpc.uploadpaths.fullRemoteDir = wd
+		}
+	}
+
+	//set full local path
+	sftpc.uploadpaths.fullLocalCleanUploadDir = filepath.Join(sftpc.UplConfig.LocalCleanBaseDirectory, sftpc.UplConfig.LocalDirectoryToUpload)
+
+	//set full local clean remote upload archive path
+	sftpc.uploadpaths.fullArchiveDir = filepath.Join(sftpc.UplConfig.LocalRemoteUploadArchiveBasePath, sftpc.UplConfig.LocalDirectoryToUpload)
+}
+
+func (sftpc *SftpClient) setUploaderFilePaths(uploadFilePath string){
+
+	sftpc.uploadpaths.fullLocalFilePath = uploadFilePath
+
+	dir, _ := filepath.Split(uploadFilePath)
+	cleansed := filepath.Clean(dir)
+	sftpc.uploadpaths.subDirsDifferenceOnly = strings.Replace(cleansed, sftpc.uploadpaths.fullLocalCleanUploadDir, "" , 1)
+
+	localFileToUploadPath := uploadFilePath
+	localFileToUploadPathNameOnly := filepath.Base(localFileToUploadPath)
+	sftpc.uploadpaths.fullRemoteFilePath = filepath.Join(sftpc.uploadpaths.fullRemoteDir, localFileToUploadPathNameOnly)
+	
+	if sftpc.uploadpaths.subDirsDifferenceOnly != "" {
+		sftpc.uploadpaths.fullArchiveWithSubDirsOnly = filepath.Join(sftpc.uploadpaths.fullArchiveDir, sftpc.uploadpaths.subDirsDifferenceOnly)
+		sftpc.uploadpaths.fullArchiveFilePath = filepath.Join(sftpc.uploadpaths.fullArchiveWithSubDirsOnly, localFileToUploadPathNameOnly)
+	} else {
+		sftpc.uploadpaths.fullArchiveFilePath = filepath.Join(sftpc.uploadpaths.fullArchiveDir, localFileToUploadPathNameOnly)
+	}
+
+	sftpc.logclient.Infof("sftpc.uploadpaths.fullArchiveFilePath: %s", sftpc.uploadpaths.fullArchiveFilePath)
+}
+
+func (sftpc *SftpClient) moveUploadedFileFromCleanToArchive() (error) {
+
+	//ensure archive dir and sub dirs exist
+	sftpc.ensureDir(sftpc.uploadpaths.fullArchiveDir)
+	sftpc.ensureDir(sftpc.uploadpaths.fullArchiveWithSubDirsOnly)
+
+	//file has moved by other goroutine
+	if !sftpc.isDirFileExist(sftpc.uploadpaths.fullLocalFilePath) {
+		return nil
+	}
+
+	srcFile, err := os.Open(sftpc.uploadpaths.fullLocalFilePath)
+    if os.IsNotExist(err) {
+		sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error opening source file %s for moving on post upload", err, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullLocalFilePath)
+		return err
+	}
+	defer srcFile.Close()
+
+	// uploadedFileNameOnly := filepath.Base(localUploadedFilePath)
+	// fullArcvPathWithSubDirs := filepath.Join(archivePath, uploadedFileNameOnly)
+
+	sftpc.logclient.Infof("sftpc.uploadpaths.fullArchiveFilePath: %s", sftpc.uploadpaths.fullArchiveFilePath)
+
+    destFile, err := os.Create(sftpc.uploadpaths.fullArchiveFilePath)
+    if err != nil {
+		srcFile.Close()
+		sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error creating destination file %s for moving on post upload", err, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullArchiveFilePath)
+		return err
+	}
+    defer destFile.Close()
+
+    _, err = io.Copy(destFile, srcFile)
+    srcFile.Close()
+    if err != nil {
+        sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error copying source file %s to destination file %s on post upload", err, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullLocalFilePath, sftpc.uploadpaths.fullArchiveFilePath)
+		return err
+    }
+
+    // The copy was successful, so now delete the original file
+    rerr := os.Remove(sftpc.uploadpaths.fullLocalFilePath)
+    if rerr != nil {
+		sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error deleting source file %s after moving file to archive on post upload", rerr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullLocalFilePath)
+		return rerr
+	}
+
+	return nil
+}
+
+func (sftpc *SftpClient) ensureDir(path string) {
+	if _, serr := os.Stat(path); serr != nil {
+		merr := os.MkdirAll(path, os.ModeDir)
+		if merr != nil {
+		  sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - ensureDir throws error when creating nested directory %s", merr, sftpc.UplConfig.UplName, path)
+		}
+	  }
+}
+
+func (stra StringArray) toMultiline() (string) {
+	var multil string
+	for _, v := range stra {
+		multil += v
+		multil += "\n"
+	}
+	return multil
+}
+
+//cert authn
+func (sftpc *SftpClient) newPublicKeyAuthMethod(clientName string, privateKeyPath string, privatekeyPassphrase string) (ssh.AuthMethod, error) {
+
+	bytes, err := ioutil.ReadFile(privateKeyPath)
+	if err != nil {
+		sftpc.logclient.ErrIffmsg("SftpClient %s - error reading private key from %s", err, clientName, privateKeyPath)
 		return nil, err
     }
 	
-	signer, err := sftpc.getSignerFromPrivateKey(bytes)
+	signer, err := sftpc.getSignerFromPrivateKey(clientName, bytes, privateKeyPath, privatekeyPassphrase)
 	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error parsing pem key private key %s, try parsing in putty .ppk format", err, sftpc.DLConfig.DLName, sftpc.DLConfig.PrivateKeyPath)
+		sftpc.logclient.ErrIffmsg("SftpClient %s - error parsing pem key private key %s, try parsing in putty .ppk format", err, clientName, privateKeyPath)
 		return nil, err
     }
 
 	return ssh.PublicKeys(signer), nil
 }
 
-func (sftpc *SftpClient) getSignerFromPrivateKey(pemBytes []byte) (ssh.Signer, error) {
+func (sftpc *SftpClient) getSignerFromPrivateKey(clientName string, pemBytes []byte, privateKeyPath string, privatekeyPassphrase string) (ssh.Signer, error) {
 
-	// read pem block
-
-	
-	
 	pemBlock, _ := pem.Decode(pemBytes)
 	if pemBlock == nil {
-		sftpc.logclient.Infof("SftpClient Downloader %s - try to parse private key as PEM format failed for %s. Attempting Putty PPK key parsing", sftpc.DLConfig.DLName, sftpc.DLConfig.PrivateKeyPath)
+		sftpc.logclient.Infof("SftpClient %s - try to parse private key as PEM format failed for %s. Attempting Putty PPK key parsing", clientName, privateKeyPath)
 
 		// parse PPK format (RSA, EC or DSA key)
-		signerFrmPPK, ppkerr := sftpc.signerFromPPK()
+		signerFrmPPK, ppkerr := sftpc.signerFromPPK(clientName, privateKeyPath, privatekeyPassphrase)
 
 		if ppkerr != nil {
 			return nil ,ppkerr
@@ -290,7 +514,7 @@ func (sftpc *SftpClient) getSignerFromPrivateKey(pemBytes []byte) (ssh.Signer, e
 	// handle encrypted key
 	if x509.IsEncryptedPEMBlock(pemBlock) {
 		// decrypt PEM
-		pemBlock.Bytes, err = x509.DecryptPEMBlock(pemBlock, []byte(sftpc.DLConfig.PrivatekeyPassphrase))
+		pemBlock.Bytes, err = x509.DecryptPEMBlock(pemBlock, []byte(privatekeyPassphrase))
 		if err != nil {
 			return nil, fmt.Errorf("Decrypting PEM block failed %v", err)
 		}
@@ -347,38 +571,38 @@ func (sftpc *SftpClient) parsePemBlock(block *pem.Block) (interface{}, error) {
 	}
 }
 
-func (sftpc *SftpClient) signerFromPPK() (ssh.Signer, error) {
+func (sftpc *SftpClient) signerFromPPK(clientName string, privateKeyPath string, privatekeyPassphrase string) (ssh.Signer, error) {
 	
 	var privateKey interface{}
 
 	// read the key
 	puttyKey, err := putty.NewFromFile(sftpc.DLConfig.PrivateKeyPath)
 	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error parsing ppk private key %s", err, sftpc.DLConfig.DLName, sftpc.DLConfig.PrivateKeyPath)
+		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error parsing ppk private key %s", err, clientName, privateKeyPath)
 		return nil, err
 	}
 
 	// parse putty key
 	if puttyKey.Encryption != "none" {
 		// If the key is encrypted, decrypt it
-		privateKey, err = puttyKey.ParseRawPrivateKey([]byte(sftpc.DLConfig.PrivatekeyPassphrase))
+		privateKey, err = puttyKey.ParseRawPrivateKey([]byte(privatekeyPassphrase))
 		if err != nil {
 			privateKey = nil
-			sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error decrypting ppk private key %s using passphrase %s", err, sftpc.DLConfig.DLName, sftpc.DLConfig.PrivateKeyPath, sftpc.DLConfig.PrivatekeyPassphrase)
+			sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error decrypting ppk private key %s using passphrase %s", err, clientName, privateKeyPath, privatekeyPassphrase)
 			return nil, err
 		}
 	} else {
 		privateKey, err = puttyKey.ParseRawPrivateKey(nil)
 		if err != nil {
 			privateKey = nil
-			sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error parsing raw ppk private key %s", err, sftpc.DLConfig.DLName, sftpc.DLConfig.PrivateKeyPath)
+			sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error parsing raw ppk private key %s", err, clientName, privateKeyPath)
 		}
 	}
 
 	signer, err := ssh.NewSignerFromKey(privateKey)
 
 	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error creating new signer from raw ppk private key %s", err, sftpc.DLConfig.DLName, sftpc.DLConfig.PrivateKeyPath)
+		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error creating new signer from raw ppk private key %s", err, clientName, privateKeyPath)
 		return nil, err
 	}
 	

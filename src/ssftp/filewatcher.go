@@ -273,15 +273,15 @@ func (fw *FileWatcher) fileSizeMb(file string) (newSize int) {
 	return newSize
 }
 
-func (fw *FileWatcher) startWatchConfigFileChange() {
+func (fw *FileWatcher) startWatchConfigFileChange(configChange chan bool) {
 
-	go fw.registerConfigFileChangeEvent()
+	go fw.registerConfigFileChangeEvent(configChange)
 
 	serr := fw.configWatcher.Start(time.Millisecond * 300)
 	logclient.ErrIf(serr)
 }
 
-func (fw *FileWatcher) registerConfigFileChangeEvent() {
+func (fw *FileWatcher) registerConfigFileChangeEvent(configChange chan bool) {
 	for {
 		select {
 			case err := <- fw.configWatcher.Error:
@@ -303,9 +303,13 @@ func (fw *FileWatcher) registerConfigFileChangeEvent() {
 
 						config := <- loaded
 
+						fw.confsvc.config = &config
+
 						logclient.Infof("FileWatcher - Config file loaded successfully")
 
-						fw.usergov.SetUsers(config.Users)
+						//fw.usergov.SetUsers(config.Users)
+
+						configChange <- true
 					}
 				}
 		}

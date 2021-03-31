@@ -108,7 +108,10 @@ func (ol *Overlord) Start(exit chan bool) {
 
 	go ol.StartSftpClientsDownloadFiles()
 
-	go ol.fileWatcher.startWatchConfigFileChange()
+	go ol.StartSftpClientsUploadFiles()
+
+	configChange := make(chan bool)
+	go ol.watchConfigFileChanges(configChange)
 
 	go ol.fileWatcher.ScavengeUploadedFiles()
 
@@ -139,7 +142,29 @@ func (ol *Overlord) NewSFTPClients() {
 					OverrideExistingFile: v.OverrideExistingFile,
 				}
 
-		sftpc := sftpclient.NewSftpClient(sftpcConf, &logclient)
+		sftpc := sftpclient.NewSftpClient(sftpcConf, nil, &logclient)
+
+		sftpcs = append(sftpcs, sftpc)
+	}
+
+	for _, v := range ol.confsvc.config.ClientUploaders {
+
+		sftpcConf := &sftpclient.UploaderConfig{
+					UplName: v.Name,
+					Host: v.Host,
+					Port: v.Port,
+					Username: v.Username,
+					Password: v.Password,
+					PrivateKeyPath: v.PrivatekeyPath,
+					PrivatekeyPassphrase: v.PrivatekeyPassphrase,
+					RemoteDirectory: v.RemoteDirectory,
+					LocalCleanBaseDirectory: ol.confsvc.config.CleanPath,
+					LocalRemoteUploadArchiveBasePath: ol.confsvc.config.LocalRemoteUploadArchiveBasePath,
+					LocalDirectoryToUpload: v.LocalDirectoryToUpload,
+					OverrideRemoteExistingFile: v.OverrideRemoteExistingFile,
+				}
+
+		sftpc := sftpclient.NewSftpClient(nil, sftpcConf, &logclient)
 
 		sftpcs = append(sftpcs, sftpc)
 	}
@@ -149,7 +174,7 @@ func (ol *Overlord) NewSFTPClients() {
 
 func (ol *Overlord) StartSftpClientsDownloadFiles() {
 	
-	logclient.Infof("Overlord - SFTP clients start connecting to SFTP servers")
+	logclient.Infof("Overlord - SFTP client downloader start connecting to SFTP servers")
 
 	go func() {
 
@@ -163,13 +188,13 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 				continue
 			}
 
-			//TODO:
-				//continuously connect/reconnect/ignore when connected
-				//once connected, start downloading file for each sftp client
-
 			for _, v := range ol.sftpclients {
 
-				err := v.Connect()
+				if v.DLConfig == nil {
+					continue
+				}
+
+				err := v.Connect(v.DLConfig.DLName, v.DLConfig.Host, v.DLConfig.Port, v.DLConfig.Username, v.DLConfig.Password, v.DLConfig.PrivateKeyPath, v.DLConfig.PrivatekeyPassphrase)
 				if err != nil {
 					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.DLConfig.Host, v.DLConfig.Port)
 					continue
@@ -190,10 +215,77 @@ func (ol *Overlord) DownloadFilesFromSFTPServer(sftpc *sftpclient.SftpClient, wg
 
 	err := sftpc.DownloadFilesRecursive()
 	if err != nil {
-		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download host: %s, port: %d",err, sftpc.DLConfig.Host, sftpc.DLConfig.Port )
+		logclient.ErrIffmsg("Overlord - error while executing Sftp client file download to %s@%s:%s", err, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
 	}
 
 	wg.Done()
+}
+
+func (ol *Overlord) StartSftpClientsUploadFiles() {
+	logclient.Infof("Overlord - SFTP client uploader start connecting to SFTP servers")
+
+	go func() {
+
+		wg := sync.WaitGroup{}
+
+		for {
+
+			if !ol.confsvc.config.EnableSftpClientUploader {
+				logclient.Infof("Overlord - EnableSftpClientUploader is false, uploaders are disabled")
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			//TODO loop thru uploaders only
+			for _, v := range ol.sftpclients {
+
+				if v.UplConfig == nil {
+					continue
+				}
+
+				err := v.Connect(v.UplConfig.UplName, v.UplConfig.Host, v.UplConfig.Port, v.UplConfig.Username, v.UplConfig.Password, v.UplConfig.PrivateKeyPath, v.UplConfig.PrivatekeyPassphrase)
+				if err != nil {
+					logclient.ErrIffmsg("Overlord - error while uploader connects to s@%s:%s", err, v.UplConfig.Username, v.UplConfig.Host, v.UplConfig.Port)
+					continue
+				}
+				
+
+				go ol.UploadFilesToSFTPServer(v, &wg)
+				wg.Add(1)
+			}
+
+			wg.Wait()
+
+			time.Sleep(5 * time.Second)
+
+		}
+	}()
+}
+
+func (ol *Overlord) UploadFilesToSFTPServer(sftpc *sftpclient.SftpClient, wg *sync.WaitGroup) {
+
+	err := sftpc.UploadFilesRecursive()
+	if err != nil {
+		logclient.ErrIffmsg("Overlord - error while executing uploader on %s@%s:%s",err, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
+	}
+
+	wg.Done()
+}
+
+func (ol *Overlord) watchConfigFileChanges(configchange chan bool) {
+
+	go ol.fileWatcher.startWatchConfigFileChange(configchange)
+
+	for {
+		select{
+			//recreate Sftpclients on config change
+			case <- configchange:
+				ol.NewSFTPClients()
+
+				ol.fileWatcher.usergov.SetUsers(ol.confsvc.config.Users)
+
+		}
+	}
 }
 
 func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {

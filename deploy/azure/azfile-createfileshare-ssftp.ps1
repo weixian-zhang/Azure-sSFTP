@@ -2,7 +2,6 @@ $rg = "rgGCCSHOL"
 $strgname = "strgssftpintranet"
 $location = "Southeast Asia"
 $fsStaging = "ssftp-staging"
-$fsRemoteUpload = "ssftp-remoteupload"
 $fsClean = "ssftp-clean"
 $fsQuarantine = "ssftp-quarantine"
 $fsSystem= "ssftp-system"
@@ -19,8 +18,6 @@ $storageAcct = New-AzStorageAccount `
 $storageContext = (Get-AzStorageAccount -Name $strgname -ResourceGroupName $rg).Context
 
 New-AzStorageShare -Context $storageContext -Name $fsStaging
-
-New-AzStorageShare -Context $storageContext -Name $fsRemoteUpload
 
 New-AzStorageShare -Context $storageContext -Name $fsClean
 

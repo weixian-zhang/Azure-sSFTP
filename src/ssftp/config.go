@@ -17,7 +17,7 @@ const (
 	SystemConfigPath = "/mnt/ssftp/system/ssftp.yaml"
 	SystemConfigFileName = "ssftp.yaml"
 	StagingPath = "/mnt/ssftp/staging"
-	RemoteUploadPath =  "/mnt/ssftp/remoteupload"
+	LocalRemoteUploadArchiveBasePath =  "/mnt/ssftp/clean/remoteupload-archive"
 	CleanPath = "/mnt/ssftp/clean"
 	QuarantinePath = "/mnt/ssftp/quarantine"
 	ErrorPath =  "/mnt/ssftp/error"
@@ -37,6 +37,7 @@ type SSFTPYaml struct {
 	Users SSFTPYamlUsers			`yaml:"users"`
 	Webhooks []Webhook				`yaml:"webhooks"`
 	ClientDownloaders []ClientDownloader	`yaml:"sftpClientDownloaders"`
+	ClientUploaders []ClientUploader	`yaml:"sftpClientUploaders"`
 }
 
 type  SSFTPYamlUsers struct {
@@ -71,9 +72,8 @@ type ClientUploader struct {
     Password string						`yaml:"password"`
     PrivatekeyPath string				`yaml:"privateKeyPath"`
 	PrivatekeyPassphrase string			`yaml:"privatekeyPassphrase"`
-    LocalStagingDirectory string		`yaml:"localStagingDirectory"`
+    LocalDirectoryToUpload string		`yaml:"localDirectoryToUpload"`
     RemoteDirectory string				`yaml:"remoteDirectory"`
-	DeleteRemoteFileAfterDownload bool	`yaml:"deleteRemoteFileAfterDownload"`
     OverrideRemoteExistingFile bool		`yaml:"overrideRemoteExistingFile"`
 }
 
@@ -83,7 +83,7 @@ type Config struct {
 	EnableSftpClientDownloader bool 	`yaml:"enableSftpClientDownloader"`
 	EnableSftpClientUploader bool		`yaml:"enableSftpClientUploader"`
 	StagingPath string					`yaml:"stagingPath"`
-	RemoteUploadBasePath string         `yaml:"remoteUploadPath"`
+	LocalRemoteUploadArchiveBasePath string `yaml:"localRemoteUploadArchiveBasePath"`
 	CleanPath string					`yaml:"cleanPath"`
 	QuarantinePath string				`yaml:"quarantinePath"`
 	ErrorPath string					`yaml:"errorPath"`
@@ -91,6 +91,7 @@ type Config struct {
 	Users []user.User					`yaml:"users"`
 	Webhooks []Webhook					`yaml:"webhooks"`
 	ClientDownloaders []ClientDownloader `yaml:"sftpClientDownloaders"`
+	ClientUploaders []ClientUploader	`yaml:"sftpClientUploaders"`
 }
 
 type Webhook struct {
@@ -115,7 +116,7 @@ const (
 	}
  }
 
-func (c ConfigService) LoadYamlConfig() chan Config {
+func (c *ConfigService) LoadYamlConfig() chan Config {
 
 	loaded := make(chan Config)
 
@@ -139,14 +140,14 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 
 				if os.Getenv("env") == "dev" { //local dev only
 					c.config.StagingPath = "/mnt/c/ssftp/staging"
-					c.config.RemoteUploadBasePath = "/mnt/c/ssftp/remoteupload"
+					c.config.LocalRemoteUploadArchiveBasePath = "/mnt/c/ssftp/clean/remoteupload-archive"
 					c.config.CleanPath =  "/mnt/c/ssftp/clean"
 					c.config.QuarantinePath =  "/mnt/c/ssftp/quarantine"
 					c.config.ErrorPath =  "/mnt/c/ssftp/error"
 					
 				} else {
 					c.config.StagingPath = StagingPath
-					c.config.RemoteUploadBasePath = RemoteUploadPath
+					c.config.LocalRemoteUploadArchiveBasePath = LocalRemoteUploadArchiveBasePath
 					c.config.CleanPath = CleanPath
 					c.config.QuarantinePath = QuarantinePath
 					c.config.ErrorPath = ErrorPath
@@ -163,6 +164,7 @@ func (c ConfigService) LoadYamlConfig() chan Config {
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
 				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
 				c.config.ClientDownloaders = yamlSchema.ClientDownloaders
+				c.config.ClientUploaders = yamlSchema.ClientUploaders
 
 				c.mux.Unlock()
 
