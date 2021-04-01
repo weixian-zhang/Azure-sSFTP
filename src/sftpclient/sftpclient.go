@@ -130,14 +130,12 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 		defer remoteFile.Close()
 
 		//create local file same name as remote file
-		localFile, err := sftpc.createLocalFile(localFullFilePath)
+		localFile, err := sftpc.createLocalFile(localFullFilePath + ".download")
 		
 		if err != nil {
 			return err
 		}
 
-		//mark file as downloading by add file extention .download
-		sftpc.markFileInDownloadingState(localFile.Name(), rmtFilePath)
 		defer localFile.Close()
 
 		sftpc.logclient.Infof("SftpClient Downloader %s - downloading remote file %s@%s:%d-%s", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, rmtFilePath)
@@ -173,25 +171,12 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 	return nil
 }
 
-func (sftpc *SftpClient) markFileInDownloadingState(path string, remoteFilePath string) {
-	err := os.Rename(path, path + ".download")
-	if err != nil {
-		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error marking file as download %s for %s@%s:%d-%s", err, sftpc.DLConfig.DLName, path, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, remoteFilePath)
-	}
-	// if err := xattr.Set(path, ExtendedAttriPrefix + "isdownloading", []byte("true")); err != nil {
-	// 	sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error setting ext attr on local file %s for %s@%s:%d-%s", err, sftpc.DLConfig.DLName, path, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, remoteFilePath)
-	// }
-}
-
 func (sftpc *SftpClient) unMarkFileInDownloadingState(path string, remoteFilePath string) {
-	markedFileName := path + ".download"
-	err := os.Rename(markedFileName, path)
+	markedFileName := strings.Replace(path, ".download", "", 1)
+	err := os.Rename(path, markedFileName)
 	if err != nil {
 		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error marking file as download %s for %s@%s:%d-%s", err, sftpc.DLConfig.DLName, path, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, remoteFilePath)
 	}
-	// if rerr := xattr.Remove(path, ExtendedAttriPrefix + "isdownloading"); rerr != nil {
-	// 	sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error removing ext attr isdownloading on local file %s for %s@%s:%d-%s", rerr, sftpc.DLConfig.DLName, path, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, remoteFilePath)
-	// }
 }
 
 func (sftpc *SftpClient) UploadFilesRecursive() (error) {
@@ -278,7 +263,7 @@ func (sftpc *SftpClient) UploadFilesRecursive() (error) {
 	return nil
 }
 
-func (sftpc *SftpClient) Connect(clientName string, host string, port int, username string, password string, privateKeyPath string, privatekeyPassphrase string) (error) {
+func (sftpc *SftpClient) Connect(clientType string, clientName string, host string, port int, username string, password string, privateKeyPath string, privatekeyPassphrase string) (error) {
 
 	authMs := make([]ssh.AuthMethod, 0)
 
@@ -317,7 +302,7 @@ func (sftpc *SftpClient) Connect(clientName string, host string, port int, usern
 		return err
 	}
 
-	sftpc.logclient.Infof("SftpClient %s - successfully login to server %s@%s:%d", clientName, username, host, port)
+	sftpc.logclient.Infof("SftpClient %s %s - successfully login to server %s@%s:%d",clientType clientName, username, host, port)
 
 	sftpc.sftpClient = client
 
@@ -457,9 +442,6 @@ func (sftpc *SftpClient) moveUploadedFileFromCleanToArchive() (error) {
 		return err
 	}
 	defer srcFile.Close()
-
-	// uploadedFileNameOnly := filepath.Base(localUploadedFilePath)
-	// fullArcvPathWithSubDirs := filepath.Join(archivePath, uploadedFileNameOnly)
 
 	sftpc.logclient.Infof("sftpc.uploadpaths.fullArchiveFilePath: %s", sftpc.uploadpaths.fullArchiveFilePath)
 

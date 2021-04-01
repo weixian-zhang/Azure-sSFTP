@@ -194,7 +194,7 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 					continue
 				}
 
-				err := v.Connect(v.DLConfig.DLName, v.DLConfig.Host, v.DLConfig.Port, v.DLConfig.Username, v.DLConfig.Password, v.DLConfig.PrivateKeyPath, v.DLConfig.PrivatekeyPassphrase)
+				err := v.Connect("Downloader", v.DLConfig.DLName, v.DLConfig.Host, v.DLConfig.Port, v.DLConfig.Username, v.DLConfig.Password, v.DLConfig.PrivateKeyPath, v.DLConfig.PrivatekeyPassphrase)
 				if err != nil {
 					logclient.ErrIffmsg("Overlord - error while SftpClient connecting to host: %s, port:%d", err, v.DLConfig.Host, v.DLConfig.Port)
 					continue
@@ -243,7 +243,7 @@ func (ol *Overlord) StartSftpClientsUploadFiles() {
 					continue
 				}
 
-				err := v.Connect(v.UplConfig.UplName, v.UplConfig.Host, v.UplConfig.Port, v.UplConfig.Username, v.UplConfig.Password, v.UplConfig.PrivateKeyPath, v.UplConfig.PrivatekeyPassphrase)
+				err := v.Connect("Uploader", v.UplConfig.UplName, v.UplConfig.Host, v.UplConfig.Port, v.UplConfig.Username, v.UplConfig.Password, v.UplConfig.PrivateKeyPath, v.UplConfig.PrivatekeyPassphrase)
 				if err != nil {
 					logclient.ErrIffmsg("Overlord - error while uploader connects to s@%s:%s", err, v.UplConfig.Username, v.UplConfig.Host, v.UplConfig.Port)
 					continue
