@@ -8,7 +8,7 @@ import (
 	"time"
 	"github.com/radovskyb/watcher"
 	"github.com/weixian-zhang/ssftp/user"
-	"github.com/weixian-zhang/ssftp/xattr"
+	//"github.com/weixian-zhang/ssftp/xattr"
 )
 
 const ExtendedAttriPrefix = "user."
@@ -72,11 +72,21 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 
 	for {
 
+		if !fw.confsvc.config.EnableFileScavenging {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
 		logclient.Infof("FileWatcher - scavenging new files in directory %s", fw.confsvc.config.StagingPath)
 
 		var files []FileUploadContext
 
 		err := filepath.Walk(fw.confsvc.config.StagingPath, func(path string, info os.FileInfo, err error) error {
+
+			if err != nil {
+				logclient.ErrIffmsg("FileWatcher - path walk error occured for %s", err, path)
+				return nil
+			} 
 
 			if !info.IsDir() {
 				
@@ -123,18 +133,11 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 //to determine if download has completed before sending file fo scanning and move
 func (fw *FileWatcher) isScavengedFileDownloadState(path string) (bool) {
 
-	data, err := xattr.Get(path, ExtendedAttriPrefix + "isdownloading");
-	if err != nil {
-		//logclient.ErrIffmsg("FileWatcher - error checking file download state for %s", err, path)
-		return false
-	}
-
-	if data != nil && string(data) == "false" {
-		return false
-	} else {
+	if filepath.Ext(path) == ".download" {
 		return true
+	} else {
+		return false
 	}
-
 }
 
 //checkScavengedFilesUploadState checks files' upload state where info is supplied by pkgsftp.server.go

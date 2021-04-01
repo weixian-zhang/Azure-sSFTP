@@ -31,6 +31,7 @@ const (
 type SSFTPYaml struct {
 	SftpPort    int					`yaml:"sftpPort"`
 	EnableVirusScan bool			`yaml:"enableVirusScan"`
+	EnableFileScavenging bool		`yaml:"enableFileScavenging"`
 	EnableSftpClientDownloader bool `yaml:"enableSftpClientDownloader"`
 	EnableSftpClientUploader bool	`yaml:"enableSftpClientUploader"`
 	LogDests []LogDest				`yaml:"logDests"`
@@ -80,6 +81,7 @@ type ClientUploader struct {
 type Config struct {
 	SftpPort    int						`yaml:"sftpPort"`
 	EnableVirusScan bool				`yaml:"enableVirusScan"`
+	EnableFileScavenging bool			`yaml:"enableFileScavenging"`
 	EnableSftpClientDownloader bool 	`yaml:"enableSftpClientDownloader"`
 	EnableSftpClientUploader bool		`yaml:"enableSftpClientUploader"`
 	StagingPath string					`yaml:"stagingPath"`
@@ -159,6 +161,7 @@ func (c *ConfigService) LoadYamlConfig() chan Config {
 				c.config.Webhooks = yamlSchema.Webhooks
 				c.config.LogDests = yamlSchema.LogDests
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
+				c.config.EnableFileScavenging = yamlSchema.EnableFileScavenging
 				c.config.EnableSftpClientDownloader = yamlSchema.EnableSftpClientDownloader
 				c.config.EnableSftpClientUploader = yamlSchema.EnableSftpClientUploader
 				c.config.EnableVirusScan = yamlSchema.EnableVirusScan

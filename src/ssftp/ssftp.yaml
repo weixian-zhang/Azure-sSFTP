@@ -1,5 +1,6 @@
 sftpPort: 2002                      # port of your choice
 enableVirusScan: true               #if disabled, files in Staging will remain and not moved
+enableFileScavenging: true
 enableSftpClientDownloader: true
 enableSftpClientUploader: false
 webhooks:   
