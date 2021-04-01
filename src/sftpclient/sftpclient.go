@@ -13,10 +13,13 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
+	"github.com/weixian-zhang/ssftp/xattr"
 	"github.com/weixian-zhang/ssftp/logc"
 	"github.com/weixian-zhang/ssftp/putty"
 	"golang.org/x/crypto/ssh"
 )
+
+const ExtendedAttriPrefix = "user."
 
 type SftpClient struct {
 	DLConfig *DownloaderConfig
@@ -132,6 +135,9 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 		if err != nil {
 			return err
 		}
+
+		//remove isdownloading ext attr
+		sftpc.markFileInDownloadingState(localFile.Name(), rmtFilePath)
 		defer localFile.Close()
 
 		sftpc.logclient.Infof("SftpClient Downloader %s - downloading remote file %s@%s:%d-%s", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, rmtFilePath)
@@ -142,6 +148,9 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 			sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error while downloading file from %s", err, rmtFilePath, sftpc.DLConfig.DLName)
 			return err
 		}
+
+		//set ext attr "isdownloading" false
+		defer sftpc.unMarkFileInDownloadingState(localFile.Name(), rmtFilePath)
 
 		sftpc.logclient.Infof("SftpClient Downloader %s - file downloaded successfully from %s@%s:%d-%s to local: %s", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, rmtFilePath, localFullFilePath)
 
@@ -162,6 +171,18 @@ func (sftpc *SftpClient) DownloadFilesRecursive() (error) {
 	sftpc.logclient.Infof("SftpClient Downloader %s - completed directory walking, disconnecting from server %s@%s:%d", sftpc.DLConfig.DLName, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port)
 
 	return nil
+}
+
+func (sftpc *SftpClient) markFileInDownloadingState(path string, remoteFilePath string) {
+	if err := xattr.Set(path, ExtendedAttriPrefix + "isdownloading", []byte("true")); err != nil {
+		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error setting ext attr on local file %s for %s@%s:%d-%s", err, sftpc.DLConfig.DLName, path, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, remoteFilePath)
+	}
+}
+
+func (sftpc *SftpClient) unMarkFileInDownloadingState(path string, remoteFilePath string) {
+	if rerr := xattr.Remove(path, ExtendedAttriPrefix + "isdownloading"); rerr != nil {
+		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error removing ext attr isdownloading on local file %s for %s@%s:%d-%s", rerr, sftpc.DLConfig.DLName, path, sftpc.DLConfig.Username, sftpc.DLConfig.Host, sftpc.DLConfig.Port, remoteFilePath)
+	}
 }
 
 func (sftpc *SftpClient) UploadFilesRecursive() (error) {

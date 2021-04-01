@@ -8,7 +8,10 @@ import (
 	"time"
 	"github.com/radovskyb/watcher"
 	"github.com/weixian-zhang/ssftp/user"
+	"github.com/weixian-zhang/ssftp/xattr"
 )
+
+const ExtendedAttriPrefix = "user."
 
 type ScavengedFileProcessContext struct {
 	Name string
@@ -76,9 +79,14 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 		err := filepath.Walk(fw.confsvc.config.StagingPath, func(path string, info os.FileInfo, err error) error {
 
 			if !info.IsDir() {
-				files = append(files, FileUploadContext{
-					Path: path,
-				})
+				
+				if !fw.isScavengedFileDownloadState(path) {
+					files = append(files, FileUploadContext{
+						Path: path,
+					})
+				} else {
+					logclient.Infof("Filewatcher - detected file %s in downloading state, skipping file", path)
+				}
 			}
 
 			return nil
@@ -111,6 +119,25 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 	}
 }
 
+//checkScavengedFileDownloadState checks extended attribute of file set by Downloader
+//to determine if download has completed before sending file fo scanning and move
+func (fw *FileWatcher) isScavengedFileDownloadState(path string) (bool) {
+
+	data, err := xattr.Get(path, ExtendedAttriPrefix + "isdownloading");
+	if err != nil {
+		//logclient.ErrIffmsg("FileWatcher - error checking file download state for %s", err, path)
+		return false
+	}
+
+	if data != nil && string(data) == "false" {
+		return false
+	} else {
+		return true
+	}
+
+}
+
+//checkScavengedFilesUploadState checks files' upload state where info is supplied by pkgsftp.server.go
 func (fw *FileWatcher) checkScavengedFilesUploadState(scanvengedFiles []FileUploadContext) ([]FileUploadContext, bool) {
 	logclient.Info("FileWatcher - Checking file upload state")
 
@@ -306,8 +333,6 @@ func (fw *FileWatcher) registerConfigFileChangeEvent(configChange chan bool) {
 						fw.confsvc.config = &config
 
 						logclient.Infof("FileWatcher - Config file loaded successfully")
-
-						//fw.usergov.SetUsers(config.Users)
 
 						configChange <- true
 					}

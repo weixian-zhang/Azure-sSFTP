@@ -1,7 +1,7 @@
 sftpPort: 2002                      # port of your choice
 enableVirusScan: true               #if disabled, files in Staging will remain and not moved
-enableSftpClientDownloader: false
-enableSftpClientUploader: true
+enableSftpClientDownloader: true
+enableSftpClientUploader: false
 webhooks:   
   - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
     url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
@@ -11,18 +11,29 @@ logDests:                           # optional, default logging to StdOut.
   - kind: file                      # conventional do not change
     props:
       path: "/mnt/ssftp/log"
-sftpClientDownloaders:              #downloads to staging directory for scanning, /mnt/ssftp/staging
-  - name: "client-dl-system1"
-    host: "192.169.2.4"
-    port: 2002
-    username: "cleanfileuser1"
-    password: ""
-    privateKeyPath: "/mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/ssftp-internetzone-cleanfileuser1.ppk"
-    privatekeyPassphrase: "p1"
-    localStagingDirectory: "ssftp-internetzone-cleanfileuser1"    #base staging directory staging /mnt/ssftp/staging/{localStagingDirectory}
-    remoteDirectory: "clientdownload"             #leave it empty if no remote sub dir
-    deleteRemoteFileAfterDownload: true
+sftpClientDownloaders:              #downloads to default staging directory for scanning, /mnt/ssftp/staging
+  - name: "test.rebex.net-1"
+    host: "test.rebex.net"
+    port: 22
+    username: "demo"
+    password: "password"
+    privateKeyPath: ""
+    privatekeyPassphrase: ""
+    localStagingDirectory: "test.rebex.net-1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
+    remoteDirectory: ""             #leave it empty if no remote sub dir
+    deleteRemoteFileAfterDownload: false
     overrideExistingFile: true
+  # - name: "client-dl-system1"
+  #   host: "192.169.2.4"
+  #   port: 2002
+  #   username: "cleanfileuser1"
+  #   password: ""
+  #   privateKeyPath: "/mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/ssftp-internetzone-cleanfileuser1.ppk"
+  #   privatekeyPassphrase: "p1"
+  #   localStagingDirectory: "ssftp-internetzone-cleanfileuser1"    #base staging directory staging /mnt/ssftp/staging/{localStagingDirectory}
+  #   remoteDirectory: "clientdownload"             #leave it empty if no remote sub dir
+  #   deleteRemoteFileAfterDownload: true
+  #   overrideExistingFile: true
 sftpClientUploaders:                #uploads from clean directory, /mnt/ssftp/clean
   - name: "client-upl-staginguploaderuser1"
     host: "localhost"
