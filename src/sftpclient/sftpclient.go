@@ -64,6 +64,7 @@ type UploaderConfig struct {
 type UploadPaths struct {
 	fullLocalCleanUploadDir string				//clean dir path + configured local dir
 	fullLocalFilePath string					//fullLocalCleanUploadDir + file name
+	archiveBaseDir string						//found in config.go /mnt/ssfpt/clean/remoteupload-archive
 	fullArchiveDir string						//RemoteUploadArchivePath + local clean dir
 	fullArchiveWithSubDirsOnly string			//RemoteUploadArchivePath + local clean dir + sub dir difference
 	fullArchiveFilePath string					//RemoteUploadArchivePath + local clean sub dirs + uploaded file name
@@ -80,7 +81,6 @@ func NewSftpClient(downloaderConfig *DownloaderConfig, uploaderConf *UploaderCon
 		UplConfig: uploaderConf,
 		sftpClient: nil,
 		logclient: logclient,
-		uploadpaths: UploadPaths{},
 	}
 }
 
@@ -186,6 +186,8 @@ func (sftpc *SftpClient) UploadFilesRecursive() (error) {
 	defer sftpc.sftpClient.Close()
 
 	sftpc.setUploaderFullLocalCleanAndRemotePath()
+
+	sftpc.ensureDir(sftpc.uploadpaths.archiveBaseDir)
 
 	//create remote dir if not exist
 	err := sftpc.sftpClient.MkdirAll(sftpc.uploadpaths.fullRemoteDir)
@@ -302,7 +304,7 @@ func (sftpc *SftpClient) Connect(clientType string, clientName string, host stri
 		return err
 	}
 
-	sftpc.logclient.Infof("SftpClient %s %s - successfully login to server %s@%s:%d",clientType clientName, username, host, port)
+	sftpc.logclient.Infof("SftpClient %s %s - successfully login to server %s@%s:%d",clientType, clientName, username, host, port)
 
 	sftpc.sftpClient = client
 
@@ -366,6 +368,9 @@ func (sftpc *SftpClient) isDirFileExist(path string) (bool) {
 }
 
 func (sftpc *SftpClient) setDownloaderFullLocalStagingAndRemotePath() {
+
+	sftpc.uploadpaths = UploadPaths{}
+
 	//set configured remote jailed directory + configured working directory
 	wd, err := sftpc.sftpClient.Getwd()
 	if err != nil {
@@ -383,6 +388,8 @@ func (sftpc *SftpClient) setDownloaderFullLocalStagingAndRemotePath() {
 
 func (sftpc *SftpClient) setUploaderFullLocalCleanAndRemotePath() {
 
+	sftpc.uploadpaths.archiveBaseDir = sftpc.UplConfig.LocalRemoteUploadArchiveBasePath
+
 	//set configured remote jailed directory + configured working directory
 	wd, err := sftpc.sftpClient.Getwd()
 
@@ -398,12 +405,15 @@ func (sftpc *SftpClient) setUploaderFullLocalCleanAndRemotePath() {
 
 	//set full local path
 	sftpc.uploadpaths.fullLocalCleanUploadDir = filepath.Join(sftpc.UplConfig.LocalCleanBaseDirectory, sftpc.UplConfig.LocalDirectoryToUpload)
-
-	//set full local clean remote upload archive path
-	sftpc.uploadpaths.fullArchiveDir = filepath.Join(sftpc.UplConfig.LocalRemoteUploadArchiveBasePath, sftpc.UplConfig.LocalDirectoryToUpload)
 }
 
 func (sftpc *SftpClient) setUploaderFilePaths(uploadFilePath string){
+
+	sftpc.uploadpaths.fullLocalFilePath = ""
+	sftpc.uploadpaths.subDirsDifferenceOnly = ""
+	sftpc.uploadpaths.fullRemoteFilePath  = ""
+	sftpc.uploadpaths.fullArchiveDir = ""
+	sftpc.uploadpaths.fullArchiveFilePath = ""
 
 	sftpc.uploadpaths.fullLocalFilePath = uploadFilePath
 
@@ -415,21 +425,17 @@ func (sftpc *SftpClient) setUploaderFilePaths(uploadFilePath string){
 	localFileToUploadPathNameOnly := filepath.Base(localFileToUploadPath)
 	sftpc.uploadpaths.fullRemoteFilePath = filepath.Join(sftpc.uploadpaths.fullRemoteDir, localFileToUploadPathNameOnly)
 	
-	if sftpc.uploadpaths.subDirsDifferenceOnly != "" {
-		sftpc.uploadpaths.fullArchiveWithSubDirsOnly = filepath.Join(sftpc.uploadpaths.fullArchiveDir, sftpc.uploadpaths.subDirsDifferenceOnly)
-		sftpc.uploadpaths.fullArchiveFilePath = filepath.Join(sftpc.uploadpaths.fullArchiveWithSubDirsOnly, localFileToUploadPathNameOnly)
-	} else {
-		sftpc.uploadpaths.fullArchiveFilePath = filepath.Join(sftpc.uploadpaths.fullArchiveDir, localFileToUploadPathNameOnly)
-	}
+	//set full local clean remote upload archive path
+	sftpc.uploadpaths.fullArchiveDir = filepath.Join(sftpc.UplConfig.LocalRemoteUploadArchiveBasePath, sftpc.UplConfig.LocalDirectoryToUpload, sftpc.uploadpaths.subDirsDifferenceOnly)
 
-	sftpc.logclient.Infof("sftpc.uploadpaths.fullArchiveFilePath: %s", sftpc.uploadpaths.fullArchiveFilePath)
+	sftpc.uploadpaths.fullArchiveFilePath  = filepath.Join(sftpc.uploadpaths.fullArchiveDir, localFileToUploadPathNameOnly)
 }
 
 func (sftpc *SftpClient) moveUploadedFileFromCleanToArchive() (error) {
 
 	//ensure archive dir and sub dirs exist
+	//sftpc.ensureDir(sftpc.uploadpaths.fullArchiveDir)
 	sftpc.ensureDir(sftpc.uploadpaths.fullArchiveDir)
-	sftpc.ensureDir(sftpc.uploadpaths.fullArchiveWithSubDirsOnly)
 
 	//file has moved by other goroutine
 	if !sftpc.isDirFileExist(sftpc.uploadpaths.fullLocalFilePath) {
@@ -443,7 +449,8 @@ func (sftpc *SftpClient) moveUploadedFileFromCleanToArchive() (error) {
 	}
 	defer srcFile.Close()
 
-	sftpc.logclient.Infof("sftpc.uploadpaths.fullArchiveFilePath: %s", sftpc.uploadpaths.fullArchiveFilePath)
+	sftpc.logclient.Infof("***sftpc.uploadpaths.fullArchiveFilePath***: %s", sftpc.uploadpaths.fullArchiveFilePath)
+
 
     destFile, err := os.Create(sftpc.uploadpaths.fullArchiveFilePath)
     if err != nil {
