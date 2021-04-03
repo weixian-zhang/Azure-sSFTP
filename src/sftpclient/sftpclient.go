@@ -426,7 +426,7 @@ func (sftpc *SftpClient) setUploaderFilePaths(uploadFilePath string){
 	sftpc.uploadpaths.fullRemoteFilePath = filepath.Join(sftpc.uploadpaths.fullRemoteDir, localFileToUploadPathNameOnly)
 	
 	//set full local clean remote upload archive path
-	sftpc.uploadpaths.fullArchiveDir = filepath.Join(sftpc.UplConfig.LocalRemoteUploadArchiveBasePath, sftpc.UplConfig.LocalDirectoryToUpload, sftpc.uploadpaths.subDirsDifferenceOnly)
+	sftpc.uploadpaths.fullArchiveDir = filepath.Join(sftpc.uploadpaths.archiveBaseDir , sftpc.UplConfig.LocalDirectoryToUpload, sftpc.uploadpaths.subDirsDifferenceOnly)
 
 	sftpc.uploadpaths.fullArchiveFilePath  = filepath.Join(sftpc.uploadpaths.fullArchiveDir, localFileToUploadPathNameOnly)
 }

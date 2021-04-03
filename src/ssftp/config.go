@@ -17,7 +17,7 @@ const (
 	SystemConfigPath = "/mnt/ssftp/system/ssftp.yaml"
 	SystemConfigFileName = "ssftp.yaml"
 	StagingPath = "/mnt/ssftp/staging"
-	LocalRemoteUploadArchiveBasePath =  "/mnt/ssftp/clean/remoteupload-archive"
+	LocalRemoteUploadArchiveBasePath =  "/mnt/ssftp/uploadarchive"
 	CleanPath = "/mnt/ssftp/clean"
 	QuarantinePath = "/mnt/ssftp/quarantine"
 	ErrorPath =  "/mnt/ssftp/error"
