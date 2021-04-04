@@ -449,9 +449,6 @@ func (sftpc *SftpClient) moveUploadedFileFromCleanToArchive() (error) {
 	}
 	defer srcFile.Close()
 
-	sftpc.logclient.Infof("***sftpc.uploadpaths.fullArchiveFilePath***: %s", sftpc.uploadpaths.fullArchiveFilePath)
-
-
     destFile, err := os.Create(sftpc.uploadpaths.fullArchiveFilePath)
     if err != nil {
 		srcFile.Close()

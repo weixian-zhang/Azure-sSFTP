@@ -1,0 +1,59 @@
+sftpPort: 2002                      # port of your choice
+enableVirusScan: true               #if disabled, files in Staging will remain and not moved
+enableFileScavenging: true          #if disabled, sSFTP will not scavenge files in staging directory for sending them for scanning and movement to clean directory
+enableSftpClientDownloader: true    #enable/disable Sftp downloaders from remote Sftp servers
+enableSftpClientUploader: false     #enable/disable Sftp uploaders to remote Sftp servers
+webhooks:   
+  - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
+    url: "https://httpbin.org/post" # Url of webhook called when ClamAV detects virus (HTTP POST)
+logDests:                           # optional, default logging to StdOut.
+  - kind: file                      # conventional do not change
+    props:
+      path: "/mnt/ssftp/log"
+sftpClientDownloaders:        
+  - name: "test.rebex.net-1"
+    host: "test.rebex.net"
+    port: 22
+    username: "demo"
+    password: "password"
+    privateKeyPath: ""
+    privatekeyPassphrase: ""
+    localStagingDirectory: "test.rebex.net-1"
+    remoteDirectory: ""
+    deleteRemoteFileAfterDownload: false
+    overrideExistingFile: true
+sftpClientUploaders:
+  - name: "uploaderinternet-test.rebex.net-1"
+    host: "192.169.2.4"
+    port: 2002
+    username: "fromintranet-test.rebex.net-1"
+    password: "supersecure"
+    privatekeyPath: null              #example: /mnt/ssftp/system/sftpclient/client-upl-system1
+    privatekeyPassphrase: null
+    localDirectoryToUpload: "test.rebex.net-1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
+    remoteDirectory: null           #leave it empty if no remote sub dir
+    overrideExistingFile: true
+users:
+  cleanDir:                         #access to clean directory only. Accounts typically for dile upload to remote SFTP servers or internal jobs to process clean files
+    - name: "clean-dir-user-1"
+      directory: "test.rebex.net-1"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
+      auth:
+        password: "verycomplexpassword"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAkgdv/+1a45V1borXmscpQir6qz+eo+JG5CvvMWa5B5xL8dvycuiZXuOqsw9t6euP5gCaJkBu0yat6kMU/STCgIehfhH7DjmapHwU8lu9zocIJ0dXE8WVySzxVM5Ri91Oy6fKQgaved1gojL87m2TL9MYN5u4lfm+l8Pb+LFdj27JIF/WN8ni9+UJBiVPbs/BrxlYDT2r6vXvr1pBLnivHF/vrhK6cmgOCE0g6KVLhZTX/lSFTeVj6pz3YOeN/zCQ3YcTCxMhu9mZ/EQNcFGZBm7RR5m7q5dJvxTVKLc+PIdPww2WTKOYoezfeDr6wKMqhvPX9cMmbjfl54enH8MBvQ== rsa-key-20210329"
+    - name: "clean-dir-user-2"
+      directory: "test.rebex.net-2"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
+      auth:
+        password: "securedpassword"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        publicKey: ""
+
+  stagingDir:
+  - name: "fromintranet-test.rebex.net-1"
+    directory: "fromintranet-test.rebex.net-1"
+    auth:
+      password: "supersecure"
+      publicKey: ""
+  - name: "fromintranet-test.rebex.net-2"
+    directory: "fromintranet-test.rebex.net-2"  # Staging accounts do not support "*" for directory or sub dirs supported.
+    auth:
+      password: "supersecure"
+      publicKey: ""

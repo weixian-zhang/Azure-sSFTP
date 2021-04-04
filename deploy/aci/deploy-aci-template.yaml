@@ -1,89 +1,80 @@
-apiVersion: 2019-12-01
-location: southeastasia                         #input: Azure resource location
-name: aci-ssftp                                 #input: ACI name or just leave this default
+name: aci-ssftp-intranetzone
+apiVersion: '2019-12-01'
+location: southeastasia
 properties:
   containers:
-
   - name: clamav
     properties:
       image: mkodockx/docker-clamav:alpine
       environmentVariables:
       - name: CLAMD_CONF_FILE
-        value: /mnt/ssftp/system/clamd.conf     #Note: path by convention, do not change path
+        value: /mnt/ssftp/system/clamd.conf # config file of ClamAV
       resources:
         requests:
-          cpu: 2
-          memoryInGb: 8
+          cpu: 1
+          memoryInGb: 4
       ports:
       - port: 3310
-      volumeMounts:                             #Note: path by convention, do not change path
+      volumeMounts:   # mountPath by convention, don't change path
        - mountPath: /mnt/ssftp/system
          name: fs-system
-         readOnly: false
        - mountPath: /mnt/ssftp/staging
          name: fs-staging
-         readOnly: false
 
-  - name: ssftp
+  - name: ssftp  # file scanner & quarantine
     properties:
-      image: wxzd/ssftp:1.0
+      image: wxzd/ssftp:1.1.0
       resources:
         requests:
-          cpu: 2
-          memoryInGb: 8
+          cpu: 1
+          memoryInGb: 4
       ports:
-        - port: 2002                             #input: port must match ipAddress.ports.port below & "sftpPort" in ssftp.yaml
-      volumeMounts:                              #Note: all mountPaths by convention, do not change path
-      - mountPath: /mnt/ssftp/staging
+        - port: 2002
+      volumeMounts:   # mountPath by convention, don't change path
+      - mountPath: /mnt/ssftp/staging       # contains files uploaded from Sftp clients or files downloaded by Downloader
         name: fs-staging
-        readOnly: false
-      - mountPath: /mnt/ssftp/clean
+      - mountPath: /mnt/ssftp/uploadarchive # files uploaded by uploader moved here from clean directory
+        name: fs-uploadarchive
+      - mountPath: /mnt/ssftp/clean         # virus clean files for processing or uploading to remote Sftp servers
         name: fs-clean
-        readOnly: false
       - mountPath: /mnt/ssftp/quarantine
         name: fs-quarantine
-        readOnly: false
-      - mountPath: /mnt/ssftp/error
-        name: fs-error
-        readOnly: false
-      - mountPath: /mnt/ssftp/log                 #input - optional, if exist to match LogSink.Path in ssftp.yaml
+      - mountPath: /mnt/ssftp/log # optional, if exist to match LogSink.Path in ssftp.yaml
         name: fs-log
-        readOnly: false
       - mountPath: /mnt/ssftp/system
         name: fs-system
-        readOnly: false
+
   volumes:
   - name: fs-staging
     azureFile:
-      sharename: ssftp-staging                    #Note: file share name can be different
+      sharename: ssftp-staging
+      storageAccountName: <storage accountn name> #input
+      storageAccountKey: <storage account key>    #input
+  - name: fs-uploadarchive
+    azureFile:
+      sharename: ssftp-uploadarchive
       storageAccountName: <storage accountn name> #input
       storageAccountKey: <storage account key>    #input
   - name: fs-clean
     azureFile:
-      sharename: ssftp-clean                      #Note: file share name can be different
+      sharename: ssftp-clean
       storageAccountName: <storage accountn name> #input
       storageAccountKey: <storage account key>    #input
   - name: fs-quarantine
     azureFile:
-      sharename: ssftp-quarantine                 #Note: file share name can be different
-      storageAccountName: <storage accountn name> #input
-      storageAccountKey: <storage account key>    #input
-  - name: fs-error
-    azureFile:
-      sharename: ssftp-error                      #Note: file share name can be different
+      sharename: ssftp-quarantine
       storageAccountName: <storage accountn name> #input
       storageAccountKey: <storage account key>    #input
   - name: fs-log
     azureFile:
-      sharename: ssftp-log                        #Note: file share name can be different
+      sharename: ssftp-log
       storageAccountName: <storage accountn name> #input
       storageAccountKey: <storage account key>    #input
   - name: fs-system
     azureFile:
-      sharename: ssftp-system                     #Note: file share name can be different
+      sharename: ssftp-system
       storageAccountName: <storage accountn name> #input
       storageAccountKey: <storage account key>    #input
-  
   ipAddress:
     type: Private
     ports:
