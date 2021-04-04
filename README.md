@@ -22,8 +22,8 @@ sSFTP consists of 2 containers into a single Container Group namely
 * Providse SFTP server feature 
 * Supports multiple concurrent SFTP client downloaders and uploaders to download and upload files to and from remote SFTP servers
 * ClamAV virus scan on:
-  * uploaded files from clients
-  * files downloaded by SFTP client downloaders
+  * uploaded files from SFTP clients
+  * files downloaded by sSFTP downloaders
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
 * Supports [Webhook invocation](#webhook) when virus is detected
