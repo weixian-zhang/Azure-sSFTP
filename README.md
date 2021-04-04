@@ -72,7 +72,7 @@ An example depicting folder structure in Staging and Clean file share are identi
       
 ### Configuring sSFTP  
 
-Configurable is all done through a single Yaml file and file must be located in mounted fileshare path: /mnt/ssftp/system/ssftp.yaml.
+Configurable is all done through a [single Yaml file](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml) and file must be located in mounted fileshare path: /mnt/ssftp/system/ssftp.yaml.
 Update ssftp.yaml by uploading and overwriting Yaml file in ssftp-system fileshare, without restarting containers sSFTP monitors and load file changes from path: /mnt/ssftp/system/ssftp.yaml  
 
 <img src="./doc/ssftp-config-update.png" width="500" height="300" />  
@@ -80,50 +80,63 @@ Update ssftp.yaml by uploading and overwriting Yaml file in ssftp-system filesha
 ```yaml
 sftpPort: 2002                      # port of your choice
 enableVirusScan: true               #if disabled, files in Staging will remain and not moved
+enableFileScavenging: true          #if disabled, sSFTP will not scavenge files in staging directory for sending them for scanning and movement to clean directory
+enableSftpClientDownloader: true    #enable/disable Sftp downloaders from remote Sftp servers
+enableSftpClientUploader: false     #enable/disable Sftp uploaders to remote Sftp servers
 webhooks:   
   - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
-    url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
+    url: "https://httpbin.org/post" # Url of webhook called when ClamAV detects virus (HTTP POST)
 logDests:                           # optional, default logging to StdOut.
-  - kind: file                      #conventional do not change
+  - kind: file                      # conventional do not change
     props:
       path: "/mnt/ssftp/log"
+sftpClientDownloaders:        
+  - name: "test.rebex.net-1"
+    host: "test.rebex.net"
+    port: 22
+    username: "demo"
+    password: "password"
+    privateKeyPath: ""
+    privatekeyPassphrase: ""
+    localStagingDirectory: "test.rebex.net-1"
+    remoteDirectory: ""
+    deleteRemoteFileAfterDownload: false
+    overrideExistingFile: true
+sftpClientUploaders:
+  - name: "uploaderinternet-test.rebex.net-1"
+    host: "192.169.2.4"
+    port: 2002
+    username: "fromintranet-test.rebex.net-1"
+    password: "supersecure"
+    privatekeyPath: null              #example: /mnt/ssftp/system/sftpclient/client-upl-system1
+    privatekeyPassphrase: null
+    localDirectoryToUpload: "test.rebex.net-1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
+    remoteDirectory: null           #leave it empty if no remote sub dir
+    overrideExistingFile: true
 users:
-  cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
-    - name: "cleanfileuser1"
-      directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
+  cleanDir:                         #access to clean directory only. Accounts typically for dile upload to remote SFTP servers or internal jobs to process clean files
+    - name: "clean-dir-user-1"
+      directory: "test.rebex.net-1"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
       auth:
-        password: "cross"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
-        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
-    - name: "cleanfileuser2"
-      directory: "agency-z"
+        password: "verycomplexpassword"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAkgdv/+1a45V1borXmscpQir6qz+eo+JG5CvvMWa5B5xL8dvycuiZXuOqsw9t6euP5gCaJkBu0yat6kMU/STCgIehfhH7DjmapHwU8lu9zocIJ0dXE8WVySzxVM5Ri91Oy6fKQgaved1gojL87m2TL9MYN5u4lfm+l8Pb+LFdj27JIF/WN8ni9+UJBiVPbs/BrxlYDT2r6vXvr1pBLnivHF/vrhK6cmgOCE0g6KVLhZTX/lSFTeVj6pz3YOeN/zCQ3YcTCxMhu9mZ/EQNcFGZBm7RR5m7q5dJvxTVKLc+PIdPww2WTKOYoezfeDr6wKMqhvPX9cMmbjfl54enH8MBvQ== rsa-key-20210329"
+    - name: "clean-dir-user-2"
+      directory: "test.rebex.net-2"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
       auth:
-        password: "clean"
-        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+        password: "securedpassword"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        publicKey: ""
 
-  stagingDir:                       # user/service accounts access to Staging directory only. Accounts typically for clients file upload only
-  - name: "staginguploaderuser1"
-    directory: "agency-z"           # Staging accounts do not support "*" for directory or sub dirs supported.
+  stagingDir:
+  - name: "fromintranet-test.rebex.net-1"
+    directory: "fromintranet-test.rebex.net-1"
     auth:
-      password: "pass"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
-
-  - name: "staginguploaderuser2"
-    directory: "b2bpartner-z"
-    auth:
-      password: "tiger"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
-
-  - name: "staginguploaderuser3"
-    directory: "supplier-z"
-    auth:
-      password: "tooth"
+      password: "supersecure"
       publicKey: ""
-  
-  - name: "staginguploaderuser4"
-    directory: "contoso-z"
+  - name: "fromintranet-test.rebex.net-2"
+    directory: "fromintranet-test.rebex.net-2"  # Staging accounts do not support "*" for directory or sub dirs supported.
     auth:
-      password: "111"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr+mqkNyD1EHXLlvdrYVhTQg0PfSPpJ5UT9c8gyQn8xvTGffv4trigu4bbvWG2LcW2XEfa9g489iXCB2LNMtgbZxYjNL8Mh8oSzgV6Met1e9vWshWSn8/oLgRmTnCanCD9UXKGNvq/LIf64ITMxGpCAYXWIE/3hnVC5AGBKt6l0yNXseqqi54wjgMhlAUFDkjE07BBBH0/j9yAb9s1IdO2Z4j7e4T0mYEiuCMMCSvRvpk86DSoainXMG+69jKWG6HRbE8AmIT0kY4CAGEoba4ORv56uZQ2SuF0s2Ii1fO9s5axq4FnkKbexzqaAO6+2NNDu9whsUDItC7IFLQihXNew== rsa-key-20210301"
+      password: "supersecure"
+      publicKey: ""
 ```
 
 ### Deploy sSFTP  
