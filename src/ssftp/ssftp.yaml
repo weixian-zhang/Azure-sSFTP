@@ -1,4 +1,4 @@
-sftpPort: 2002                      # port of your choice
+sftpPort: 2002                      # port of your choice, default 22
 enableVirusScan: true               #if disabled, files in Staging will remain and not moved
 enableFileScavenging: false
 enableSftpClientDownloader: false

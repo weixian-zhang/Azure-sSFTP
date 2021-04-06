@@ -127,7 +127,7 @@ func (c *ConfigService) LoadYamlConfig() chan Config {
 				yamlConfgPath := c.getYamlConfgPath()
 
 				b, err := ioutil.ReadFile(yamlConfgPath)
-				if logclient.ErrIfm("Config - error while reading config file", err) {
+				if logclient.ErrIfm("Config - error reading config file", err) {
 					time.Sleep(3 * time.Second)
 					continue
 				}
@@ -135,7 +135,7 @@ func (c *ConfigService) LoadYamlConfig() chan Config {
 				yamlSchema := SSFTPYaml{}
 				
 				yerr := yaml.Unmarshal(b, &yamlSchema)
-				if logclient.ErrIfm("Config - error while loading config changes", yerr) {
+				if logclient.ErrIfm("Config - error unmarshaling config changes", yerr) {
 					time.Sleep(3 * time.Second)
 					continue
 				}
@@ -170,6 +170,8 @@ func (c *ConfigService) LoadYamlConfig() chan Config {
 				c.config.ClientUploaders = yamlSchema.ClientUploaders
 
 				c.mux.Unlock()
+
+
 
 				y, yerr := yaml.Marshal(c.config)
 				logclient.ErrIfm("Config - error while marshaling to Yaml string for display", yerr)
