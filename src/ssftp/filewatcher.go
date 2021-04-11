@@ -72,6 +72,10 @@ func (fw *FileWatcher) ScavengeUploadedFiles() {
 
 	for {
 
+		logclient.Info("FileWatcher - checking config invalidity before scavenge files")
+		fw.confsvc.waitConfigValid()
+		logclient.Info("FileWatcher - config is valid, begin scavenging files")
+
 		if !fw.confsvc.config.EnableFileScavenging {
 			time.Sleep(10 * time.Second)
 			continue
@@ -329,11 +333,13 @@ func (fw *FileWatcher) registerConfigFileChangeEvent(configChange chan bool) {
 
 						logclient.Infof("FileWatcher - Config file %s change detected", SystemConfigPath)
 	
-						loaded := fw.confsvc.LoadYamlConfig()
+						configloaded := fw.confsvc.LoadYamlConfig()
 
-						config := <- loaded
+						<- configloaded
 
-						fw.confsvc.config = &config
+						//configChange <- config
+
+						//fw.confsvc.config = &config
 
 						logclient.Infof("FileWatcher - Config file loaded successfully")
 

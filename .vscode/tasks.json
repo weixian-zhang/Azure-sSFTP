@@ -70,6 +70,39 @@
             "problemMatcher": []
         },
         {
+            "label": "Docker Build ClamAV",
+            "command": "docker-build-clamav.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy/clamav",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker Push ClamAV",
+            "command": "docker-push-clamav.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy/clamav",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker Remove ClamAV",
+            "command": "docker-remove-clamav.cmd",
+            "type": "shell",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/deploy/clamav",
+                "env": {}
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "sSFTP ACI Delete Internet",
             "command": "aci-remove-internet.cmd",
             "type": "shell",

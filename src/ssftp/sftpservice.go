@@ -49,6 +49,7 @@ func (ss *SFTPService) Start() {
 				ss.loginUser = usr
 				
 				if ss.loginUser.IsCleanDirUser {
+					
 					if ss.loginUser.JailDirectory != "*" {
 						ss.usrgov.CreateUserDir(ss.configsvc.config.CleanPath, ss.loginUser.JailDirectory)
 					}
@@ -224,9 +225,9 @@ func (ss *SFTPService) handleConnectingClients(conn net.Conn, svrConfig *ssh.Ser
 
 		if err := server.Serve(); err == io.EOF {
 		    server.Close()
-			logclient.Infof("sftp client %s exited session", server.User.Name)
+			logclient.Infof("sftp client %s exited session", server.User.Auth.Username)
 
-			logclient.Infof("Removed sftp.Server connection %s", server.User.Name)
+			logclient.Infof("Removed sftp.Server connection %s", server.User.Auth.Username)
 			ss.removeServer(server)
 
 			if len(ss.servers) == 0 {

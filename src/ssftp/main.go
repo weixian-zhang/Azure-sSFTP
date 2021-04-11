@@ -13,9 +13,11 @@ func main() {
 	logclient = logc.NewBasicStdoutLogClient()
 
 	confsvc := NewConfigService()
-	configLoaded := confsvc.LoadYamlConfig()
+	configValid := confsvc.LoadYamlConfig()
 
-	<- configLoaded
+	<- configValid
+
+	ug := user.NewUserGov(confsvc.config.Users)
 
 	logPath := confsvc.GetLogDestProp("file", "path")
 
@@ -23,8 +25,6 @@ func main() {
 		FlatFileLogPath: logPath,
 	})
 
-	ug := user.NewUserGov(confsvc.config.Users)
-	
 	ol := NewOverlord(&confsvc, &ug)
 
 	exit := make(chan bool)

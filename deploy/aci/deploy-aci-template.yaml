@@ -23,7 +23,7 @@ properties:
 
   - name: ssftp  # file scanner & quarantine
     properties:
-      image: wxzd/ssftp:1.1.0
+      image: wxzd/ssftp:1.2.0
       resources:
         requests:
           cpu: 1

@@ -42,14 +42,6 @@ type Server struct {
 }
 
 func (svr *Server) getUserJailPath(filePath string) string {
-
-	// var jailPath string
-	
-	// if svr.User.IsCleanDirUser {
-	// 	jailPath = filepath.Join(svr.jailPath, svr.User.JailDirectory)
-	// } else {
-	// 	jailPath = filepath.Join(svr.stagingPath, svr.User.JailDirectory)
-	// }
 	
 	jailPath := filepath.Join(svr.jailPath, svr.User.JailDirectory)
 
@@ -65,10 +57,10 @@ func (svr *Server) getUserJailPath(filePath string) string {
 	}  else if svr.User.IsCleanDirUser && svr.User.JailDirectory != "*" {
 		chroot = filepath.Join(chroot, svr.User.JailDirectory)
 
-	} else if svr.User.JailDirectory != "" {
+	} else if len(svr.User.JailDirectory) > 0 {
 		chroot = filepath.Join(chroot, svr.User.JailDirectory)
 
-	} else if filePath == jailPath { //if filePath is already == jailPath
+	} else if filePath == jailPath {
 		chroot = filePath
 	}
 	

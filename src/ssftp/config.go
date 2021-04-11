@@ -48,7 +48,9 @@ type  SSFTPYamlUsers struct {
 
 type ConfigService struct {
 	config *Config
-	mux    *sync.RWMutex
+	valid bool
+	//configInvalidPauser sync. //to pause all goroutines in Overlord
+	mux    *sync.RWMutex			   //block readers from reading config when config is loading
 }
 
 type ClientDownloader struct {
@@ -71,7 +73,7 @@ type ClientUploader struct {
     Port int 							`yaml:"port"`
 	Username string						`yaml:"username"`
     Password string						`yaml:"password"`
-    PrivatekeyPath string				`yaml:"privateKeyPath"`
+    PrivatekeyPath string				`yaml:"privatekeyPath"`
 	PrivatekeyPassphrase string			`yaml:"privatekeyPassphrase"`
     LocalDirectoryToUpload string		`yaml:"localDirectoryToUpload"`
     RemoteDirectory string				`yaml:"remoteDirectory"`
@@ -88,7 +90,6 @@ type Config struct {
 	LocalRemoteUploadArchiveBasePath string `yaml:"localRemoteUploadArchiveBasePath"`
 	CleanPath string					`yaml:"cleanPath"`
 	QuarantinePath string				`yaml:"quarantinePath"`
-	ErrorPath string					`yaml:"errorPath"`
 	LogDests []LogDest					`yaml:"logDests"`
 	Users []user.User					`yaml:"users"`
 	Webhooks []Webhook					`yaml:"webhooks"`
@@ -114,77 +115,109 @@ const (
  func NewConfigService() (ConfigService) {
 	 return ConfigService{
 		 config: &Config{},
+		 valid: false,
+		 //configInvalidPauser: sync.WaitGroup{},
 		 mux: &sync.RWMutex{},
 	}
  }
 
-func (c *ConfigService) LoadYamlConfig() chan Config {
+ type OnConfigChange struct {
+	 isValid bool
+ }
 
-	loaded := make(chan Config)
+func (c *ConfigService) LoadYamlConfig() (chan bool) {
 
-		go func() { 
-			for {
-				yamlConfgPath := c.getYamlConfgPath()
+	configloaded := make(chan bool)
+	//configChangeChan := make(chan OnConfigChange)
 
-				b, err := ioutil.ReadFile(yamlConfgPath)
-				if logclient.ErrIfm("Config - error while reading config file", err) {
-					time.Sleep(3 * time.Second)
-					continue
-				}
+	go func() { 
 
-				yamlSchema := SSFTPYaml{}
-				
-				yerr := yaml.Unmarshal(b, &yamlSchema)
-				if logclient.ErrIfm("Config - error while loading config changes", yerr) {
-					time.Sleep(3 * time.Second)
-					continue
-				}
+		for {
 
-				if os.Getenv("env") == "dev" { //local dev only
-					c.config.StagingPath = "/mnt/c/ssftp/staging"
-					c.config.LocalRemoteUploadArchiveBasePath = "/mnt/c/ssftp/clean/remoteupload-archive"
-					c.config.CleanPath =  "/mnt/c/ssftp/clean"
-					c.config.QuarantinePath =  "/mnt/c/ssftp/quarantine"
-					c.config.ErrorPath =  "/mnt/c/ssftp/error"
-					
-				} else {
-					c.config.StagingPath = StagingPath
-					c.config.LocalRemoteUploadArchiveBasePath = LocalRemoteUploadArchiveBasePath
-					c.config.CleanPath = CleanPath
-					c.config.QuarantinePath = QuarantinePath
-					c.config.ErrorPath = ErrorPath
-				}
+			c.valid = false
 
-				c.mux.Lock()
+			yamlConfgPath := c.getYamlConfgPath()
 
-				c.config.SftpPort = yamlSchema.SftpPort
-				c.config.Webhooks = yamlSchema.Webhooks
-				c.config.LogDests = yamlSchema.LogDests
-				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
-				c.config.EnableFileScavenging = yamlSchema.EnableFileScavenging
-				c.config.EnableSftpClientDownloader = yamlSchema.EnableSftpClientDownloader
-				c.config.EnableSftpClientUploader = yamlSchema.EnableSftpClientUploader
-				c.config.EnableVirusScan = yamlSchema.EnableVirusScan
-				c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
-				c.config.ClientDownloaders = yamlSchema.ClientDownloaders
-				c.config.ClientUploaders = yamlSchema.ClientUploaders
-
-				c.mux.Unlock()
-
-				y, yerr := yaml.Marshal(c.config)
-				logclient.ErrIfm("Config - error while marshaling to Yaml string for display", yerr)
-
-				configJStr := string(y)
-				log.Println(fmt.Sprintf("Config - loaded config from %s: %s", yamlConfgPath, configJStr))
-
-				loaded <- *c.config
-
-				break
+			b, err := ioutil.ReadFile(yamlConfgPath)
+			if logclient.ErrIfm("Config - error reading config file", err) {
+				time.Sleep(3 * time.Second)
+				continue
 			}
+
+			yamlSchema := SSFTPYaml{}
 			
-		}()
-	
-	return loaded
+			yerr := yaml.Unmarshal(b, &yamlSchema)
+			if logclient.ErrIfm("Config - error unmarshaling config changes", yerr) {
+				time.Sleep(3 * time.Second)
+				continue
+			}
+
+			if os.Getenv("env") == "dev" { //local dev only
+				c.config.StagingPath = "/mnt/c/ssftp/staging"
+				c.config.LocalRemoteUploadArchiveBasePath = "/mnt/c/ssftp/uploadarchive"
+				c.config.CleanPath =  "/mnt/c/ssftp/clean"
+				c.config.QuarantinePath =  "/mnt/c/ssftp/quarantine"
+				
+			} else {
+				c.config.StagingPath = StagingPath
+				c.config.LocalRemoteUploadArchiveBasePath = LocalRemoteUploadArchiveBasePath
+				c.config.CleanPath = CleanPath
+				c.config.QuarantinePath = QuarantinePath
+			}
+
+			c.mux.Lock()
+
+			c.config.SftpPort = yamlSchema.SftpPort
+			c.config.Webhooks = yamlSchema.Webhooks
+			c.config.LogDests = yamlSchema.LogDests
+			c.config.EnableVirusScan = yamlSchema.EnableVirusScan
+			c.config.EnableFileScavenging = yamlSchema.EnableFileScavenging
+			c.config.EnableSftpClientDownloader = yamlSchema.EnableSftpClientDownloader
+			c.config.EnableSftpClientUploader = yamlSchema.EnableSftpClientUploader
+			c.config.EnableVirusScan = yamlSchema.EnableVirusScan
+			c.config.Users = c.mergeStagingCleanDirUsers(yamlSchema)
+			c.config.ClientDownloaders = yamlSchema.ClientDownloaders
+			c.config.ClientUploaders = yamlSchema.ClientUploaders
+
+			c.mux.Unlock()
+
+			cv := NewConfigValidator(c.config)
+			vErrMsg, ok := cv.Validate()
+			if !ok {
+				
+				//pause all goroutines in overlord
+				//c.configInvalidPauser.Add(1)
+
+				logclient.Infof("ConfigValidator - validation errors detected in Config file ssftp.yaml. \n %s", vErrMsg) 
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			y, yerr := yaml.Marshal(c.config)
+			logclient.ErrIfm("Config - error while marshaling to Yaml string for display", yerr)
+
+			configJStr := string(y)
+			log.Println(fmt.Sprintf("Config - loaded config from %s: %s", yamlConfgPath, configJStr))
+
+			c.valid = true
+			configloaded <- true
+			break
+		}
+		
+	}()
+
+	return configloaded
+}
+
+//waitConfigValid helps goroutine to pause execution while loading and checking config validity
+func (c *ConfigService) waitConfigValid() {
+	for {
+		if !c.valid {
+			time.Sleep(10 * time.Millisecond)
+		} else {
+			return
+		}
+	}
 }
 
 func (c *ConfigService) mergeStagingCleanDirUsers(ssftpyaml SSFTPYaml) []user.User {

@@ -1,12 +1,11 @@
-
 package main
 
 import (
-	"github.com/weixian-zhang/ssftp/user"
-	"github.com/weixian-zhang/ssftp/sftpclient"
-	"github.com/weixian-zhang/ssftp/webhook"
-	"time"
 	"sync"
+	"time"
+	"github.com/weixian-zhang/ssftp/sftpclient"
+	"github.com/weixian-zhang/ssftp/user"
+	"github.com/weixian-zhang/ssftp/webhook"
 )
 
 //time limit for upload file.
@@ -29,10 +28,8 @@ func NewOverlord(confsvc *ConfigService, usergov *user.UserGov) (Overlord) {
 
 	clamav := NewClamAvClient()
 
-	proceed := make(chan bool)
-	go proceedOnClamdConnect(clamav, proceed)
-
-	//<- proceed //block until ssftp able to connect to Clamd on tcp://localhost:3310
+	//proceed := make(chan bool)
+	go proceedOnClamdConnect(clamav) //, proceed)
 
 	httpClient := webhook.NewHttpClient(&logclient)
 
@@ -110,8 +107,7 @@ func (ol *Overlord) Start(exit chan bool) {
 
 	go ol.StartSftpClientsUploadFiles()
 
-	configChange := make(chan bool)
-	go ol.watchConfigFileChanges(configChange)
+	go ol.watchConfigFileChanges()
 
 	go ol.fileWatcher.ScavengeUploadedFiles()
 
@@ -119,9 +115,6 @@ func (ol *Overlord) Start(exit chan bool) {
 }
 
 func (ol *Overlord) NewSFTPClients() {
-	if len(ol.confsvc.config.ClientDownloaders) == 0 {
-		return
-	}
 
 	sftpcs := make([]*sftpclient.SftpClient, 0)
 
@@ -182,6 +175,10 @@ func (ol *Overlord) StartSftpClientsDownloadFiles() {
 
 		for {
 
+			logclient.Info("Overlord - checking config invalidity before Downloaders execution")
+			ol.confsvc.waitConfigValid()
+			logclient.Info("Overlord - config is valid, begin Downloaders execution")
+
 			if !ol.confsvc.config.EnableSftpClientDownloader {
 				logclient.Infof("Overlord - EnableSftpClientDownloader is false, downloaders are disabled")
 				time.Sleep(10 * time.Second)
@@ -230,6 +227,10 @@ func (ol *Overlord) StartSftpClientsUploadFiles() {
 
 		for {
 
+			logclient.Info("Overlord - checking config invalidity before Uploaders execution")
+			ol.confsvc.waitConfigValid()
+			logclient.Info("Overlord - config is valid, begin Uploaders execution")
+
 			if !ol.confsvc.config.EnableSftpClientUploader {
 				logclient.Infof("Overlord - EnableSftpClientUploader is false, uploaders are disabled")
 				time.Sleep(10 * time.Second)
@@ -272,23 +273,25 @@ func (ol *Overlord) UploadFilesToSFTPServer(sftpc *sftpclient.SftpClient, wg *sy
 	wg.Done()
 }
 
-func (ol *Overlord) watchConfigFileChanges(configchange chan bool) {
+func (ol *Overlord) watchConfigFileChanges() {
 
-	go ol.fileWatcher.startWatchConfigFileChange(configchange)
+	configChange := make(chan bool)
+
+	go ol.fileWatcher.startWatchConfigFileChange(configChange)
 
 	for {
 		select{
 			//recreate Sftpclients on config change
-			case <- configchange:
+			case <- configChange:
+
 				ol.NewSFTPClients()
 
 				ol.fileWatcher.usergov.SetUsers(ol.confsvc.config.Users)
-
 		}
 	}
 }
 
-func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {
+func proceedOnClamdConnect(clamav ClamAv) {//, proceed chan bool) {
 	for {
 		_, err := clamav.PingClamd()
 
@@ -298,7 +301,7 @@ func proceedOnClamdConnect(clamav ClamAv, proceed chan bool) {
 				continue
 			} else {
 				logclient.Info("Overlord - sSFTP connected to Clamd on tcp://localhost:3310")
-				proceed <- true
+				//proceed <- true
 				break
 		}
 	}

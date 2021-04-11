@@ -47,13 +47,13 @@ users:
         publicKey: ""
 
   stagingDir:
-  - name: "fromintranet-test.rebex.net-1"
-    directory: "fromintranet-test.rebex.net-1"
+  - directory: "fromintranet-test.rebex.net-1"
     auth:
+      username: "fromintranet-test.rebex.net-1"
       password: "supersecure"
       publicKey: ""
-  - name: "fromintranet-test.rebex.net-2"
-    directory: "fromintranet-test.rebex.net-2"  # Staging accounts do not support "*" for directory or sub dirs supported.
+  - directory: "fromintranet-test.rebex.net-2"  # Staging accounts do not support "*" for directory or sub dirs supported.
     auth:
+      username: "fromintranet-test.rebex.net-2"
       password: "supersecure"
       publicKey: ""
