@@ -1,9 +1,8 @@
 az login
 
-$containerInstanceName = "aci-ssftp-gut-intranetzone"
-$rg = "rgGCCSHOL"
-$vnetName = "vnetIntranetZone"
-$subnetName = "GUT-SSFTP"
+$rg = "<resource group name>"
+$vnetName = "<vnet name>"
+$subnetName = "subnet name where aci is deployed"
 
 # copy network profile id
 az container create --resource-group $rg `

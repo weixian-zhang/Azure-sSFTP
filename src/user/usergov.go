@@ -8,7 +8,6 @@ import (
 )
 
 type User struct {
-	Name string				`json:"name", yaml:"name"`
 	JailDirectory string	`json:"directory", yaml:"directory"`
 	Readonly  bool			`json:"readonly", yaml:"readonly"`
 	Auth Auth				`json:"auth", yaml:"auth"`
@@ -16,7 +15,8 @@ type User struct {
 }
 
 type Auth struct {
-	Password string  		`json:"password", yaml:"password"`
+	Username  string		`json:"username", yaml:"username"`
+	Password  string  		`json:"password", yaml:"password"`
 	PublicKey string  		`json:"publicKey", yaml:"publicKey"`
 }
 
@@ -39,7 +39,7 @@ func (ug *UserGov) SetUsers(users []User) {
 
 func (ug *UserGov) AuthPass(name string, pass string) (User, bool) {
 	for _, v := range ug.Users {
-		if v.Name == name && v.Auth.Password == pass {
+		if v.Auth.Username == name && v.Auth.Password == pass {
 			return v, true
 		}
 	}
@@ -49,7 +49,7 @@ func (ug *UserGov) AuthPass(name string, pass string) (User, bool) {
 func (ug *UserGov) AuthPublicKey(name string, pubKey ssh.PublicKey) (User, bool, error) {
 	for _, v := range ug.Users {
 
-		if v.Name == name {
+		if v.Auth.Username == name {
 
 			usrAuthPKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(v.Auth.PublicKey))
 

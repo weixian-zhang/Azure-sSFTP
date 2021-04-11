@@ -1,1 +1,1 @@
-docker build  --no-cache -f ../src/ssftp/Dockerfile -t wxzd/ssftp:1.1.0 ../
+docker build  --no-cache -f ../src/ssftp/Dockerfile -t wxzd/ssftp:1.2.0 ../

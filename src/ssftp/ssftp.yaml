@@ -1,43 +1,62 @@
-sftpPort: 2002                      # port of your choice, default 22
+sftpPort: 2002                      # port of your choice, default 2002
 enableVirusScan: true               #if disabled, files in Staging will remain and not moved
 enableFileScavenging: false
 enableSftpClientDownloader: false
-enableSftpClientUploader: true
+enableSftpClientUploader: false
 webhooks:   
   - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
     url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
-  # - name: onFileMoveToCleanDir            
-  #   url: "https://httpbin.org/post"
 logDests:                           # optional, default logging to StdOut.
   - kind: file                      # conventional do not change
     props:
       path: "/mnt/ssftp/log"
 sftpClientDownloaders:              #downloads to default staging directory for scanning, /mnt/ssftp/staging
-  - name: "test.rebex.net-1"
+  - name: "dl-1"
+    host: "test.rebex.net"
+    port: 22
+    username: "demo"
+    password: "password"
+    privateKeyPath: "aaaa"
+    privatekeyPassphrase: ""
+    localStagingDirectory: "test.rebex.net-dl-1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
+    remoteDirectory: ""             #leave it empty if no remote sub dir
+    deleteRemoteFileAfterDownload: false
+    overrideExistingFile: true
+  - name: "dl-2"
     host: "test.rebex.net"
     port: 22
     username: "demo"
     password: "password"
     privateKeyPath: ""
     privatekeyPassphrase: ""
-    localStagingDirectory: "test.rebex.net-1"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
+    localStagingDirectory: "333333333"    #local directory always starts from Staging /mnt/ssftp/staging/{localStagingDirectory}
     remoteDirectory: ""             #leave it empty if no remote sub dir
     deleteRemoteFileAfterDownload: false
     overrideExistingFile: true
-  # - name: "client-dl-system1"
-  #   host: "192.169.2.4"
-  #   port: 2002
-  #   username: "cleanfileuser1"
-  #   password: ""
-  #   privateKeyPath: "/mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/ssftp-internetzone-cleanfileuser1.ppk"
-  #   privatekeyPassphrase: "p1"
-  #   localStagingDirectory: "ssftp-internetzone-cleanfileuser1"    #base staging directory staging /mnt/ssftp/staging/{localStagingDirectory}
-  #   remoteDirectory: "clientdownload"             #leave it empty if no remote sub dir
-  #   deleteRemoteFileAfterDownload: true
-  #   overrideExistingFile: true
+
 sftpClientUploaders:                #uploads from clean directory, /mnt/ssftp/clean
-  - name: "client-upl-staginguploaderuser1"
-    host: "localhost"
+  - name: "upl-1"
+    host: "host1"
+    port: 2002
+    username: "staginguploaderuser1"
+    password: "verycomplexpass"
+    privateKeyPath: null           #example: /mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/{client-upl-system1}
+    privatekeyPassphrase: null
+    localDirectoryToUpload: "test.rebex.net-1" #base clean directory /mnt/ssftp/clean
+    remoteDirectory: null             #leave it empty if no remote sub dir
+    overrideRemoteExistingFile: true
+  - name: "upl-2"
+    host: "host1"
+    port: 2002
+    username: "staginguploaderuser1"
+    password: "verycomplexpass"
+    privateKeyPath: null           #example: /mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/{client-upl-system1}
+    privatekeyPassphrase: null
+    localDirectoryToUpload: "test.rebex.net-1" #base clean directory /mnt/ssftp/clean
+    remoteDirectory: null             #leave it empty if no remote sub dir
+    overrideRemoteExistingFile: true
+  - name: "upl-3"
+    host: "host1"
     port: 2002
     username: "staginguploaderuser1"
     password: "verycomplexpass"
@@ -48,30 +67,35 @@ sftpClientUploaders:                #uploads from clean directory, /mnt/ssftp/cl
     overrideRemoteExistingFile: true
 users:
   cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
-    - name: "cleanfileuser1"
-      directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
+    - directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
       auth:
-        password: "cross"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        username: "cleanfileuser1"
+        password: "bleach"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
         publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAkgdv/+1a45V1borXmscpQir6qz+eo+JG5CvvMWa5B5xL8dvycuiZXuOqsw9t6euP5gCaJkBu0yat6kMU/STCgIehfhH7DjmapHwU8lu9zocIJ0dXE8WVySzxVM5Ri91Oy6fKQgaved1gojL87m2TL9MYN5u4lfm+l8Pb+LFdj27JIF/WN8ni9+UJBiVPbs/BrxlYDT2r6vXvr1pBLnivHF/vrhK6cmgOCE0g6KVLhZTX/lSFTeVj6pz3YOeN/zCQ3YcTCxMhu9mZ/EQNcFGZBm7RR5m7q5dJvxTVKLc+PIdPww2WTKOYoezfeDr6wKMqhvPX9cMmbjfl54enH8MBvQ== rsa-key-20210329"
-    - name: "cleanfileuser2"
-      directory: "agency-z"
+    - directory: "agency-z"
       auth:
-        password: "clean"
+        username: "cleanfileuser1"
+        password: "bleach"
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
+    - directory: "agency-z"
+      auth:
+        username: "cleanfileuser3"
+        password: "superdry"
         publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
   stagingDir:                       # user/service accounts access to Staging directory only. Accounts typically for clients file upload only
-  - name: "staginguploaderuser1"
-    directory: "self-upload"           # Staging accounts do not support "*" for directory or sub dirs supported.
-    auth:
-      password: "verycomplexpass"
-      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAjAW5u4Xp5GULEFRTprMG7v4aRkNgD+pzA1XCDVaNAAjjMnV2jvT8DG+dY9k1q3ePXHgrFkRgJttNJJShNjNmdhXF3/gdfVNoUr1Y7cqB+fiyhQCokUbFata4/VQwmjv6kFgcWLhvUXex8CZvm5PrRHrjKokzPe3WbfdKM2UaGYylZjRgb0UtYoeoFPDP+LuLpV5dMI3Ps19INhMUX7RRpYK2O1sUle2dVmlc/Nu7npcb7qeW2RCgCHFEyRH8z5ej9Aj4W5wQC7kQFJljNEbC6A0y+fvFzvAB9n7OPBrdYkLtHF82ZCEy1sUMD4BHGDaJWjoSQkDTldpX72/1X3Rj3w== rsa-key-20210330"
-
-  - name: "staginguploaderuser2"
-    directory: "staginguploaderuser2"
-    auth:
-      password: "tiger"
-      publicKey: ""
-  - name: "new-from-scratch"
-    directory: "ew-from-scratch"
-    auth:
-      password: "scratch"
-      publicKey: ""
+    - directory: "self-upload"           # Staging accounts do not support "*" for directory or sub dirs supported.
+      auth:
+        username: "staginguploaderuser1"
+        password: "verycomplexpass"
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAjAW5u4Xp5GULEFRTprMG7v4aRkNgD+pzA1XCDVaNAAjjMnV2jvT8DG+dY9k1q3ePXHgrFkRgJttNJJShNjNmdhXF3/gdfVNoUr1Y7cqB+fiyhQCokUbFata4/VQwmjv6kFgcWLhvUXex8CZvm5PrRHrjKokzPe3WbfdKM2UaGYylZjRgb0UtYoeoFPDP+LuLpV5dMI3Ps19INhMUX7RRpYK2O1sUle2dVmlc/Nu7npcb7qeW2RCgCHFEyRH8z5ej9Aj4W5wQC7kQFJljNEbC6A0y+fvFzvAB9n7OPBrdYkLtHF82ZCEy1sUMD4BHGDaJWjoSQkDTldpX72/1X3Rj3w== rsa-key-20210330"
+    - directory: "staginguploaderuser2"
+      auth:
+        username: "staginguploaderuser2"
+        password: "tiger"
+        publicKey: ""
+    - directory: "new-user-added-4"
+      auth:
+        username: "new-user-added-4"
+        password: "112244"
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAh53ooPgQyRS8Qgcy0NvUQ2Gxy7wWKLY0Y/nKFD77FC3kiQiShsK2chQceeAJhjDJiDHv5MxIGxRehLnkzOiCVqOIExEJsuE95URQRSqf9AispoZ7GcpkUnoi6f0UXoTIxc4BdJp6/qSo26mrb/ASaFBH2c6JuBlkR2gslHUMZjkfF7KC8XzTyd3YfS0AV7dJGxsFqA7MfRcQlhr01nypE5EKXeWm9m2zxaioSbDdhra3ewFuxcoxiqyvhBh5t0YW7Do85F9+Ca1pv2LwYxBWikf9m7iAKqfxr9UCOSBzPJu58dYNXC1AgK/7y5V9XKpgGcV+9x+VONhIzyYzUx9ggQ== rsa-key-20210411"
+    
