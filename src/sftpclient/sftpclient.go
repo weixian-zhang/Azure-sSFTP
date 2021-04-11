@@ -188,6 +188,7 @@ func (sftpc *SftpClient) UploadFilesRecursive() (error) {
 	sftpc.setUploaderFullLocalCleanAndRemotePath()
 
 	sftpc.ensureDir(sftpc.uploadpaths.archiveBaseDir)
+	sftpc.ensureDir(sftpc.uploadpaths.fullLocalCleanUploadDir)
 
 	//create remote dir if not exist
 	err := sftpc.sftpClient.MkdirAll(sftpc.uploadpaths.fullRemoteDir)
@@ -201,6 +202,11 @@ func (sftpc *SftpClient) UploadFilesRecursive() (error) {
 	var filesToUpload = make(StringArray, 0)
 
 	werr := filepath.Walk(sftpc.uploadpaths.fullLocalCleanUploadDir, func(path string, info os.FileInfo, err error) error {
+
+		if err != nil {
+			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error walking upload-clean-directory %s ", err, sftpc.UplConfig.UplName, path)
+			return nil
+		}
 
 		if !info.IsDir() {
 
@@ -270,9 +276,12 @@ func (sftpc *SftpClient) Connect(clientType string, clientName string, host stri
 	authMs := make([]ssh.AuthMethod, 0)
 
 	if privateKeyPath != "" {
+
+		sftpc.logclient.Infof("SftpClient %s - loading private key from path %s", clientType, privateKeyPath)
+
 		pkAuthMethod, err := sftpc.newPublicKeyAuthMethod(clientName, privateKeyPath, privatekeyPassphrase)
 		if err != nil {
-			sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error occur while reading private key file. Ignoring Private Key authn.", err, sftpc.DLConfig.DLName)
+			sftpc.logclient.ErrIffmsg("SftpClient %s - error occur while reading private key file. Ignoring Private Key authn.", err, clientType)
 		} else {
 			authMs = append(authMs, pkAuthMethod)
 		}
@@ -522,6 +531,7 @@ func (sftpc *SftpClient) getSignerFromPrivateKey(clientName string, pemBytes []b
 		if ppkerr != nil {
 			return nil ,ppkerr
 		} else {
+			sftpc.logclient.Infof("SftpClient %s - parse private key Putty formatsuccessfully from %s", clientName, privateKeyPath)
 			return signerFrmPPK, nil
 		}
 	}
@@ -592,7 +602,7 @@ func (sftpc *SftpClient) signerFromPPK(clientName string, privateKeyPath string,
 	var privateKey interface{}
 
 	// read the key
-	puttyKey, err := putty.NewFromFile(sftpc.DLConfig.PrivateKeyPath)
+	puttyKey, err := putty.NewFromFile(privateKeyPath)
 	if err != nil {
 		sftpc.logclient.ErrIffmsg("SftpClient Downloader %s - error parsing ppk private key %s", err, clientName, privateKeyPath)
 		return nil, err

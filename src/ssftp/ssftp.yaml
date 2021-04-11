@@ -2,7 +2,7 @@ sftpPort: 2002                      # port of your choice, default 2002
 enableVirusScan: true               #if disabled, files in Staging will remain and not moved
 enableFileScavenging: false
 enableSftpClientDownloader: false
-enableSftpClientUploader: false
+enableSftpClientUploader: true
 webhooks:   
   - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
     url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
@@ -35,36 +35,16 @@ sftpClientDownloaders:              #downloads to default staging directory for 
     overrideExistingFile: true
 
 sftpClientUploaders:                #uploads from clean directory, /mnt/ssftp/clean
-  - name: "upl-1"
-    host: "host1"
+  - name: "intranet-staging-1"
+    host: "40.65.169.72" #"192.169.2.4"
     port: 2002
-    username: "staginguploaderuser1"
-    password: "verycomplexpass"
-    privateKeyPath: null           #example: /mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/{client-upl-system1}
-    privatekeyPassphrase: null
-    localDirectoryToUpload: "test.rebex.net-1" #base clean directory /mnt/ssftp/clean
-    remoteDirectory: null             #leave it empty if no remote sub dir
-    overrideRemoteExistingFile: true
-  - name: "upl-2"
-    host: "host1"
-    port: 2002
-    username: "staginguploaderuser1"
-    password: "verycomplexpass"
-    privateKeyPath: null           #example: /mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/{client-upl-system1}
-    privatekeyPassphrase: null
-    localDirectoryToUpload: "test.rebex.net-1" #base clean directory /mnt/ssftp/clean
-    remoteDirectory: null             #leave it empty if no remote sub dir
-    overrideRemoteExistingFile: true
-  - name: "upl-3"
-    host: "host1"
-    port: 2002
-    username: "staginguploaderuser1"
-    password: "verycomplexpass"
-    privateKeyPath: null           #example: /mnt/ssftp/system/sftpclient/sftpclient-downloader-privatecerts/{client-upl-system1}
-    privatekeyPassphrase: null
-    localDirectoryToUpload: "test.rebex.net-1" #base clean directory /mnt/ssftp/clean
-    remoteDirectory: null             #leave it empty if no remote sub dir
-    overrideRemoteExistingFile: true
+    username: "intranet-staging-1"
+    password: ""
+    privatekeyPath: "/mnt/c/ssftp/system/sftpclient/sftpclient-uploader-privatecerts/ssh-rsa.ppk"              #example: /mnt/ssftp/system/sftpclient/client-upl-system1
+    privatekeyPassphrase: "password"
+    localDirectoryToUpload: "intranet-staging-1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
+    remoteDirectory: null           #leave it empty if no remote sub dir
+    overrideExistingFile: true
 users:
   cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
     - directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs

@@ -73,7 +73,7 @@ type ClientUploader struct {
     Port int 							`yaml:"port"`
 	Username string						`yaml:"username"`
     Password string						`yaml:"password"`
-    PrivatekeyPath string				`yaml:"privateKeyPath"`
+    PrivatekeyPath string				`yaml:"privatekeyPath"`
 	PrivatekeyPassphrase string			`yaml:"privatekeyPassphrase"`
     LocalDirectoryToUpload string		`yaml:"localDirectoryToUpload"`
     RemoteDirectory string				`yaml:"remoteDirectory"`
@@ -154,7 +154,7 @@ func (c *ConfigService) LoadYamlConfig() (chan bool) {
 
 			if os.Getenv("env") == "dev" { //local dev only
 				c.config.StagingPath = "/mnt/c/ssftp/staging"
-				c.config.LocalRemoteUploadArchiveBasePath = "/mnt/c/ssftp/clean/remoteupload-archive"
+				c.config.LocalRemoteUploadArchiveBasePath = "/mnt/c/ssftp/uploadarchive"
 				c.config.CleanPath =  "/mnt/c/ssftp/clean"
 				c.config.QuarantinePath =  "/mnt/c/ssftp/quarantine"
 				
