@@ -10,50 +10,60 @@ logDests:                           # optional, default logging to StdOut.
   - kind: file                      # conventional do not change
     props:
       path: "/mnt/ssftp/log"
-sftpClientDownloaders:        
-  - name: "test.rebex.net-1"
+sftpClientDownloaders:              #Downloaders are Sftp clients runs concurrently to download files from remote Sftp servers
+  - name: "test.rebex.net-1"        #mandatory unique name
     host: "test.rebex.net"
     port: 22
     username: "demo"
     password: "password"
     privateKeyPath: ""
     privatekeyPassphrase: ""
-    localStagingDirectory: "test.rebex.net-1"
+    localStagingDirectory: "staging-rebex-1"  #files downloaded to "staging" directory /mnt/ssftp/staging/{localStagingDirectory}
+    remoteDirectory: ""             #optional
+    deleteRemoteFileAfterDownload: false
+    overrideExistingFile: true
+  - name: "test.rebex.net-2"        #mandatory unique name
+    host: "test.rebex.net"
+    port: 22
+    username: "demo"
+    password: "password"
+    privateKeyPath: ""              #example: /mnt/ssftp/system/sftpclient/downloader/privatekey.ppk
+    privatekeyPassphrase: ""
+    localStagingDirectory: "staging-rebex-2"
     remoteDirectory: ""
     deleteRemoteFileAfterDownload: false
     overrideExistingFile: true
-sftpClientUploaders:
-  - name: "uploaderinternet-test.rebex.net-1"
-    host: "192.169.2.4"
-    port: 2002
-    username: "fromintranet-test.rebex.net-1"
+sftpClientUploaders:              #Uploaders are Sftp clients runs concurrently to upload local files to remote Sftp servers
+  - name: "sftpclient-uploader-1" #mandatory unique name
+    host: "100.0.10.100"
+    port: 22
+    username: "sftpclient-uploader-1"
     password: "password"
-    privatekeyPath: null              #example: /mnt/ssftp/system/sftpclient/client-upl-system1
+    privatekeyPath: null              #example: /mnt/ssftp/system/sftpclient/uploader/privatekey.ppk
     privatekeyPassphrase: null
-    localDirectoryToUpload: "test.rebex.net-1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
+    localDirectoryToUpload: "test.rebex.net-1" # files in this "clean" directory to be uploaded to remote Sftp
     remoteDirectory: null           #leave it empty if no remote sub dir
     overrideExistingFile: true
 users:
-  cleanDir:                         #access to clean directory only. Accounts typically for dile upload to remote SFTP servers or internal jobs to process clean files
-    - name: "clean-dir-user-1"
-      directory: "test.rebex.net-1"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
+  cleanDir:                         #access to clean directory only. Accounts typically for file upload or internal daemon/jobs to process clean files
+    - directory: "clean-dir-1" # * = root of /mnt/ssftp/clean or a directory name.
       auth:
-        password: "verycomplexpassword"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
-        publicKey: "ssh-rsa AAAAB3NzaC...Akgdv/+1a45V1b...ezfeDr6wKMqhvPX9cMmbjfl54enH8MBvQ== rsa-key-20210329"
-    - name: "clean-dir-user-2"
-      directory: "test.rebex.net-2"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
+        username: "username-of-clean-dir-1"
+        password: "verycomplexpassword" # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        publicKey: "ssh-rsa AAAAB3NzaC...Akgdv/+1a45V1b...jfl5..BvQ== rsa-key-20210329"
+    - directory: "test.rebex.net-2"               
       auth:
-        password: "password"           # either password or PuttyGen RSA key pair. Private key held by SFTP client(s) while Public Key paste in publicKey field
+        username: "clean-dir-2"
+        password: "password"
         publicKey: ""
-
   stagingDir:
-  - directory: "fromintranet-test.rebex.net-1"
+  - directory: "stage-dir-1" # * not supporetd, sub directory name of Staging directory /mnt/ssftp/staging/{stage-dir-1}
     auth:
-      username: "fromintranet-test.rebex.net-1"
+      username: "stage-dir-1"
       password: "supersecure"
       publicKey: ""
-  - directory: "fromintranet-test.rebex.net-2"  # Staging accounts do not support "*" for directory or sub dirs supported.
+  - directory: "stage-dir-2"
     auth:
-      username: "fromintranet-test.rebex.net-2"
+      username: "stage-dir-2"
       password: "supersecure"
       publicKey: ""

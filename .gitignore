@@ -4,6 +4,8 @@ launch.json
 src/ssftp/ssftp.yaml
 deploy/aci/internet
 deploy/aci/intranet
+src/ssftp/ssftp
+src/ssftp/ssftp.exe
 private.pem
 
 *.exe
