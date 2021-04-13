@@ -2,7 +2,8 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
-* [How things Work](#how-things-work)
+* [How Things Work - Directories & Conventions](#how-things-work-directories--conventions)
+* [How Things Work - Architecture](#how-things-work-architecture)
 * [Azure File Structure, Directory Structure & Conventions](#azure-file-structure-directory-structure--conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
@@ -37,8 +38,19 @@ sSFTP consists of 2 containers into a single Container Group namely
     * Additional logging destinations like Log Analytics Workspace, Azure SQL, Azure Cosmos and more
     * Web portal to configure sSFTP in addition to current Yaml file format. Web Portal will be co-hosted within sSFTP container.
 
+### How Things Work - Directories & Conventions  
 
-### How Things Work
+<img src="./doc/ssftp-modules-directories.png" width="850" height="750" />  
+
+The following file shares are required by convention except for "ssftp-log" where sSFTP writes log files to which is optional.  
+
+<img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
+<br />
+An example depicting folder structure in Staging and Clean file share are identical  
+<img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="300" />
+
+
+### How Things Work - Architecture
 
 * SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp), 
   configured directory will be auto created when user/client logins.   
@@ -58,19 +70,9 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 * sSFTP supports webhook when any virus is detected, webhook HTTP POST call can also be forward-proxied to Firewall using UDR
 
-* Logging: currently supports logging to StdOut and files in Azure File. More log destinations coming soon
+* Logging: currently supports logging to StdOut and files in Azure File. More log destinations coming soon...
 
-<img src="./doc/ssftp-azure-architecture.png" width="850" height="750" />
-
-### Azure File Structure, Directory Structure & Conventions  
-
-The following file shares are required by convention (file share name can be changed),  
-except for "ssftp-log" where sSFTP writes log files to which is optional.  
-
-<img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
-<br />
-An example depicting folder structure in Staging and Clean file share are identical  
-<img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="300" />
+<img src="./doc/ssftp-azure-architecture.png" width="850" height="750" />  
       
 ### Configuring sSFTP  
 
