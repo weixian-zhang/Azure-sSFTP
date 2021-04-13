@@ -2,8 +2,8 @@
 
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
-* [How Things Work - Directories & Conventions](#how-things-work-directories--conventions)
-* [How Things Work - Architecture](#how-things-work-architecture)
+* [How Things Work - Directories & Conventions](#how-things-work---directories--conventions)
+* [How Things Work - Architecture](#how-things-work---architecture)
 * [Azure File Structure, Directory Structure & Conventions](#azure-file-structure-directory-structure--conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
