@@ -40,7 +40,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 ### How Things Work - Directories & Conventions  
 
-<img src="./doc/ssftp-modules-directories.png" width="850" height="750" />  
+<img src="./doc/ssftp-modules-directories.png" width="850" height="600" />  
 
 The following file shares are required by convention except for "ssftp-log" where sSFTP writes log files to which is optional.  
 
@@ -51,6 +51,8 @@ An example depicting folder structure in Staging and Clean file share are identi
 
 
 ### How Things Work - Architecture
+
+<img src="./doc/ssftp-azure-architecture.png" width="850" height="700" />  
 
 * SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp), 
   configured directory will be auto created when user/client logins.   
@@ -71,8 +73,6 @@ An example depicting folder structure in Staging and Clean file share are identi
 * sSFTP supports webhook when any virus is detected, webhook HTTP POST call can also be forward-proxied to Firewall using UDR
 
 * Logging: currently supports logging to StdOut and files in Azure File. More log destinations coming soon...
-
-<img src="./doc/ssftp-azure-architecture.png" width="850" height="750" />  
       
 ### Configuring sSFTP  
 
