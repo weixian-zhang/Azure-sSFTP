@@ -4,7 +4,6 @@
 * [Features](#features)
 * [How Things Work - Directories & Conventions](#how-things-work---directories--conventions)
 * [How Things Work - Architecture](#how-things-work---architecture)
-* [Azure File Structure, Directory Structure & Conventions](#azure-file-structure-directory-structure--conventions)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Webhook](#webhook)
@@ -23,8 +22,8 @@ sSFTP consists of 2 containers into a single Container Group namely
 * Built-in Sftp server 
 * Built-in Sftp clients to support multiple concurrent download and upload files to and from remote SFTP servers
 * ClamAV virus scan on:
-  * uploaded files from SFTP clients
-  * files downloaded by sSFTP downloaders
+  * uploaded files from external Sftp clients
+  * files downloaded by sSFTP Downloaders
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
 * Supports [Webhook invocation](#webhook) when virus is detected
@@ -38,7 +37,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 <img src="./doc/ssftp-modules-directories.png" width="850" height="600" />  
 
-* sSFTP at it's core provides a built-in Sftp server that supports multiple concurrent Sftp clients to connect and upload files.  
+* sSFTP at it's core provides a built-in Sftp server that supports multiple concurrent Sftp clients to connect and upload files.
   * Uploaded files are by design saved to <b>Staging directory(/mnt/ssftp/staging)</b>
   * FileWatcher module picks up files from Staging and send them for ClamAV scanning and sorting
   * Virus-free files determined by ClamAV are move to <b>Clean directory(/mnt/ssftp/clean)</b>
@@ -48,20 +47,30 @@ Above process is performed on each uploaded file.
 * The Downloader module are Sftp clients that downloads from remote Sftp server. You can configure multiple Downloaders through [ssftp.yaml](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml) to support concurrent downloads from remote Sftp servers.  
   <b>*Downloaded files are save to Staging directory(/mnt/ssftp/staging) for FileWatcher to scan and sort.</b>
   
-* Similarly to Downloaders, Uploaders are Sftp clients that uploads files to remote Sftp servers and supports multiple Uploaders configured through [ssftp.yaml](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml).  
+* Similarly to Downloaders, Uploaders are Sftp clients that uploads files to remote Sftp servers and supports multiple Uploaders running concurrently.   
   <b>*Uploaders only upload files from Clean directory(/mnt/ssftp/clean), nested directories in Clean directory are supported</b>
 
 * FileWatcher simply watches all files in nested directories in Staging directory(/mnt/ssftp/staging), picks up files sending them to scan and sort. As FileWatcher sort files to Clean directory, it will create the same nested directory structure in Clean directory(/mnt/ssftp/staging) following Staging directory structure. 
   <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="350" />  
   
-* Below explains what each directory is used for  
+* Below explains what each sSFTP directory is used for  
   <img src="./doc/ssftp-fileshare.png" width="700" height="500" />  
 
 ### How Things Work - Architecture
 
 <img src="./doc/ssftp-azure-architecture.png" width="850" height="700" />  
 
-* SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp), 
+#### Networking Facts
+
+* External Sftp clients can download and upload files to and from sSFTP through Azure Firewall as Firewall supports Sftp protocol.
+
+* For ClamAV to receive signature updates and sSFTP to invoke Webhook, Route Table/UDR can be applied to sSFTP subnet and route 0.0.0.0/0 to Firewall to reach any Internet or   Azure services
+
+* sSFTP communicates with ClamAV via TCP locahost:3310 within the same compute instance provided by Azure Container Instance
+
+* Clients from peered-VNets can connect to sSFTP through a Private IP provided by Azure Container Instance. E.g: ACI-PrivateIP:2002
+
+SFTP clients upload files into their designated directory "/mnt/ssftp/<b>staging</b>/{designated directory}" as configured in [ssftp.yaml](#configuring-ssftp), 
   configured directory will be auto created when user/client logins.   
   sSFTP picks up the uploaded file and sends a command to ClamD (ClamAV scan daemon) running in ClamAV container in the same Azure Container Instance Container Group.  
   If the scan result is good, sSFTP moves file to the Clean directory /mnt/ssftp/<b>clean</b>/{same name as Staging designated directory}.  
