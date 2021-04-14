@@ -16,8 +16,8 @@ sftpClientDownloaders:              #Downloaders are Sftp clients runs concurren
     port: 22
     username: "demo"
     password: "password"
-    privateKeyPath: ""
-    privatekeyPassphrase: ""
+    privateKeyPath: "/mnt/ssftp/system/downloaders/rsa-putty-privatekey-authn.ppk"
+    privatekeyPassphrase: "password-for-privatekey" #empty if no privatekey path is empty
     localStagingDirectory: "staging-rebex-1"  #files downloaded to "staging" directory /mnt/ssftp/staging/{localStagingDirectory}
     remoteDirectory: ""             #optional
     deleteRemoteFileAfterDownload: false
