@@ -215,7 +215,7 @@ sSFTP supports webhook when a virus is found, HTTP POST schema below:
 ### Networking  
 As ACI is deployed in a Subnet, you can choose to assign a User-Defined Route (UDR) to route all outbound traffic from sSFTP to an Azure Firewall or any NextGen Firewall.  
 An example of Azure Firewall Application Rule with domains whitelisted for sSFTP to work.  
-Also refer to [How it works](#behind-the-scenes-how-ssftp-works) for more details.  
+Also refer to [How Things Work - Proposed Deployment Architecture](#how-things-work---proposed-deployment-architecture).
 <br />
 <img src="./doc/azfw-app-rules.png" width="850" height="150" />  
 <br />
