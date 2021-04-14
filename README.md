@@ -155,7 +155,7 @@ users:
 * username - username for client to sign-in
 * password - password for client to sign-in
 * publicKey - supports Public Key authn. You can generate RSA key pair and paste the Public Key in this field while you securely pass the Private Key file to client for them to sign-in via Private Key. Example of WinSCP using Private Key file to sign-in to sSFTP.  
-<img src="./doc/ssftp-configure-winscp-example" width="400" height="350" />   
+  <img src="./doc/ssftp-configure-winscp-example.png" width="400" height="400" />   
   
 ### Deploy sSFTP  
 1. Prerequisites  
