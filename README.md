@@ -40,7 +40,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 * sSFTP at it's core provides a built-in Sftp server that supports multiple concurrent Sftp clients to connect and upload files.
   * Uploaded files are by design saved to <b>Staging directory(/mnt/ssftp/staging)</b>
   * FileWatcher picks up files from Staging directory and nested sub-directories and send them for ClamAV scanning
-  * FileWatcher moves Virus-free files determined by ClamAV <b>Clean directory(/mnt/ssftp/clean)</b>
+  * FileWatcher moves Virus-free files determined by ClamAV to <b>Clean directory(/mnt/ssftp/clean)</b>
   * FileWatcher moves files containing virus to <b>Quarantine directory(/mnt/ssftp/quarantine)</b>  
 Above process is performed on each uploaded file.  
   
