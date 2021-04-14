@@ -184,7 +184,7 @@ stagingDir:
        The following command creates a temporary container instance in order to create a reusable network profile.  
         <code> az container create --resource-group <resource group> --name aci-temp-test-np --image alpine --vnet $vnetName --subnet $subnetName --restart-policy never </code>        <br />
        <br />
-       Wait a moment for  "aci-temp-test-np" container to complete creation, then copy the <b>network profile id</b>  
+       Wait a moment for  "aci-temp-test-np" container to complete creation, then <b>copy network profile id</b>  
    
      <img src="./doc/azcli-networkprofile.png" width="650" height="350" />
      <br />
@@ -195,7 +195,7 @@ stagingDir:
 3. Deploy sSFTP using Container Instance Yaml
 
     3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/aci/deploy-aci-template.yaml) as "deploy-aci.yaml".  
-        Replace all < values > with comment "input"  and save the file. Refer to the following ACI Yaml template.          
+        Replace all < values > with comment "input", also note to <b>replace network profile id from Step 2.2</b>. 
         
     3.2 Deploy yaml file by running the following command  
         <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
