@@ -54,7 +54,7 @@ Above process is performed on each uploaded file.
   <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="350" />  
   
 * Below explains what each sSFTP directory is used for  
-  <img src="./doc/ssftp-fileshare.png" width="700" height="500" />  
+  <img src="./doc/ssftp-fileshare.png" width="700" height="600" />  
 
 ### How Things Work - Proposed Deployment Architecture
 
@@ -81,11 +81,35 @@ Above process is performed on each uploaded file.
 
 ### Configuring sSFTP  
 
-Configurable is all done through a [single Yaml file](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml) and file must be located in mounted fileshare path: /mnt/ssftp/system/ssftp.yaml.
+Configurable is all done through a [single Yaml file](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml).  
+*ssftp.yaml must be located in mounted fileshare path as /mnt/ssftp/system/ssftp.yaml.
 Update ssftp.yaml by uploading and overwriting Yaml file in ssftp-system fileshare, without restarting containers sSFTP monitors and load file changes from path: /mnt/ssftp/system/ssftp.yaml  
 
 <img src="./doc/ssftp-config-update.png" width="500" height="300" />  
 
+```yaml
+sftpClientDownloaders:              #Downloaders are Sftp clients runs concurrently to download files from remote Sftp servers
+  - name: "test.rebex.net-1"        #mandatory unique name
+    host: "test.rebex.net"
+    port: 22
+    username: "demo"
+    password: "password"
+    privateKeyPath: "/mnt/ssftp/system/downloaders/rsa-putty-privatekey-authn.ppk"
+    privatekeyPassphrase: "password-for-privatekey" #empty if no privatekey path is empty
+    localStagingDirectory: "staging-rebex-1"  #files downloaded to "staging" directory /mnt/ssftp/staging/{localStagingDirectory}
+    remoteDirectory: ""             #optional
+    deleteRemoteFileAfterDownload: false
+    overrideExistingFile: true
+```  
+* Supports multiple Sftp client Downloaders
+* Downloaders save downloaded files to Staging directory /mnt/ssftp/staging
+* localStagingDirectory - is a sub-directory in Staging /mnt/ssftp/staging/{localStagingDirectory}
+* privateKeyPath - supports Putty or PEM RSA private key file to authenticate against remote Sft server that requires Public Key authn
+* privatekeyPassphrase - the password that secures the Private Key
+* remoteDirectory - Commonly, when Downloader logs-in to Sftp server, the server would have jailed this login account to a particular directory
+  Unless you want to access a sub-directory under the remote jailed directory then specify the remote sub-directory name here
+* deleteRemoteFileAfterDownload - sSFTP tries to delete remote file after download, throws error is permission is missing
+* overrideExistingFile - true to override existing downloaded file with same file name
 
 
 ### Deploy sSFTP  
