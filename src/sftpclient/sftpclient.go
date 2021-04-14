@@ -243,6 +243,8 @@ func (sftpc *SftpClient) UploadFilesRecursive() (error) {
 
 		sftpc.setUploaderFilePaths(localFile.Name())
 
+		_, err := sftpc.sftpClient.Stat(sftpc.uploadpaths.fullRemoteFilePath)
+
 		_, cerr := sftpc.sftpClient.Create(sftpc.uploadpaths.fullRemoteFilePath)
 		if cerr != nil {
 			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error creating remote file %s at %s@%s:%s", cerr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullRemoteFilePath, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
