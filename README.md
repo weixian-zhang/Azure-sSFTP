@@ -49,8 +49,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 * Similarly to Downloaders, Uploaders are Sftp clients that uploads files to remote Sftp servers and supports multiple Uploaders configured through [ssftp.yaml](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml).  
   <b>*Uploaders only upload files from Clean directory(/mnt/ssftp/clean), nested directories in Clean directory are supported</b>
 
-* FileWatcher simply watches all files in nested directories in Staging directory(/mnt/ssftp/staging), picks up files sending them to scan and sort.  
-  As FileWatcher sort files to Clean directory, it will create the same nested directory structure in Clean directory(/mnt/ssftp/staging) following Staging directory structure. 
+* FileWatcher simply watches all files in nested directories in Staging directory(/mnt/ssftp/staging), picks up files sending them to scan and sort. As FileWatcher sort files to Clean directory, it will create the same nested directory structure in Clean directory(/mnt/ssftp/staging) following Staging directory structure. 
   <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="350" />  
   
 * Below explains the role each directory plays
