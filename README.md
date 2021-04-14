@@ -21,19 +21,15 @@ sSFTP consists of 2 containers into a single Container Group namely
 * Container-based solution that runs on Azure Container Instance (PaaS), no infrastructure maintainence needed
 * sSFTP's runs securely in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
 * Providse SFTP server feature 
-* sSFTP Downloaders & Uploaders: Supports multiple concurrent SFTP client downloaders and uploaders to download and upload files to and from remote SFTP servers
+* Built-in Sftp clients to support multiple concurrent download and upload files to and from remote SFTP servers
 * ClamAV virus scan on:
   * uploaded files from SFTP clients
   * files downloaded by sSFTP downloaders
 * Supports certificate and password authentication
 * Azure File as the file storage for SFTP server
 * Supports [Webhook invocation](#webhook) when virus is detected
-* Each SFTP user/service login account is rooted to its configured directory only
-* Supports multi-SFTP accounts per configured directory for file upload ("staging" directories, see [How Things Work](#how-things-work))
-* Supports multi-SFTP accounts per configured directory or "root" directory for file download/processing ("clean" directories, [How Things Work](#how-things-work)))
-* Add or remove user/service accounts without restarting SFTP server
-* Configurable with a single Yaml file, config changes register on-the-fly with no container restart needed
-* For whatever reason if sSFTP's Container Instance is restarted or removed, files are still retained in Azure File
+* Each Sftp login account is jailed to its configured directory only
+* Configurable with a single Yaml file, config changes are recognize instantly with no container restart needed
 * In the roadmap
     * Additional logging destinations like Log Analytics Workspace, Azure SQL, Azure Cosmos and more
     * Web portal to configure sSFTP in addition to current Yaml file format. Web Portal will be co-hosted within sSFTP container.
@@ -42,12 +38,23 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 <img src="./doc/ssftp-modules-directories.png" width="850" height="600" />  
 
-The following file shares are required by convention except for "ssftp-log" where sSFTP writes log files to which is optional.  
+* sSFTP at it's core provides SFTP server for multiple Sftp clients to connect and upload files concurrently.  
+  Uploaded files are picked up by FileWatcher module to send for scanning and sort files to Clean directory(/mnt/ssftp/clean) if no virus is detected,  
+  or sort files to Quarantine directory(/mnt/ssftp/quarantine) if virus is found.  
+  This process is performed on each uploaded file.  
+  
+* The Downloader module are Sftp clients that downloads from remote Sftp server. You can configure multiple Downloaders through [ssftp.yaml](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml) to support concurrent downloads from remote Sftp servers.  
+  <b>*Downloaded files are save to Staging directory(/mnt/ssftp/staging) for FileWatcher to scan and sort.</b>
+  
+* Similarly to Downloaders, Uploaders are Sftp clients that uploads files to remote Sftp servers and supports multiple Uploaders configured through [ssftp.yaml](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml).  
+  <b>*Uploaders only upload files from Clean directory(/mnt/ssftp/clean), nested directories in Clean directory are supported</b>
 
-<img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
-<br />
-An example depicting folder structure in Staging and Clean file share are identical  
-<img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="300" />
+* FileWatcher simply watches all files in nested directories in Staging directory(/mnt/ssftp/staging), picks up files sending them to scan and sort. As FileWatcher sort files to Clean directory, it will create the same nested directory structure in Clean directory(/mnt/ssftp/staging) following Staging directory structure. 
+  <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="350" />  
+  
+* Below explains the role each directory plays
+  <img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
+
 
 
 ### How Things Work - Architecture
