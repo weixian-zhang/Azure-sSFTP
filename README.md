@@ -38,10 +38,12 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 <img src="./doc/ssftp-modules-directories.png" width="850" height="600" />  
 
-* sSFTP at it's core provides SFTP server for multiple Sftp clients to connect and upload files concurrently.  
-  Uploaded files are picked up by FileWatcher module to send for scanning and sort files to Clean directory(/mnt/ssftp/clean) if no virus is detected,  
-  or sort files to Quarantine directory(/mnt/ssftp/quarantine) if virus is found.  
-  This process is performed on each uploaded file.  
+* sSFTP at it's core provides a built-in Sftp server that supports multiple concurrent Sftp clients to connect and upload files.  
+  * Uploaded files are by design saved to <b>Staging directory(/mnt/ssftp/staging)</b>
+  * FileWatcher module picks up files from Staging and send them for ClamAV scanning and sorting
+  * Virus-free files determined by ClamAV are move to <b>Clean directory(/mnt/ssftp/clean)</b>
+  * Files containing virus are move to <b>Quarantine directory(/mnt/ssftp/quarantine)</b>  
+Above process is performed on each uploaded file.  
   
 * The Downloader module are Sftp clients that downloads from remote Sftp server. You can configure multiple Downloaders through [ssftp.yaml](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml) to support concurrent downloads from remote Sftp servers.  
   <b>*Downloaded files are save to Staging directory(/mnt/ssftp/staging) for FileWatcher to scan and sort.</b>
@@ -52,8 +54,8 @@ sSFTP consists of 2 containers into a single Container Group namely
 * FileWatcher simply watches all files in nested directories in Staging directory(/mnt/ssftp/staging), picks up files sending them to scan and sort. As FileWatcher sort files to Clean directory, it will create the same nested directory structure in Clean directory(/mnt/ssftp/staging) following Staging directory structure. 
   <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="350" />  
   
-* Below explains the role each directory plays
-  <img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
+* Below explains what each directory is used for  
+  <img src="./doc/ssftp-fileshare.png" width="700" height="500" />  
 
 ### How Things Work - Architecture
 
