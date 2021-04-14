@@ -39,7 +39,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 * sSFTP at it's core provides a built-in Sftp server that supports multiple concurrent Sftp clients to connect and upload files.
   * Uploaded files are by design saved to <b>Staging directory(/mnt/ssftp/staging)</b>
-  * FileWatcher picks up files from Staging and send them for ClamAV scanning
+  * FileWatcher picks up files from Staging directory and nested sub-directories and send them for ClamAV scanning
   * FileWatcher moves Virus-free files determined by ClamAV <b>Clean directory(/mnt/ssftp/clean)</b>
   * FileWatcher moves files containing virus to <b>Quarantine directory(/mnt/ssftp/quarantine)</b>  
 Above process is performed on each uploaded file.  
@@ -50,7 +50,7 @@ Above process is performed on each uploaded file.
 * Similarly to Downloaders, Uploaders are Sftp clients that uploads files to remote Sftp servers and supports multiple Uploaders running concurrently.   
   <b>*Uploaders only upload files from Clean directory(/mnt/ssftp/clean), nested directories in Clean directory are supported</b>
 
-* FileWatcher simply watches all files in nested directories in Staging directory(/mnt/ssftp/staging), picks up files sending them to scan and sort. As FileWatcher sort files to Clean directory, it will create the same nested directory structure in Clean directory(/mnt/ssftp/staging) following Staging directory structure. 
+* FileWatcher creates the same nested sub-directory structure in Clean directory(/mnt/ssftp/staging) referencing Staging nested sub-directory structure. 
   <img src="./doc/ssftp-fileshare-sameuserdir.png" width="850" height="350" />  
   
 * Below explains what each sSFTP directory is used for  
