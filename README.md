@@ -194,7 +194,7 @@ stagingDir:
    
 3. Deploy sSFTP using Container Instance Yaml
 
-    3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/deploy-aci-template.yaml) as "deploy-aci.yaml".  
+    3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/aci/deploy-aci-template.yaml) as "deploy-aci.yaml".  
         Replace all < values > with comment "input"  and save the file. Refer to the following ACI Yaml template.          
         
     3.2 Deploy yaml file by running the following command  
