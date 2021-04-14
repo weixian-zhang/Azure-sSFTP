@@ -6,22 +6,18 @@ properties:
   - name: clamav
     properties:
       image: mkodockx/docker-clamav:alpine
-      environmentVariables:
-      - name: CLAMD_CONF_FILE
-        value: /mnt/ssftp/system/clamd.conf # config file of ClamAV
       resources:
         requests:
           cpu: 1
           memoryInGb: 4
       ports:
       - port: 3310
-      volumeMounts:   # mountPath by convention, don't change path
+      volumeMounts:                       # mountPath by convention, don't change path
        - mountPath: /mnt/ssftp/system
          name: fs-system
        - mountPath: /mnt/ssftp/staging
          name: fs-staging
-
-  - name: ssftp  # file scanner & quarantine
+  - name: ssftp
     properties:
       image: wxzd/ssftp:1.2.0
       resources:
@@ -30,20 +26,19 @@ properties:
           memoryInGb: 4
       ports:
         - port: 2002
-      volumeMounts:   # mountPath by convention, don't change path
-      - mountPath: /mnt/ssftp/staging       # contains files uploaded from Sftp clients or files downloaded by Downloader
+      volumeMounts:                         # mountPath by convention, don't change path
+      - mountPath: /mnt/ssftp/staging       
         name: fs-staging
-      - mountPath: /mnt/ssftp/uploadarchive # files uploaded by uploader moved here from clean directory
+      - mountPath: /mnt/ssftp/uploadarchive 
         name: fs-uploadarchive
-      - mountPath: /mnt/ssftp/clean         # virus clean files for processing or uploading to remote Sftp servers
+      - mountPath: /mnt/ssftp/clean         
         name: fs-clean
       - mountPath: /mnt/ssftp/quarantine
         name: fs-quarantine
-      - mountPath: /mnt/ssftp/log # optional, if exist to match LogSink.Path in ssftp.yaml
+      - mountPath: /mnt/ssftp/log           # optional but recommended. If exist to match LogSink.Path in ssftp.yaml
         name: fs-log
       - mountPath: /mnt/ssftp/system
         name: fs-system
-
   volumes:
   - name: fs-staging
     azureFile:
