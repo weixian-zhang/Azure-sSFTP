@@ -20,7 +20,7 @@ sSFTP consists of 2 containers into a single Container Group namely
 
 * Container-based solution that runs on Azure Container Instance (PaaS), no infrastructure maintainence needed
 * sSFTP's runs securely in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
-* Providse SFTP server feature 
+* Built-in Sftp server 
 * Built-in Sftp clients to support multiple concurrent download and upload files to and from remote SFTP servers
 * ClamAV virus scan on:
   * uploaded files from SFTP clients
@@ -54,8 +54,6 @@ sSFTP consists of 2 containers into a single Container Group namely
   
 * Below explains the role each directory plays
   <img src="./doc/ssftp-fileshare.png" width="650" height="450" />  
-
-
 
 ### How Things Work - Architecture
 
