@@ -13,7 +13,7 @@
 Azure sSFTP (Scanned SFTP) is a Go app deployed on Azure Container Instance to provide SFTP server and client services with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as file storage.  
 sSFTP consists of 2 containers into a single Container Group namely
 * [ClamAV container (by mkodockx)](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdating of virus signature and Clamd (daemon) listening to port 3310 for virus scan commands.
-* [sSFTP container (by weixian)](https://hub.docker.com/repository/docker/wxzd/ssftp) runs a SFTP server, watches for uploaded files, scans and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
+* [sSFTP container](https://hub.docker.com/repository/docker/wxzd/ssftp) runs a SFTP server, watches for uploaded files, scans and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
 
 ### Features  
 
@@ -103,15 +103,42 @@ sftpClientDownloaders:              #Downloaders are Sftp clients runs concurren
 ```  
 * Supports multiple Sftp client Downloaders
 * Downloaders save downloaded files to Staging directory /mnt/ssftp/staging
+* Downloader supports both basic password and Public Key authn methods
+* username - remote Sftp server login username
+* password - remote Sftp server login password
 * localStagingDirectory - is a sub-directory in Staging /mnt/ssftp/staging/{localStagingDirectory}
-* privateKeyPath - supports Putty or PEM RSA private key file to authenticate against remote Sft server that requires Public Key authn
-* privatekeyPassphrase - the password that secures the Private Key
+* privateKeyPath - supports Putty or PEM RSA private key file, use to authenticate against remote Sft server that requires Public Key authn
+* privatekeyPassphrase - the password that secures Private Key
 * remoteDirectory - Commonly, when Downloader logs-in to Sftp server, the server would have jailed this login account to a particular directory
   Unless you want to access a sub-directory under the remote jailed directory then specify the remote sub-directory name here
 * deleteRemoteFileAfterDownload - sSFTP tries to delete remote file after download, throws error is permission is missing
-* overrideExistingFile - true to override existing downloaded file with same file name
+* overrideExistingFile - true to override existing downloaded file with same file name  
 
-
+```yaml
+sftpClientUploaders:              #Uploaders are Sftp clients runs concurrently to upload local files to remote Sftp servers
+  - name: "sftpclient-uploader-1" #mandatory unique name
+    host: "100.0.10.100"
+    port: 22
+    username: "sftpclient-uploader-1"
+    password: "password"
+    privatekeyPath: null              #example: /mnt/ssftp/system/sftpclient/uploader/privatekey.ppk
+    privatekeyPassphrase: null
+    localDirectoryToUpload: "test.rebex.net-1" # files in this "clean" directory to be uploaded to remote Sftp
+    remoteDirectory: null           #leave it empty if no remote sub dir
+    overrideRemoteExistingFile: true
+```  
+* Supports multiple Sftp client Uploaders
+* Uploaders only upload files from Clean directory /mnt/ssftp/clean
+* Uploaders supports both basic password and Public Key authn methods
+* username - remote Sftp server login username
+* password - remote Sftp server login password
+* privateKeyPath - supports Putty or PEM RSA private key file, use to authenticate against remote Sft server that requires Public Key authn
+* privatekeyPassphrase - the password that secures Private Key
+* localDirectoryToUpload - a sub-directory in Clean directory /mnt/ssftp/clean/{localDirectoryToUpload} that this Uploader will pick files to upload
+* remoteDirectory - Commonly, when Downloader logs-in to Sftp server, the server would have jailed this login account to a particular directory
+  Unless you want to access a sub-directory under the remote jailed directory then specify the remote sub-directory name here
+* overrideRemoteExistingFile - true to override existing file in remote Sftp server
+  
 ### Deploy sSFTP  
 1. Prerequisites  
 [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)  
