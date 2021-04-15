@@ -200,13 +200,15 @@ stagingDir:
      <br />
     2.3 Delete container "aci-temp-test-np" (we only need this container to get the network profile ID)
     <code> az container delete -g <resource group> -n aci-temp-test-np -y </code>  
-   
-3. Deploy sSFTP using Container Instance Yaml
 
-    3.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/aci/deploy-aci-template.yaml) as "deploy-aci.yaml".  
+3. Create Azure File shares with [azfile-createfileshare-ssftp.ps1](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/azure/azfile-createfileshare-ssftp.ps1)
+   
+4. Deploy sSFTP using Container Instance Yaml
+
+    4.1 Save a copy of [sSFTP ACI Yaml file](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/aci/deploy-aci-template.yaml) as "deploy-aci.yaml".  
         Replace all < values > with comment "input", also note to <b>replace network profile id from Step 2.2</b>. 
         
-    3.2 Deploy yaml file by running the following command  
+    4.2 Deploy yaml file by running the following command  
         <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
 
 ### Webhook  
