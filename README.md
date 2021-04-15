@@ -59,7 +59,7 @@ Above process is performed on each uploaded file.
 
 ### Chaining sSFTP & Abusing It!  
 
-<img src="./doc/ssftp-chain.png" width="600" height="500" />  
+<img src="./doc/ssftp-chain.png" width="750" height="600" />  
 
 Apart from being a Sftp server and clients, its quite possible to chain up numerious sSFTP like laying connected jet bridges for the files to trave to their ultimate destination. Network channels between each sSFTP is secured with SSH and authentication, in addition each file is ClamAV scanned upon passing through each sSFTP instance.  
 
