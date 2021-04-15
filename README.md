@@ -218,7 +218,7 @@ stagingDir:
     4.2 Deploy yaml file by running the following command  
         <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>  
  
-An example of a successful deployment of Azure Container Instance  
+An example of a successful deployment  
 <img src="./doc/ssftp-deploy-result.png" width="1100" height="600" />  
 
 ### Webhook  
