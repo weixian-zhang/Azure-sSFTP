@@ -3,7 +3,7 @@
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
 * [How Things Work - Directories & Conventions](#how-things-work---directories--conventions)
-* [How Things Work - Proposed Deployment Architecture](#how-things-work---proposed-deployment-architecture)
+* [How Things Work - Proposed Deployment Architecture](#how-things-work---probable-deployment-model)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
 * [Webhook](#webhook)
@@ -55,6 +55,12 @@ Above process is performed on each uploaded file.
   
 * Below explains what each sSFTP directory is used for  
   <img src="./doc/ssftp-fileshare.png" width="700" height="600" />  
+
+### Chaining sSFTP & Abusing It!  
+
+<img src="./doc/ssftp-chain.png" width="600" height="500" />  
+
+Apart from being a Sftp server and clients, its quite possible to chain up numerious sSFTP like laying connected jet bridges for the files to trave to their ultimate destination. Network channels between each sSFTP is secured with SSH and authentication, in addition each file is ClamAV scanned upon passing through each sSFTP instance.  
 
 ### How Things Work - Probable Deployment Model
 
