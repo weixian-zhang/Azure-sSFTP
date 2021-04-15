@@ -146,7 +146,7 @@ users:
       auth:
         username: "username-of-clean-dir-1"
         password: "verycomplexpassword"
-        publicKey: "ssh-rsa AAAAB3NzaC...Akgdv/+1a45V1b...jfl5..BvQ== rsa-key-20210329"
+        publicKey: "ssh-rsa AAAAB3NzaC...Akgdv/+1a45V1b...jfl5..BvQ=="
 ```  
 * cleanDir are Sftp client accounts  you can distribute to clients for them to access and download ClamAV-scanned virus free files from Clean directory /mnt/ssftp/clean 
 * directory - is a sub-directory of Clean directory /mnt/ssftp/clean. This sub-directory can either be *, which means root (/mnt/ssftp/clean) or a sub-directory name.
@@ -154,7 +154,8 @@ users:
   cleanDir client accounts are meant for other downloader clients or daemons and batch jobs to download ClamAV-scanned virus free files for processing.  
 * username - username for client to sign-in
 * password - password for client to sign-in
-* publicKey - supports Public Key authn. You can generate RSA key pair and paste the Public Key in this field while you securely pass the Private Key file to client for them to sign-in via Private Key. Example of WinSCP using Private Key file to sign-in to sSFTP.  
+* publicKey - supports Public Key authn, Public key string format: "ssh-rsa " + Public Key.  
+  You can generate RSA key pair and paste the Public Key in this field while you securely pass the Private Key file to client for them to sign-in via Private Key. Example of WinSCP using Private Key file to sign-in to sSFTP.  
   <img src="./doc/ssftp-configure-winscp-example.png" width="400" height="400" />  
 
 ```yaml
@@ -169,7 +170,8 @@ stagingDir:
 * directory - is a sub-directory in Staging directory /mnt/ssftp/staging. This is a mandatory field and * root is not supported.
 * username - username for client to sign-in
 * password - password for client to sign-in
-* publicKey - supports Public Key authn. You can generate RSA key pair and paste the Public Key in this field while you securely pass the Private Key file to client for them to sign-in via Private Key. Example of WinSCP using Private Key file to sign-in to sSFTP.  
+* publicKey - supports Public Key authn, Public key string format: "ssh-rsa " + Public Key.  
+  You can generate RSA key pair and paste the Public Key in this field while you securely pass the Private Key file to client for them to sign-in via Private Key. Example of WinSCP using Private Key file to sign-in to sSFTP.  
   
 ### Deploy sSFTP  
 1. Prerequisites  
