@@ -56,9 +56,9 @@ Above process is performed on each uploaded file.
 * Below explains what each sSFTP directory is used for  
   <img src="./doc/ssftp-fileshare.png" width="700" height="600" />  
 
-### How Things Work - Proposed Deployment Architecture
+### How Things Work - Probable Deployment Model
 
-<img src="./doc/ssftp-azure-architecture.png" width="850" height="700" />  
+<img src="./doc/ssftp-azure-architecture.png" width="900" height="700" />  
 
 * External Internet Sftp clients can download and upload files to and from sSFTP through Azure Firewall as Firewall supports Sftp protocol
 
@@ -164,7 +164,7 @@ stagingDir:
     auth:
       username: "stage-dir-1"
       password: "supersecure"
-      publicKey: "ssh-rsa AAAAB3NzaC...Akgdv/+1a45V1b...jfl5..BvQ== rsa-key-20210329"
+      publicKey: "ssh-rsa AAAAB3NzaC...Akgdv/+1a45V1b...jfl5..BvQ=="
 ```  
 * stagingDir are Sftp client accounts you can distribute to clients for them to access and upload files to sSFTP. All uploads from this account is by default save to Staging directory /mnt/ssftp/staging
 * directory - is a sub-directory in Staging directory /mnt/ssftp/staging. This is a mandatory field and * root is not supported.
@@ -188,7 +188,7 @@ stagingDir:
        <br />
        Wait a moment for  "aci-temp-test-np" container to complete creation, then <b>copy network profile id</b>  
    
-     <img src="./doc/azcli-networkprofile.png" width="650" height="350" />
+     <img src="./doc/azcli-networkprofile.png" width="750" height="400" />
      <br />
      <br />
     2.3 Delete container "aci-temp-test-np" (we only need this container to get the network profile ID)
