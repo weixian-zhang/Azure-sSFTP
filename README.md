@@ -39,6 +39,13 @@ sSFTP consists of 2 containers into a single Container Group namely
 <img src="./doc/ssftp-modules-directories.png" width="850" height="600" />  
 
 * sSFTP at it's core provides a built-in Sftp server that supports multiple concurrent Sftp clients to connect and upload files.
+  * Requires mandatory 6 Azure File shares (same Storage account) to be mounted to sSFTP container as described in [Deploy sSFTP.](#deploy-ssftp)
+      * ssftp-staging fileshare mount to container as /mnt/ssftp/staging
+      * ssftp-clean fileshare mount to container as /mnt/ssftp/clean
+      * ssftp-quarantine fileshare mount to container  as /mnt/ssftp/quarantine
+      * ssftp-uploadarchive fileshare mount to container  as /mnt/ssftp/uploadarchive
+      * ssftp-log fileshare mount to container  as /mnt/ssftp/log
+      * ssftp-system fileshare mount to container  as /mnt/ssftp/system
   * Uploaded files are by design saved to <b>Staging directory(/mnt/ssftp/staging)</b>
   * FileWatcher picks up files from Staging directory and nested sub-directories and send them for ClamAV scanning
   * FileWatcher moves Virus-free files determined by ClamAV to <b>Clean directory(/mnt/ssftp/clean)</b>
