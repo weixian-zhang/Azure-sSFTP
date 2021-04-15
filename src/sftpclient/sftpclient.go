@@ -243,7 +243,6 @@ func (sftpc *SftpClient) UploadFilesRecursive() (error) {
 
 		sftpc.setUploaderFilePaths(localFile.Name())
 
-
 		if sftpc.isRemoteFileExist(sftpc.uploadpaths.fullRemoteFilePath) {
 			if !sftpc.UplConfig.OverrideRemoteExistingFile {
 				sftpc.logclient.Infof("SftpClient Uploader %s - detected existing file in remote path %s, OverrideRemoteExistingFile is false skipping upload", sftpc.UplConfig.UplName, sftpc.uploadpaths.fullRemoteFilePath)

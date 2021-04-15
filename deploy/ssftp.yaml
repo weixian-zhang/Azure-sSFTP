@@ -43,7 +43,7 @@ sftpClientUploaders:              #Uploaders are Sftp clients runs concurrently 
     privatekeyPassphrase: null
     localDirectoryToUpload: "test.rebex.net-1" # files in this "clean" directory to be uploaded to remote Sftp
     remoteDirectory: null           #leave it empty if no remote sub dir
-    overrideExistingFile: true
+    overrideRemoteExistingFile: true
 users:
   cleanDir:                         #access to clean directory only. Accounts typically for file upload or internal daemon/jobs to process clean files
     - directory: "clean-dir-1" # * = root of /mnt/ssftp/clean or a directory name.
