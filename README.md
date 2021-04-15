@@ -96,7 +96,7 @@ Apart from being a Sftp server and clients, its quite possible to chain up numer
 ### Configuring sSFTP  
 
 Configurable is all done through a [single Yaml file](https://github.com/weixian-zhang/Azure-sSFTP/blob/main/deploy/ssftp.yaml).  
-*ssftp.yaml must be located in mounted fileshare path as /mnt/ssftp/system/ssftp.yaml.
+*ssftp.yaml must be located in mounted fileshare path as /mnt/ssftp/system/ssftp.yaml.  
 Update ssftp.yaml by uploading and overwriting Yaml file in ssftp-system fileshare, without restarting containers sSFTP monitors and load file changes from path: /mnt/ssftp/system/ssftp.yaml  
 
 <img src="./doc/ssftp-config-update.png" width="500" height="300" />  
@@ -216,7 +216,10 @@ stagingDir:
         Replace all < values > with comment "input", also note to <b>replace network profile id from Step 2.2</b>. 
         
     4.2 Deploy yaml file by running the following command  
-        <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>
+        <code> az container create -g <resource group> --file .\deploy-aci.yaml </code>  
+ 
+An example of a successful deployment of Azure Container Instance  
+<img src="./doc/ssftp-deploy-result.png" width="1100" height="600" />  
 
 ### Webhook  
 
