@@ -208,7 +208,7 @@ stagingDir:
     2.3 Delete container "aci-temp-test-np" (we only need this container to get the network profile ID)
     <code> az container delete -g <resource group> -n aci-temp-test-np -y </code>  
 
-3. Create Azure File shares with [azfile-createfileshare-ssftp.ps1](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/azure/azfile-createfileshare-ssftp.ps1)
+3. You can manually create the mandatory Azure File shares in Azure Portal or Azure Storage Explorer, or use this powershell script to do the same [azfile-createfileshare-ssftp.ps1](https://raw.githubusercontent.com/weixian-zhang/Azure-sSFTP/main/deploy/azure/azfile-createfileshare-ssftp.ps1)
    
 4. Deploy sSFTP using Container Instance Yaml
 
