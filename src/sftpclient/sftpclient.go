@@ -243,6 +243,14 @@ func (sftpc *SftpClient) UploadFilesRecursive() (error) {
 
 		sftpc.setUploaderFilePaths(localFile.Name())
 
+
+		if sftpc.isRemoteFileExist(sftpc.uploadpaths.fullRemoteFilePath) {
+			if !sftpc.UplConfig.OverrideRemoteExistingFile {
+				sftpc.logclient.Infof("SftpClient Uploader %s - detected existing file in remote path %s, OverrideRemoteExistingFile is false skipping upload", sftpc.UplConfig.UplName, sftpc.uploadpaths.fullRemoteFilePath)
+				continue
+			}
+		}
+
 		_, cerr := sftpc.sftpClient.Create(sftpc.uploadpaths.fullRemoteFilePath)
 		if cerr != nil {
 			sftpc.logclient.ErrIffmsg("SftpClient Uploader %s - error creating remote file %s at %s@%s:%s", cerr, sftpc.UplConfig.UplName, sftpc.uploadpaths.fullRemoteFilePath, sftpc.UplConfig.Username, sftpc.UplConfig.Host, sftpc.UplConfig.Port)
@@ -318,6 +326,21 @@ func (sftpc *SftpClient) Connect(clientType string, clientName string, host stri
 	sftpc.sftpClient = client
 
 	return nil
+}
+
+func (sftpc *SftpClient) isRemoteFileExist(path string) (bool) {
+	exist := false
+
+	f, lerr := sftpc.sftpClient.Stat(path)
+	if f != nil {
+		exist = true
+	}
+
+	if lerr != nil {
+		exist = os.IsExist(lerr)
+	}
+
+	return exist
 }
 
 func (sftpc *SftpClient) createLocalDir(dir string) (error) {
