@@ -3,6 +3,7 @@
 * [What is sSFTP](#what-is-ssftp)
 * [Features](#features)
 * [How Things Work - Directories & Conventions](#how-things-work---directories--conventions)
+* [Chaining sSFTP & Abusing It!](#chaining-ssftp--abusing-it)
 * [How Things Work - Proposed Deployment Architecture](#how-things-work---probable-deployment-model)
 * [Configuring sSFTP](#configuring-ssftp)
 * [Deploy sSFTP](#deploy-ssftp)
