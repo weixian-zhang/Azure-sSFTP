@@ -27,5 +27,5 @@ New-AzStorageShare -Context $storageContext -Name $fsLog
 
 New-AzStorageShare -Context $storageContext -Name $fsSystem
 New-AzStorageDirectory -ShareName $fsSystem -Path "sftpclient" -Context $storageContext
-New-AzStorageDirectory -ShareName $fsSystem -Path "sftpclient/sftpclient-downloader-privatecerts"  -Context $storageContext
-New-AzStorageDirectory -ShareName $fsSystem -Path "sftpclient/sftpclient-uploader-privatecerts"  -Context $storageContext
+New-AzStorageDirectory -ShareName $fsSystem -Path "sftpclient/downloaders"  -Context $storageContext
+New-AzStorageDirectory -ShareName $fsSystem -Path "sftpclient/uploaders"  -Context $storageContext
