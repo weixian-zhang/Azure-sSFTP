@@ -5,7 +5,7 @@ properties:
   containers:
   - name: clamav
     properties:
-      image: mkodockx/docker-clamav:alpine
+      image: mkodockx/docker-clamav:buster-slim
       resources:
         requests:
           cpu: 1
@@ -13,13 +13,11 @@ properties:
       ports:
       - port: 3310
       volumeMounts:                       # mountPath by convention, don't change path
-       - mountPath: /mnt/ssftp/system
-         name: fs-system
        - mountPath: /mnt/ssftp/staging
          name: fs-staging
   - name: ssftp
     properties:
-      image: wxzd/ssftp:1.2.0
+      image: wxzd/ssftp:1.2.1
       resources:
         requests:
           cpu: 1
