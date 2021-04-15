@@ -39,6 +39,13 @@ sSFTP consists of 2 containers into a single Container Group namely
 <img src="./doc/ssftp-modules-directories.png" width="850" height="600" />  
 
 * sSFTP at it's core provides a built-in Sftp server that supports multiple concurrent Sftp clients to connect and upload files.
+  * Requires mandatory 6 Azure File shares (same Storage account) to be mounted to sSFTP container as described in [Deploy sSFTP.](#deploy-ssftp)
+      * ssftp-staging fileshare mount to container as /mnt/ssftp/staging
+      * ssftp-clean fileshare mount to container as /mnt/ssftp/clean
+      * ssftp-quarantine fileshare mount to container  as /mnt/ssftp/quarantine
+      * ssftp-uploadarchive fileshare mount to container  as /mnt/ssftp/uploadarchive
+      * ssftp-log fileshare mount to container  as /mnt/ssftp/log
+      * ssftp-system fileshare mount to container  as /mnt/ssftp/system
   * Uploaded files are by design saved to <b>Staging directory(/mnt/ssftp/staging)</b>
   * FileWatcher picks up files from Staging directory and nested sub-directories and send them for ClamAV scanning
   * FileWatcher moves Virus-free files determined by ClamAV to <b>Clean directory(/mnt/ssftp/clean)</b>
@@ -224,7 +231,7 @@ sSFTP supports webhook when a virus is found, HTTP POST schema below:
 ```
 
 ### Networking  
-As ACI is deployed in a Subnet, you can choose to assign a User-Defined Route (UDR) to route all outbound traffic from sSFTP to an Azure Firewall or any NextGen Firewall.  
+As ACI is deployed in a Subnet, you can choose to assign a Route Table/UDR on ACI Subnet to route all outbound traffic from sSFTP to an Azure Firewall or any NextGen Firewall.  
 An example of Azure Firewall Application Rule with domains whitelisted for sSFTP to work.  
 Also refer to [How Things Work - Proposed Deployment Architecture](#how-things-work---proposed-deployment-architecture).
 <br />
