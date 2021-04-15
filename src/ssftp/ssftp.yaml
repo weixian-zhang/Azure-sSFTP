@@ -36,15 +36,15 @@ sftpClientDownloaders:              #downloads to default staging directory for 
 
 sftpClientUploaders:                #uploads from clean directory, /mnt/ssftp/clean
   - name: "intranet-staging-1"
-    host: "40.65.169.72" #"192.169.2.4"
+    host: "localhost" #"192.169.2.4" "40.65.169.72"
     port: 2002
-    username: "intranet-staging-1"
-    password: ""
+    username: "staginguploaderuser1"
+    password: "verycomplexpass"
     privatekeyPath: "/mnt/c/ssftp/system/sftpclient/sftpclient-uploader-privatecerts/ssh-rsa.ppk"              #example: /mnt/ssftp/system/sftpclient/client-upl-system1
     privatekeyPassphrase: "password"
-    localDirectoryToUpload: "intranet-staging-1" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
+    localDirectoryToUpload: "self-upload-localhost" #base directory to place file to be uploaded to remote Sftp server/mnt/ssftp/remoteupload
     remoteDirectory: null           #leave it empty if no remote sub dir
-    overrideExistingFile: true
+    overrideRemoteExistingFile: true
 users:
   cleanDir:                         # user/service accounts access to clean directory only. Accounts typically for internal processors or jobs 
     - directory: "*"                # * = rooted to clean file share able to access all sub dirs. If "sub-dir", rooted to sub dir only matching Staging sub dirs
@@ -63,7 +63,7 @@ users:
         password: "superdry"
         publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAzRG2J3aR8FxfkaeidvfJQzWIqear5NQ4weq2+XyVnQsKA54dEUy5NTKWE/jh6qlWczL43JADvGT58kg3xorX75je8trNjApLdG4aA64AX+DtpSM/r4ycNG5ym6jJ9mYoCs3XVu4YigUs4irC4sc2HAnFkVtJA42yOGDpKFwwpeaIkhYnWzmEpCkXKR1Iavb2qWqaFlDCwi624IO65DYML/fcF7s7U5ZS5Oqkde8DZ1AZbBK2CcLUnBJkuMMIH5kAZ/gpL17l4SNPah16G/iMDpAMF7Exkdc3onVjfnMvKNA4Fjm5/Ey2EXzhBXR3o1fg+1aczv6TxPdYT3bdkrlYPw== rsa-key-20210228"
   stagingDir:                       # user/service accounts access to Staging directory only. Accounts typically for clients file upload only
-    - directory: "self-upload"           # Staging accounts do not support "*" for directory or sub dirs supported.
+    - directory: "self-upload-localhost"           # Staging accounts do not support "*" for directory or sub dirs supported.
       auth:
         username: "staginguploaderuser1"
         password: "verycomplexpass"
