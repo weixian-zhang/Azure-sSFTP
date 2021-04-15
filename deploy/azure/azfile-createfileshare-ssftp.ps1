@@ -1,9 +1,10 @@
 $rg = "rgGCCSHOL"
-$strgname = "strgssftpintranet"
+$strgname = "strgssftpintranet111"
 $location = "Southeast Asia"
 $fsStaging = "ssftp-staging"
 $fsClean = "ssftp-clean"
 $fsQuarantine = "ssftp-quarantine"
+$fsArchive= "ssftp-uploadarchive"
 $fsSystem= "ssftp-system"
 $fsLog = "ssftp-log"
 
@@ -24,6 +25,8 @@ New-AzStorageShare -Context $storageContext -Name $fsClean
 New-AzStorageShare -Context $storageContext -Name $fsQuarantine
 
 New-AzStorageShare -Context $storageContext -Name $fsLog
+
+New-AzStorageShare -Context $storageContext -Name $fsArchive
 
 New-AzStorageShare -Context $storageContext -Name $fsSystem
 New-AzStorageDirectory -ShareName $fsSystem -Path "sftpclient" -Context $storageContext
