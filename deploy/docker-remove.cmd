@@ -1,1 +1,1 @@
- docker rmi wxzd/ssftp:1.2.1 --force
+ docker rmi wxzd/ssftp:1.2.2 --force

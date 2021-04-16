@@ -67,16 +67,6 @@ func (ol *Overlord) Start(exit chan bool) {
 
 					go ol.clamav.ScanFile(scavengedFile.Path, ol.confsvc.config.EnableVirusScan)
 
-					// if !ol.confsvc.config.EnableVirusScan {
-
-					// 	logclient.Infof("Overlord - Virus scan is disabled")
-
-					// 	ol.fileWatcher.ScanDone <- true
-
-					// } else {
-						
-					// }
-
 				case scanR := <-ol.clamav.scanEvent:
 
 					if scanR.Error {
