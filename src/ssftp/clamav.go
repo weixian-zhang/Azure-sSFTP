@@ -55,7 +55,7 @@ func NewClamAvClient() (ClamAv)  {
 	}
 }
 
-func (cav ClamAv) PingClamd() (bool, error) {
+func (cav *ClamAv) PingClamd() (bool, error) {
 
 	err := cav.clamClient.Ping()
 
@@ -66,40 +66,32 @@ func (cav ClamAv) PingClamd() (bool, error) {
 	}
 }
 
-func (cav ClamAv) ScanFile(filePath string) ()  {
+func (cav *ClamAv) ScanFile(filePath string, enableVirusScan bool) ()  {
+
+	if !enableVirusScan {
+		s, _ := cav.convertClamdStatusToLocalEnum("OK")
+		scanResult := ClamAvScanResult{
+			filePath: filePath,
+			Message: "ClamAV scan disabled in config",
+			Status: s,
+			VirusFound: false,
+			Error: false,
+		}
+		
+		logclient.Infof("*ClamAV - file scan disabled in config for %s", filePath)
+	
+		cav.scanEvent <- scanResult	
+
+		return
+	}
 
 	
 	//TODO: scan file
 	logclient.Infof("ClamAV - start scanning file: %s", filePath)
 
-	// file, err := os.Open(filePath)
-	// if logclient.ErrIf(err) {
-	// 	status, vf := convertClamdStatusToLocalEnum("ERROR")
-	// 	cav.scanEvent <- ClamAvScanResult{
-	// 		filePath: filePath,
-	// 		fileName: "",
-	// 		Message: "error reading file",
-	// 		Size: 0,
-	// 		Status: status,
-	// 		VirusFound: vf,
-	// 		Error: true,
-	// 	}
-
-	// 	// cav.clamdError <- ClamdError{
-	// 	// 	file: filePath,
-	// 	// 	err: err.Error(),
-	// 	// }
-		
-	// 	return
-	// }
-	// defer file.Close()
-
-	// fileinfo, ferr := os.Stat(filePath)
-	// logclient.ErrIf(ferr)
-
 	resp, err :=  cav.clamClient.ScanFile(filePath) //)ScanStream(bufio.NewReader(file), nil)
 	if err != nil {
-		status, vf := convertClamdStatusToLocalEnum("ERROR")
+		status, vf := cav.convertClamdStatusToLocalEnum("ERROR")
 		cav.scanEvent <- ClamAvScanResult{
 			filePath: filePath,
 			Message: err.Error(),
@@ -112,7 +104,7 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 
 	result := <- resp
 
-	status, vf := convertClamdStatusToLocalEnum(result.Status)
+	status, vf := cav.convertClamdStatusToLocalEnum(result.Status)
 	scanResult := ClamAvScanResult{
 		filePath: filePath,
 		Message: result.Raw,
@@ -127,7 +119,7 @@ func (cav ClamAv) ScanFile(filePath string) ()  {
 }
 
 //convertClamdStatusToLocalEnum also returns virusFound = true/false
-func convertClamdStatusToLocalEnum(status string) (ScanStatus, bool) {
+func (cav *ClamAv) convertClamdStatusToLocalEnum(status string) (ScanStatus, bool) {
 	if status == "OK" {
 		return OK, false
 	} else if status == "FOUND"{

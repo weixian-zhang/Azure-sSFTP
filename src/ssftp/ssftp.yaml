@@ -1,8 +1,8 @@
 sftpPort: 2002                      # port of your choice, default 2002
-enableVirusScan: true               #if disabled, files in Staging will remain and not moved
-enableFileScavenging: false
+enableVirusScan: false               #if disabled, files in Staging will remain and not moved
+enableFileScavenging: true
 enableSftpClientDownloader: false
-enableSftpClientUploader: true
+enableSftpClientUploader: false
 webhooks:   
   - name: virusFound                # remove name and url if webhook is not used. name is by convention, do not change
     url: "https://httpbin.org/post" # Url of webhook to be invoked by sSFTP using HTTP POST
