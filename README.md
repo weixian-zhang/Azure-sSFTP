@@ -29,8 +29,8 @@ Azure Scanned SFTP or simply sSFTP is a Go app deployed on Azure Container Insta
 * Configurable with a single Yaml file, config changes are recognize instantly with no container restart needed
 * In the roadmap
     * More log destinations i.e: Log Analytics, Azure SQL, Azure Cosmos, Service Bus and more
-    * Web portal to configure sSFTP in addition to current Yaml file format. Web Portal will be co-hosted within sSFTP container.
-
+    * Exploring either a Web portal or Azure App Configuration to support UI-based configuration for sSFTP, in addition to current Yaml file.  
+    
 ### How Things Work - Directories & Conventions  
 
 <img src="./doc/ssftp-modules-directories.png" width="850" height="600" />  
