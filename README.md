@@ -11,14 +11,11 @@
 * [Networking](#networking) 
 
 ### What is sSFTP
-Azure sSFTP (Scanned SFTP) is a Go app deployed on Azure Container Instance to provide SFTP server and client services with integrated [ClamAV](https://www.clamav.net/) virus scanning and Azure File as file storage.  
-sSFTP consists of 2 containers into a single Container Group namely
-* [ClamAV container (by mkodockx)](https://hub.docker.com/r/mkodockx/docker-clamav/) with selfupdating of virus signature and Clamd (daemon) listening to port 3310 for virus scan commands.
-* [sSFTP container](https://hub.docker.com/repository/docker/wxzd/ssftp) runs a SFTP server, watches for uploaded files, scans and sort files into appropriate mounted directories to isolate clean and virus-detected files.  
+Azure Scanned SFTP or simply sSFTP is a Go app deployed on Azure Container Instance to provide SFTP server and client services with integrated [ClamAV](https://www.clamav.net/) virus scan and Azure File shares as file storage.  
 
 ### Features  
 
-* Container-based solution that runs on Azure Container Instance (PaaS), no infrastructure maintainence needed
+* Container-based solution that runs on Azure Container Instance PaaS service, no VM maintainence needed
 * sSFTP's runs securely in Virtual Network while Internet traffic to SFTP server is proxied through Azure Firewall or Firewall of your choice
 * Built-in Sftp server 
 * Built-in Sftp clients to support multiple concurrent download and upload files to and from remote SFTP servers
@@ -26,12 +23,12 @@ sSFTP consists of 2 containers into a single Container Group namely
   * uploaded files from external Sftp clients
   * files downloaded by sSFTP Downloaders
 * Supports certificate and password authentication
-* Azure File as the file storage for SFTP server
+* Reliable storage using Azure File shares
 * Supports [Webhook invocation](#webhook) when virus is detected
-* Each Sftp login account is jailed to its configured directory only
+* Each Sftp client login account is jailed to its configured directory only
 * Configurable with a single Yaml file, config changes are recognize instantly with no container restart needed
 * In the roadmap
-    * Additional logging destinations like Log Analytics Workspace, Azure SQL, Azure Cosmos and more
+    * More log destinations i.e: Log Analytics, Azure SQL, Azure Cosmos, Service Bus and more
     * Web portal to configure sSFTP in addition to current Yaml file format. Web Portal will be co-hosted within sSFTP container.
 
 ### How Things Work - Directories & Conventions  
