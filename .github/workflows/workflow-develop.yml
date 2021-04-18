@@ -34,4 +34,4 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags: wxzd/ssftp:1.2.2
+        tags: wxzd/ssftp:1.2.3
