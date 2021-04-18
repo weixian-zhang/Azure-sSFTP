@@ -19,7 +19,10 @@ jobs:
         go-version: 1.15
         
     - name: Change directory
-      run: ls
+      run: | 
+       ls
+       cd src
+       ls
 
     - name: Go build
       run: go build
