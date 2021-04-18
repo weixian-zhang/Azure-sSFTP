@@ -19,7 +19,7 @@ jobs:
         go-version: 1.15
         
     - name: Change directory
-      run: cd /src/ssftp
+      run: cd /src
 
     - name: Go build
       run: go build
