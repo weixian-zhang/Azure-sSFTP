@@ -33,7 +33,4 @@ jobs:
 
     - name: Docker Build
       run: |
-        cd src
-        ls
-        cd ssftp
-        #docker build  --no-cache -f /src/ssftp/Dockerfile -t wxzd/ssftp:beta-1.3.2 ../
+        docker build  --no-cache -f ./src/ssftp/Dockerfile -t wxzd/ssftp:beta-1.3.2 ../
