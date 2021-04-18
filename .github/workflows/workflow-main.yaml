@@ -18,11 +18,11 @@ jobs:
       with:
         go-version: 1.15
         
-    - name: List files
-      run: ls
+    - name: Change directory
+      run: cd /src/ssftp
 
     - name: Go build
-      run: go build .
+      run: go build
       
     - name: Docker Login
       uses: docker/login-action@v1.8.0
