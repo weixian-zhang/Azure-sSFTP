@@ -23,6 +23,8 @@ jobs:
        ls
        cd src
        ls
+       cd ssftp
+       ls
 
     - name: Go build
       run: go build
