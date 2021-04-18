@@ -19,10 +19,8 @@ jobs:
         go-version: 1.15
         
     - name: Go build
-      run: | 
-       ls
+      run: |
        cd src
-       ls
        cd ssftp
        ls
        go build
