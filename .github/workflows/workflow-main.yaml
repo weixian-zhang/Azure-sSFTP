@@ -19,7 +19,7 @@ jobs:
         go-version: 1.15
 
     - name: Go build
-      run: go build -v ./src
+      run: go build
       
     - name: Docker Login
       uses: docker/login-action@v1.8.0
