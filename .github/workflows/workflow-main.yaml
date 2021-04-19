@@ -31,8 +31,7 @@ jobs:
        
     - name: Get version number
       run: |
-        echo "${{VERSION = fromJson(steps.readfile.outputs.content).main }}"
-        echo ${VERSION}
-        echo version
+        echo "VERSION = ${{ fromJson(steps.readfile.outputs.content).main }}"
+        echo $VERSION
     
     
