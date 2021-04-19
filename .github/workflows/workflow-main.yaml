@@ -13,6 +13,10 @@ on:
 jobs:
 
   build:
+  
+    env:
+      VERSION: 1.2.2
+            
     runs-on: ubuntu-latest
     
     steps:
@@ -27,7 +31,8 @@ jobs:
        
     - name: Get version number
       run: |
-        echo "::set-env version=${{ fromJson(steps.readfile.outputs.content).main }}"
+        echo "${{VERSION = fromJson(steps.readfile.outputs.content).main }}"
+        echo ${VERSION}
         echo version
     
     
