@@ -31,7 +31,7 @@ jobs:
        
     - name: Set version number Env Var
       run: |
-        echo "VERSION=${{ fromJson(steps.readfile.outputs.content).main}} "  >> $GITHUB_ENV
-        echo ${{ env.VERSION }}
+        echo "SEMANTIC_VERSION=${{ fromJson(steps.readfile.outputs.content).main}} "  >> $GITHUB_ENV
+        echo ${{ env.SEMANTIC_VERSION }}
     
     
