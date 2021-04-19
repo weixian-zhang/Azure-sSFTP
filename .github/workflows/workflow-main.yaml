@@ -32,6 +32,6 @@ jobs:
     - name: Set version number Env Var
       run: |
         echo "VERSION = ${{ fromJson(steps.readfile.outputs.content).main }}"  >> $GITHUB_ENV
-        echo $VERSION
+        echo ${{ env.VERSION }}
     
     
