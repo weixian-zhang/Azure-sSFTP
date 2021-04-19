@@ -77,7 +77,7 @@ jobs:
       uses: jacobtomlinson/gha-find-replace@master
       with:
         find: "{{STORAGE_KEY}}"
-        replace: ${{secrets.STORAGE_KEY}}
+        replace: ${{secrets.STORAGE_KEY_INTERNET}}
         include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
       
     - name: Replace SUBSCRIPTION in ACI Yaml
