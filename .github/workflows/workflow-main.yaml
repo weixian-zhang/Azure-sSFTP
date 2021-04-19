@@ -107,7 +107,7 @@ jobs:
         find: "{{SUBSCRIPTION}}"
         replace: ${{secrets.SUBSCRIPTION}}
         include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
-        
+  
     - name: Remove existing ACI Internet Zone
       run: az container delete -g rgGCCSHOL -n aci-ssftp-internetzone -y
         
