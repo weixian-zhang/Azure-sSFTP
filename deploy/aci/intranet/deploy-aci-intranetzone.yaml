@@ -1,0 +1,81 @@
+name: aci-ssftp-intranetzone
+apiVersion: '2019-12-01'
+location: southeastasia
+properties:
+  containers:
+  - name: clamav
+    properties:
+      image: mkodockx/docker-clamav:buster-slim
+      resources:
+        requests:
+          cpu: 1
+          memoryInGb: 4
+      ports:
+      - port: 3310
+      volumeMounts:   # mountPath by convention, don't change path
+       - mountPath: /mnt/ssftp/staging
+         name: fs-staging
+  - name: ssftp  # file scanner & quarantine
+    properties:
+      image: wxzd/ssftp:{{VERSION_NUMBER}}
+      resources:
+        requests:
+          cpu: 1
+          memoryInGb: 4
+      ports:
+        - port: 2002
+      volumeMounts:   # mountPath by convention, don't change path
+      - mountPath: /mnt/ssftp/staging
+        name: fs-staging
+      - mountPath: /mnt/ssftp/uploadarchive
+        name: fs-uploadarchive
+      - mountPath: /mnt/ssftp/clean
+        name: fs-clean
+      - mountPath: /mnt/ssftp/quarantine
+        name: fs-quarantine
+      - mountPath: /mnt/ssftp/log # optional, if exist to match LogSink.Path in ssftp.yaml
+        name: fs-log
+      - mountPath: /mnt/ssftp/system
+        name: fs-system
+  volumes:
+  - name: fs-staging
+    azureFile:
+      sharename: ssftp-staging
+      storageAccountName: strgssftpintranet
+      storageAccountKey: {{STORAGE_KEY_INTRANET}}
+  - name: fs-uploadarchive
+    azureFile:
+      sharename: ssftp-uploadarchive
+      storageAccountName: strgssftpintranet
+      storageAccountKey: {{STORAGE_KEY_INTRANET}}
+  - name: fs-clean
+    azureFile:
+      sharename: ssftp-clean
+      storageAccountName: strgssftpintranet
+      storageAccountKey: {{STORAGE_KEY_INTRANET}}
+  - name: fs-quarantine
+    azureFile:
+      sharename: ssftp-quarantine
+      storageAccountName: strgssftpintranet
+      storageAccountKey: {{STORAGE_KEY_INTRANET}}
+  - name: fs-log
+    azureFile:
+      sharename: ssftp-log
+      storageAccountName: strgssftpintranet
+      storageAccountKey: {{STORAGE_KEY_INTRANET}}
+  - name: fs-system
+    azureFile:
+      sharename: ssftp-system
+      storageAccountName: strgssftpintranet
+      storageAccountKey: {{STORAGE_KEY_INTRANET}}
+  ipAddress:
+    type: Private
+    ports:
+    - protocol: tcp
+      port: 2002
+  networkProfile:
+    id: /subscriptions/{{SUBSCRIPTION}}/resourceGroups/rgGCCSHOL/providers/Microsoft.Network/networkProfiles/aci-network-profile-vnetIntranetZone-GUT-SSFTP
+  restartPolicy: Always
+  osType: Linux
+tags: null
+type: Microsoft.ContainerInstance/containerGroups
