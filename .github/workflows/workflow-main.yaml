@@ -61,14 +61,23 @@ jobs:
       run: |
         docker push  wxzd/ssftp:${{ env.VERSION_NUMBER }}
         
-    - name: 'Azure CLI Login'
+    - name: Azure CLI Login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+    - name: Replace version in ACI Yaml
+      uses: jacobtomlinson/gha-find-replace@master
+      with:
+        find: "{{VERSION_NUMBER}}"
+        replace: ${{ env.VERSION_NUMBER }}
+        include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
+        
+    - name: Remove existing ACI Internet Zone
+      run: az container delete -g rgGCCSHOL -n aci-ssftp-internetzone -y
         
     - name: Deploy sSFTP to ACI Internet Zone
       run:  |
-        cd deploy/aci/internet
-        az container create -g rgGCCSHOL --file .\aci\internet\deploy-aci-internetzone.yaml
-    
-    
+        az container create -g rgGCCSHOL --file deploy/aci/internet/deploy-aci-internetzone.yaml
+ 
+  
