@@ -18,7 +18,8 @@ jobs:
     steps:
     
     - name: List files
-      run: ls   
+      run: |
+        ls   
     
     - name: Read package.json
       uses: juliangruber/read-file-action@v1
