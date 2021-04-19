@@ -66,26 +66,47 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
       
-    - name: Replace VERSION_NUMBER in ACI Yaml
+    - name: Internet Zone - Replace VERSION_NUMBER in ACI Yaml
       uses: jacobtomlinson/gha-find-replace@master
       with:
         find: "{{VERSION_NUMBER}}"
         replace: ${{ env.VERSION_NUMBER }}
         include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
         
-    - name: Replace STORAGE_KEY in ACI Yaml
+    - name: Internet Zone - Replace STORAGE_KEY_INTERNET in ACI Yaml
       uses: jacobtomlinson/gha-find-replace@master
       with:
         find: "{{STORAGE_KEY}}"
         replace: ${{secrets.STORAGE_KEY_INTERNET}}
         include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
       
-    - name: Replace SUBSCRIPTION in ACI Yaml
+    - name: Internet Zone - Replace SUBSCRIPTION in ACI Yaml
       uses: jacobtomlinson/gha-find-replace@master
       with:
         find: "{{SUBSCRIPTION}}"
         replace: ${{secrets.SUBSCRIPTION}}
         include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
+        
+    - name: Intranet Zone - Replace VERSION_NUMBER in ACI Yaml
+      uses: jacobtomlinson/gha-find-replace@master
+      with:
+        find: "{{VERSION_NUMBER}}"
+        replace: ${{ env.VERSION_NUMBER }}
+        include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
+        
+    - name: Intranet Zone - Replace STORAGE_KEY_INTERNET in ACI Yaml
+      uses: jacobtomlinson/gha-find-replace@master
+      with:
+        find: "{{STORAGE_KEY}}"
+        replace: ${{secrets.STORAGE_KEY_INTRANET}}
+        include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
+      
+    - name: Intranet Zone - Replace SUBSCRIPTION in ACI Yaml
+      uses: jacobtomlinson/gha-find-replace@master
+      with:
+        find: "{{SUBSCRIPTION}}"
+        replace: ${{secrets.SUBSCRIPTION}}
+        include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
         
     - name: Remove existing ACI Internet Zone
       run: az container delete -g rgGCCSHOL -n aci-ssftp-internetzone -y
@@ -93,5 +114,12 @@ jobs:
     - name: Deploy sSFTP to ACI Internet Zone
       run:  |
         az container create -g rgGCCSHOL --file deploy/aci/internet/deploy-aci-internetzone.yaml
+        
+    - name: Remove existing ACI Intranet Zone
+      run: az container delete -g rgGCCSHOL -n aci-ssftp-intranetzone -y
+        
+    - name: Deploy sSFTP to ACI Intranet Zone
+      run:  |
+        az container create -g rgGCCSHOL --file deploy/aci/internet/deploy-aci-intranetzone.yaml
  
   
