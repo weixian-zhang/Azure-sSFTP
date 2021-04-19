@@ -65,5 +65,10 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Deploy sSFTP to ACI Internet Zone
+      run:  |
+        cd deploy/aci/internet
+        az container create -g rgGCCSHOL --file .\aci\internet\deploy-aci-internetzone.yaml
     
     
