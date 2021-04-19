@@ -97,7 +97,7 @@ jobs:
     - name: Intranet Zone - Replace STORAGE_KEY_INTERNET in ACI Yaml
       uses: jacobtomlinson/gha-find-replace@master
       with:
-        find: "{{STORAGE_KEY}}"
+        find: "{{STORAGE_KEY_INTRANET}}"
         replace: ${{secrets.STORAGE_KEY_INTRANET}}
         include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
       
