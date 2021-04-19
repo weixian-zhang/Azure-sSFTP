@@ -120,6 +120,6 @@ jobs:
         
     - name: Deploy sSFTP to ACI Intranet Zone
       run:  |
-        az container create -g rgGCCSHOL --file deploy/aci/internet/deploy-aci-intranetzone.yaml
+        az container create -g rgGCCSHOL --file deploy/aci/intranet/deploy-aci-intranetzone.yaml
  
   
