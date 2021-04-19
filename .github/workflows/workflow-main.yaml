@@ -3,14 +3,19 @@ name: sSFTP-Main
 on:
   push:
     branches: [ main ]
+    paths: 
+      - ".github"
   pull_request:
     branches: [ main ]
+    paths: 
+      - "/src"
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
     steps:
+  
     - uses: actions/checkout@v2
 
     - name: Set up Go
@@ -33,4 +38,4 @@ jobs:
 
     - name: Docker Build
       run: |
-        docker build  --no-cache -f ./src/ssftp/Dockerfile -t wxzd/ssftp:beta-1.3.2 .
+        docker build  --no-cache -f ./src/ssftp/Dockerfile -t wxzd/ssftp:1.3.2 .
