@@ -14,9 +14,6 @@ jobs:
 
   build:
   
-    env:
-      VERSION: 1.2.2
-            
     runs-on: ubuntu-latest
     
     steps:
