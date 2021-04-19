@@ -20,13 +20,14 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Read version.json
+      id: readfile
       uses: juliangruber/read-file-action@v1
       with:
        path: ./version.json
        
     - name: Get version number
       run: |
-        echo "::set-env version=${{ fromJson(steps.package.outputs.content).main }}"
+        echo "::set-env version=${{ fromJson(steps.readfile.outputs.content).main }}"
         echo version
     
     
