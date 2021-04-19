@@ -29,9 +29,9 @@ jobs:
       with:
        path: ./version.json
        
-    - name: Get version number
+    - name: Set version number Env Var
       run: |
-        echo "VERSION = ${{ fromJson(steps.readfile.outputs.content).main }}"
+        echo "VERSION = ${{ fromJson(steps.readfile.outputs.content).main }}"  >> $GITHUB_ENV
         echo $VERSION
     
     
