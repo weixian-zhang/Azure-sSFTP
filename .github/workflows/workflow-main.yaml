@@ -60,5 +60,10 @@ jobs:
     - name: Docker Push
       run: |
         docker push  wxzd/ssftp:${{ env.VERSION_NUMBER }}
+        
+    - name: 'Azure CLI Login'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
     
     
