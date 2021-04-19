@@ -92,21 +92,21 @@ jobs:
       with:
         find: "{{VERSION_NUMBER}}"
         replace: ${{ env.VERSION_NUMBER }}
-        include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
+        include: "deploy/aci/intranet/deploy-aci-intranetzone.yaml"
         
     - name: Intranet Zone - Replace STORAGE_KEY_INTERNET in ACI Yaml
       uses: jacobtomlinson/gha-find-replace@master
       with:
         find: "{{STORAGE_KEY_INTRANET}}"
         replace: ${{secrets.STORAGE_KEY_INTRANET}}
-        include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
+        include: "deploy/aci/intranet/deploy-aci-intranetzone.yaml"
       
     - name: Intranet Zone - Replace SUBSCRIPTION in ACI Yaml
       uses: jacobtomlinson/gha-find-replace@master
       with:
         find: "{{SUBSCRIPTION}}"
         replace: ${{secrets.SUBSCRIPTION}}
-        include: "deploy/aci/internet/deploy-aci-intranetzone.yaml"
+        include: "deploy/aci/intranet/deploy-aci-intranetzone.yaml"
   
     - name: Remove existing ACI Internet Zone
       run: az container delete -g rgGCCSHOL -n aci-ssftp-internetzone -y
