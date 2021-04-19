@@ -19,13 +19,14 @@ jobs:
     
     - uses: actions/checkout@v2
     
-    - name: List files
-      run: |
-        ls   
-    
-    - name: Read package.json
+    - name: Read version.json
       uses: juliangruber/read-file-action@v1
       with:
-       path: .github/workflows/version.json
+       path: ./version.json
+       
+    - name: Get version number
+      run: |
+        echo "::set-env version=${{ fromJson(steps.package.outputs.content).main }}"
+        echo version
     
     
