@@ -78,7 +78,6 @@ jobs:
         
     - name: Deploy sSFTP to ACI Internet Zone
       run:  |
-        cd deploy/aci/internet
         az container create -g rgGCCSHOL --file deploy/aci/internet/deploy-aci-internetzone.yaml
  
   
