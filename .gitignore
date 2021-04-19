@@ -2,7 +2,8 @@
 launch.json
 
 src/ssftp/ssftp.yaml
-deploy/aci/internet
+deploy/aci/internet/deploy-aci-internetzone-bak.yaml
+deploy/aci/internet/ssftp.yaml
 deploy/aci/intranet
 src/ssftp/ssftp
 src/ssftp/ssftp.exe
