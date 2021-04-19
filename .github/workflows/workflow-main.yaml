@@ -66,11 +66,25 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
       
-    - name: Replace version in ACI Yaml
+    - name: Replace VERSION_NUMBER in ACI Yaml
       uses: jacobtomlinson/gha-find-replace@master
       with:
         find: "{{VERSION_NUMBER}}"
         replace: ${{ env.VERSION_NUMBER }}
+        include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
+        
+    - name: Replace STORAGE_KEY in ACI Yaml
+      uses: jacobtomlinson/gha-find-replace@master
+      with:
+        find: "{{STORAGE_KEY}}"
+        replace: ${{secrets.STORAGE_KEY}}
+        include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
+      
+    - name: Replace SUBSCRIPTION in ACI Yaml
+      uses: jacobtomlinson/gha-find-replace@master
+      with:
+        find: "{{SUBSCRIPTION}}"
+        replace: ${{secrets.SUBSCRIPTION}}
         include: "deploy/aci/internet/deploy-aci-internetzone.yaml"
         
     - name: Remove existing ACI Internet Zone
